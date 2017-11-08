@@ -1,0 +1,5 @@
+-- This file contains special configurations values, such as directories to extern libraries (Qt)
+-- Please copy this file to a config.lua with your values
+
+-- Nazara base directory (should contains bin, include and lib directories)
+NazaraPath = [[C:\NazaraEngine]]
