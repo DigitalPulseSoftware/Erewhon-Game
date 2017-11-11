@@ -2,6 +2,9 @@
 build/config.lua
 
 # Game binaries
+Assets/*
+
+# Game binaries
 bin/*
 
 # Codeblocks

@@ -59,17 +59,17 @@ int main()
 	// Resources
 
 	// Loading skybox
-	if (Nz::Directory::Exists("assets/purple_nebula_skybox"))
+	if (Nz::Directory::Exists("Assets/purple_nebula_skybox"))
 	{
 		Nz::TextureRef background = Nz::Texture::New();
 		if (background->Create(Nz::ImageType_Cubemap, Nz::PixelFormatType_RGBA8, 2048, 2048))
 		{
-			background->LoadFaceFromFile(Nz::CubemapFace_PositiveX, "assets/purple_nebula_skybox/purple_nebula_skybox_right1.png");
-			background->LoadFaceFromFile(Nz::CubemapFace_PositiveY, "assets/purple_nebula_skybox/purple_nebula_skybox_top3.png");
-			background->LoadFaceFromFile(Nz::CubemapFace_PositiveZ, "assets/purple_nebula_skybox/purple_nebula_skybox_front5.png");
-			background->LoadFaceFromFile(Nz::CubemapFace_NegativeX, "assets/purple_nebula_skybox/purple_nebula_skybox_left2.png");
-			background->LoadFaceFromFile(Nz::CubemapFace_NegativeY, "assets/purple_nebula_skybox/purple_nebula_skybox_bottom4.png");
-			background->LoadFaceFromFile(Nz::CubemapFace_NegativeZ, "assets/purple_nebula_skybox/purple_nebula_skybox_back6.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_PositiveX, "Assets/purple_nebula_skybox/purple_nebula_skybox_right1.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_PositiveY, "Assets/purple_nebula_skybox/purple_nebula_skybox_top3.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_PositiveZ, "Assets/purple_nebula_skybox/purple_nebula_skybox_front5.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_NegativeX, "Assets/purple_nebula_skybox/purple_nebula_skybox_left2.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_NegativeY, "Assets/purple_nebula_skybox/purple_nebula_skybox_bottom4.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_NegativeZ, "Assets/purple_nebula_skybox/purple_nebula_skybox_back6.png");
 		}
 
 		Nz::TextureLibrary::Register("Background", std::move(background));

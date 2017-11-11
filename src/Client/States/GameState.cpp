@@ -39,7 +39,7 @@ namespace ewn
 		earthMesh->BuildSubMesh(Nz::Primitive::UVSphere(1.f, 40, 40));
 
 		Nz::MaterialRef earthMaterial = Nz::Material::New();
-		earthMaterial->SetDiffuseMap("assets/earth/earthmap1k.jpg");
+		earthMaterial->SetDiffuseMap("Assets/earth/earthmap1k.jpg");
 		earthMaterial->SetShader("Basic");
 
 		Nz::ModelRef earthModel = Nz::Model::New();
@@ -62,7 +62,7 @@ namespace ewn
 		params.material.shaderName = "Basic";
 
 		Nz::ModelRef spaceshipModel = Nz::Model::New();
-		spaceshipModel->LoadFromFile("assets/spaceship/spaceship.obj", params);
+		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
 
 		m_spaceshipEntity = m_stateData.world3D->CreateEntity();
 		m_spaceshipEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
@@ -93,7 +93,7 @@ namespace ewn
 
 		Nz::MaterialRef fireMat = Nz::Material::New("Translucent3D");
 		fireMat->EnableFaceCulling(true);
-		fireMat->SetDiffuseMap("assets/particles/fire_particle.png");
+		fireMat->SetDiffuseMap("Assets/particles/fire_particle.png");
 		// Additive blending for fire
 		fireMat->SetDstBlend(Nz::BlendFunc_One);
 		fireMat->SetSrcBlend(Nz::BlendFunc_SrcAlpha);
