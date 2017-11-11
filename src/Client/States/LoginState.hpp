@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -37,6 +37,8 @@ namespace ewn
 			Ndk::LabelWidget* m_statusLabel;
 			Ndk::TextAreaWidget* m_loginArea;
 			Ndk::TextAreaWidget* m_passwordArea;
+			bool m_loginSucceeded;
+			float m_loginAccumulator;
 	};
 }
 

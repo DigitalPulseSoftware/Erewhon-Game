@@ -1,20 +1,24 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/LoginState.hpp>
 #include <Nazara/Core/String.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
+#include <Ndk/StateMachine.hpp>
 #include <NDK/Widgets/CheckboxWidget.hpp>
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <Client/States/GameState.hpp>
 #include <cassert>
 
 namespace ewn
 {
 	void LoginState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		m_loginSucceeded = false;
+
 		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw("An error occured", 24));
 		m_statusLabel->ResizeToContent();
@@ -37,6 +41,7 @@ namespace ewn
 		m_passwordArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
 		m_passwordArea->EnableBackground(true);
 		m_passwordArea->SetBackgroundColor(Nz::Color::White);
+		m_passwordArea->SetEchoMode(Ndk::EchoMode_Password);
 		m_passwordArea->SetSize({ 200.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
@@ -61,6 +66,9 @@ namespace ewn
 			m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login succeeded", 24, 0L, Nz::Color::Green));
 			m_statusLabel->CenterHorizontal();
 			m_statusLabel->Show(true);
+
+			m_loginSucceeded = true;
+			m_loginAccumulator = 0.f;
 		});
 
 		LayoutWidgets();
@@ -68,17 +76,25 @@ namespace ewn
 
 	void LoginState::Leave(Ndk::StateMachine& /*fsm*/)
 	{
+		m_connectionButton->Destroy();
 		m_loginLabel->Destroy();
 		m_loginArea->Destroy();
 		m_passwordLabel->Destroy();
 		m_passwordArea->Destroy();
-		m_connectionButton->Destroy();
+		m_statusLabel->Destroy();
 		m_onLoginFailedSlot.Disconnect();
 		m_onLoginSucceededSlot.Disconnect();
 	}
 
-	bool LoginState::Update(Ndk::StateMachine& /*fsm*/, float elapsedTime)
+	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
+		if (m_loginSucceeded)
+		{
+			m_loginAccumulator += elapsedTime;
+			if (m_loginAccumulator > 1.f)
+				fsm.SetState(std::make_shared<GameState>(m_stateData));
+		}
+
 		return true;
 	}
 

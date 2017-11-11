@@ -1,7 +1,8 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
+#include <Nazara/Core/Directory.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Network/Network.hpp>
@@ -13,13 +14,14 @@
 #include <Client/ClientApplication.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionState.hpp>
-#include <Client/States/LoginState.hpp>
+#include <Client/States/GameState.hpp>
 #include <iostream>
 
 int main()
 {
 	Nz::Initializer<Nz::Network> networkInit;
 	ewn::ClientApplication app;
+	app.EnableFPSCounter(true);
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
 
 	app.Connect("localhost");
@@ -33,6 +35,8 @@ int main()
 
 	auto& cameraComponent3D = camera3D->AddComponent<Ndk::CameraComponent>();
 	cameraComponent3D.SetTarget(&window);
+	cameraComponent3D.SetZFar(10'000.f);
+	cameraComponent3D.SetZNear(1.f);
 
 	camera3D->AddComponent<Ndk::NodeComponent>();
 
@@ -51,6 +55,25 @@ int main()
 
 	Ndk::Canvas canvas(world2D.CreateHandle(), window.GetEventHandler(), window.GetCursorController().CreateHandle());
 	canvas.SetSize(Nz::Vector2f(window.GetSize()));
+
+	// Resources
+
+	// Loading skybox
+	if (Nz::Directory::Exists("assets/purple_nebula_skybox"))
+	{
+		Nz::TextureRef background = Nz::Texture::New();
+		if (background->Create(Nz::ImageType_Cubemap, Nz::PixelFormatType_RGBA8, 2048, 2048))
+		{
+			background->LoadFaceFromFile(Nz::CubemapFace_PositiveX, "assets/purple_nebula_skybox/purple_nebula_skybox_right1.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_PositiveY, "assets/purple_nebula_skybox/purple_nebula_skybox_top3.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_PositiveZ, "assets/purple_nebula_skybox/purple_nebula_skybox_front5.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_NegativeX, "assets/purple_nebula_skybox/purple_nebula_skybox_left2.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_NegativeY, "assets/purple_nebula_skybox/purple_nebula_skybox_bottom4.png");
+			background->LoadFaceFromFile(Nz::CubemapFace_NegativeZ, "assets/purple_nebula_skybox/purple_nebula_skybox_back6.png");
+		}
+
+		Nz::TextureLibrary::Register("Background", std::move(background));
+	}
 
 	ewn::StateData stateData;
 	stateData.app = &app;
