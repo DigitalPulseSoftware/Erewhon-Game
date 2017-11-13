@@ -28,7 +28,8 @@ end
 
 WorkspaceName = "Erewhon"
 Projects = {
-	["ErewhonClient"] = {
+	{
+		Name = "ErewhonClient",
 		Kind = "ConsoleApp",
 		Defines = {},
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Client/**"},
@@ -38,7 +39,8 @@ Projects = {
 		LibsRelease = {"NazaraAudio", "NazaraCore", "NazaraLua", "NazaraGraphics", "NazaraNetwork", "NazaraNoise", "NazaraRenderer", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraPlatform", "NazaraSDK", "NazaraUtility"},
 		AdditionalDependencies = {"Newton", "libsndfile-1"}
 	},
-	["ErewhonServer"] = {
+	{
+		Name = "ErewhonServer",
 		Kind = "ConsoleApp",
 		Defines = {"NDK_SERVER"},
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Server/**"},
@@ -62,8 +64,8 @@ workspace(WorkspaceName)
 	filter "configurations:*64"
 		architecture "x86_64"
 
-	for name,data in pairs(Projects) do
-		project(name)
+	for _,data in pairs(Projects) do
+		project(data.Name)
 			kind(data.Kind)
 			language("C++")
 			cppdialect("C++17")
