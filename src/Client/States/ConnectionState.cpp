@@ -4,9 +4,9 @@
 
 #include <Client/States/ConnectionState.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
-#include <Ndk/StateMachine.hpp>
-#include <Ndk/Components/GraphicsComponent.hpp>
-#include <Ndk/Components/NodeComponent.hpp>
+#include <NDK/StateMachine.hpp>
+#include <NDK/Components/GraphicsComponent.hpp>
+#include <NDK/Components/NodeComponent.hpp>
 #include <Client/States/LoginState.hpp>
 #include <cassert>
 
