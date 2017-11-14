@@ -5,7 +5,7 @@
 #include <Client/States/LoginState.hpp>
 #include <Nazara/Core/String.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
-#include <Ndk/StateMachine.hpp>
+#include <NDK/StateMachine.hpp>
 #include <NDK/Widgets/CheckboxWidget.hpp>
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
