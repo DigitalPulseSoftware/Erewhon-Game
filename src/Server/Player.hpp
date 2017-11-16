@@ -1,5 +1,5 @@
-// Copyright (C) 2017 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
+// This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -7,11 +7,14 @@
 #ifndef EREWHON_SERVER_PLAYER_HPP
 #define EREWHON_SERVER_PLAYER_HPP
 
+#include <NDK/EntityOwner.hpp>
 #include <Shared/NetworkReactor.hpp>
 #include <Server/ServerCommandStore.hpp>
 
 namespace ewn
 {
+	class Arena;
+
 	class Player
 	{
 		friend class ServerCommandStore;
@@ -22,12 +25,16 @@ namespace ewn
 
 			template<typename T> void SendPacket(const T& packet);
 
-		private:
-			static void HandleLogin(std::size_t peerId, const Packets::Login& data);
+			void SetArena(Arena* arena);
 
+			void UpdateInput(const Nz::Vector3f& direction, const Nz::Vector3f& rotation);
+
+		private:
 			const ServerCommandStore& m_commandStore;
+			Arena* m_arena;
 			NetworkReactor& m_networkReactor;
 			std::size_t m_peerId;
+			Ndk::EntityOwner m_spaceship;
 	};
 }
 

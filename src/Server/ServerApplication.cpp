@@ -1,5 +1,5 @@
-// Copyright (C) 2017 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
+// This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
@@ -25,6 +25,8 @@ namespace ewn
 
 	bool ServerApplication::Run()
 	{
+		m_arena.Update(GetUpdateTime());
+
 		return BaseApplication::Run();
 	}
 
@@ -37,6 +39,8 @@ namespace ewn
 
 		m_players[peerId] = m_playerPool.New<Player>(peerId, *reactor, m_commandStore);
 		std::cout << "Client #" << peerId << " connected with data " << data << std::endl;
+
+		m_players[peerId]->SetArena(&m_arena);
 	}
 
 	void ServerApplication::HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data)
@@ -71,5 +75,12 @@ namespace ewn
 
 			m_players[peerId]->SendPacket(loginFailure);
 		}
+	}
+
+	void ServerApplication::HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data)
+	{
+		//TODO: Check
+
+		m_players[peerId]->UpdateInput(data.direction, data.rotation);
 	}
 }

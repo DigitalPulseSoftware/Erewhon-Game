@@ -22,6 +22,8 @@
 #include <NDK/Components/VelocityComponent.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
 #include <cassert>
+#include <cmath>
+#include <iostream>
 #include <random>
 
 namespace ewn
@@ -64,15 +66,13 @@ namespace ewn
 		Nz::ModelRef spaceshipModel = Nz::Model::New();
 		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
 
-		m_spaceshipEntity = m_stateData.world3D->CreateEntity();
-		m_spaceshipEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
-		m_spaceshipEntity->AddComponent<Ndk::NodeComponent>();
-
-		// Clone before adding particles and parenting and stuff
-		m_spaceship2Entity = m_spaceshipEntity->Clone();
-		m_spaceship2Entity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
+		m_spaceshipTemplateEntity = m_stateData.world3D->CreateEntity();
+		m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
+		m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
+		m_spaceshipTemplateEntity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
 
 		// Particle effect
+#if 0
 		Ndk::ParticleEmitterComponent& particleEmitter = m_spaceshipEntity->AddComponent<Ndk::ParticleEmitterComponent>();
 		particleEmitter.SetEmissionRate(30.f);
 
@@ -122,13 +122,9 @@ namespace ewn
 				colorPtr[i].a = static_cast<Nz::UInt8>(Nz::Clamp(lifePtr[i] * 255.f, 0.f, 255.f));
 			}
 		}));
+#endif
 
-		m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetParent(m_spaceshipMovementNode);
-
-		Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
-		nodeComponent.SetParent(m_spaceshipMovementNode);
-		nodeComponent.SetPosition(Nz::Vector3f::Backward() * 8.f + Nz::Vector3f::Up() * 3.f);
-		nodeComponent.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
+		//m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetParent(m_spaceshipMovementNode);
 
 		m_isCurrentlyRotating = false;
 		m_rotationDirection.MakeZero();
@@ -147,6 +143,8 @@ namespace ewn
 				m_rotationCursorPosition.MakeZero();
 
 				m_stateData.window->SetCursor(Nz::SystemCursor_None);
+				m_cursorEntity->Enable(true);
+				m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
 			}
 		});
 
@@ -157,6 +155,8 @@ namespace ewn
 				m_isCurrentlyRotating = false;
 				m_stateData.window->SetCursor(Nz::SystemCursor_Default);
 				Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, *m_stateData.window);
+
+				m_cursorEntity->Enable(false);
 			}
 		});
 
@@ -164,26 +164,88 @@ namespace ewn
 		{
 			if (m_isCurrentlyRotating)
 			{
-				m_rotationCursorPosition.x = Nz::Clamp(m_rotationCursorPosition.x + event.deltaX, -500, 500);
-				m_rotationCursorPosition.y = Nz::Clamp(m_rotationCursorPosition.y + event.deltaY, -500, 500);
+				constexpr int distMax = 200;
 
-				Nz::Vector2ui windowSize = m_stateData.window->GetSize();
-				Nz::Mouse::SetPosition(windowSize.x / 2, windowSize.y / 2, *m_stateData.window);
+				m_rotationCursorPosition.x += event.deltaX;
+				m_rotationCursorPosition.y += event.deltaY;
+				if (m_rotationCursorPosition.GetSquaredLength() > Nz::IntegralPow(distMax, 2))
+				{
+					Nz::Vector2f tempCursor(m_rotationCursorPosition);
+					tempCursor.Normalize();
+					tempCursor *= float(distMax);
+					m_rotationCursorPosition = Nz::Vector2i(tempCursor);
+				}
+
+				Nz::Vector2ui windowCenter = m_stateData.window->GetSize() / 2;
+
+				// Position
+				Ndk::NodeComponent& cursorNode = m_cursorEntity->GetComponent<Ndk::NodeComponent>();
+				cursorNode.SetPosition(float(windowCenter.x + m_rotationCursorPosition.x), float(windowCenter.y + m_rotationCursorPosition.y));
+
+				// Angle
+				float cursorAngle = std::atan2(float(m_rotationCursorPosition.y), float(m_rotationCursorPosition.x));
+				cursorNode.SetRotation(Nz::EulerAnglesf(0.f, 0.f, Nz::RadianToDegree(cursorAngle)));
+
+				// Alpha
+				float cursorAlpha = float(m_rotationCursorPosition.GetSquaredLength()) / Nz::IntegralPow(distMax, 2);
+				m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, static_cast<Nz::UInt8>(std::min(cursorAlpha * 255.f, 255.f))));
+
+				Nz::Mouse::SetPosition(windowCenter.x, windowCenter.y, *m_stateData.window);
 			}
 		});
+
+
+
+
+		// Movement cursor
+		Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
+		cursorMat->SetDiffuseMap("Assets/cursor/orientation.png");
+
+		m_cursorOrientationSprite = Nz::Sprite::New();
+		m_cursorOrientationSprite->SetMaterial(cursorMat);
+		m_cursorOrientationSprite->SetSize({ 32.f, 32.f });
+		m_cursorOrientationSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
+
+		m_cursorEntity = m_stateData.world2D->CreateEntity();
+		m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
+		m_cursorEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ 200.f, 200.f, 0.f });
+
+		m_cursorEntity->Enable(false);
+
+		/*m_stateData.window->SetCursor(Nz::SystemCursor_None);
+		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
+		Nz::Mouse::SetPosition(windowSize.x / 2, windowSize.y / 2, *m_stateData.window);*/
 
 		/*eventHandler.OnMouseMoved.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::MouseMoveEvent& mouse)
 		{
 			m_spaceshipRotation.x -= mouse.deltaX * 0.1f;
 			m_spaceshipRotation.y += mouse.deltaY * 0.1f;
 		});*/
+
+		m_onArenaStateSlot.Connect(m_stateData.app->OnArenaState, this, &GameState::OnArenaState);
+		m_onControlSpaceshipSlot.Connect(m_stateData.app->OnControlSpaceship, this, &GameState::OnControlSpaceship);
+		m_onCreateSpaceshipSlot.Connect(m_stateData.app->OnCreateSpaceship, this, &GameState::OnCreateSpaceship);
+		m_onDeleteSpaceshipSlot.Connect(m_stateData.app->OnDeleteSpaceship, this, &GameState::OnDeleteSpaceship);
+
+		m_inputClock.Restart();
 	}
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
 	{
+		m_onArenaStateSlot.Disconnect();
+		m_onControlSpaceshipSlot.Disconnect();
+		m_onCreateSpaceshipSlot.Disconnect();
+		m_onDeleteSpaceshipSlot.Disconnect();
+
+		for (const auto& pair : m_serverIdToClient)
+		{
+			const Ndk::EntityHandle& spaceship = m_stateData.world3D->GetEntity(pair.second);
+			spaceship->Kill();
+		}
+
+		m_cursorEntity->Kill();
 		m_earthEntity->Kill();
-		m_spaceshipEntity->Kill();
-		m_spaceship2Entity->Kill();
+		m_spaceshipTemplateEntity->Kill();
 	}
 
 	bool GameState::Update(Ndk::StateMachine& /*fsm*/, float elapsedTime)
@@ -191,7 +253,70 @@ namespace ewn
 		auto& earthNode = m_earthEntity->GetComponent<Ndk::NodeComponent>();
 		earthNode.Rotate(Nz::EulerAnglesf(0.f, 2.f * elapsedTime, 0.f));
 
-		// Movement
+		// Update and send input
+		float inputElapsedTime = m_inputClock.GetSeconds();
+		if (inputElapsedTime > 1.f / 60.f)
+		{
+			m_inputClock.Restart();
+
+			UpdateInput(inputElapsedTime);
+		}
+
+		return true;
+	}
+
+	void GameState::OnArenaState(const Packets::ArenaState& arenaState)
+	{
+		for (const auto& spaceshipData : arenaState.spaceships)
+		{
+			assert(m_serverIdToClient.find(spaceshipData.id) != m_serverIdToClient.end());
+			const Ndk::EntityHandle& spaceship = m_stateData.world3D->GetEntity(m_serverIdToClient[spaceshipData.id]);
+			assert(spaceship);
+
+			auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+			spaceshipNode.SetPosition(spaceshipData.position);
+			spaceshipNode.SetRotation(spaceshipData.rotation);
+		}
+	}
+
+	void GameState::OnControlSpaceship(const Packets::ControlSpaceship& controlPacket)
+	{
+		assert(m_serverIdToClient.find(controlPacket.id) != m_serverIdToClient.end());
+		const Ndk::EntityHandle& spaceship = m_stateData.world3D->GetEntity(m_serverIdToClient[controlPacket.id]);
+		assert(spaceship);
+
+		Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
+		nodeComponent.SetParent(spaceship);
+		nodeComponent.SetPosition(Nz::Vector3f::Backward() * 8.f + Nz::Vector3f::Up() * 3.f);
+		nodeComponent.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
+
+		m_controlledSpaceship = spaceship;
+	}
+
+	void GameState::OnCreateSpaceship(const Packets::CreateSpaceship& createPacket)
+	{
+		const Ndk::EntityHandle& spaceship = m_spaceshipTemplateEntity->Clone();
+
+		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+		spaceshipNode.SetPosition(createPacket.position);
+		spaceshipNode.SetRotation(createPacket.rotation);
+
+		m_serverIdToClient[createPacket.id] = spaceship->GetId();
+	}
+
+	void GameState::OnDeleteSpaceship(const Packets::DeleteSpaceship& deletePacket)
+	{
+		assert(m_serverIdToClient.find(deletePacket.id) != m_serverIdToClient.end());
+		const Ndk::EntityHandle& spaceship = m_stateData.world3D->GetEntity(m_serverIdToClient[deletePacket.id]);
+		assert(spaceship);
+
+		spaceship->Kill();
+
+		m_serverIdToClient.erase(deletePacket.id);
+	}
+
+	void GameState::UpdateInput(float elapsedTime)
+	{
 		if (m_stateData.window->HasFocus())
 		{
 			constexpr float acceleration = 30.f;
@@ -238,19 +363,7 @@ namespace ewn
 		m_spaceshipSpeed.z = Nz::Approach(m_spaceshipSpeed.z, 0.f, 10.f * elapsedTime);
 		m_spaceshipRotation.z = Nz::Approach(m_spaceshipRotation.z, 0.f, 50.f * elapsedTime);
 
-		m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetRotation(Nz::EulerAnglesf(-m_spaceshipSpeed.x / 5.f, 0.f, m_spaceshipSpeed.y));
-
-		auto GetActualSpeed = [](float speed)
-		{
-			return speed;
-
-			if (speed > 1.f || speed < -1.f)
-				return speed;
-			else
-				return 0.f;
-		};
-
-		m_spaceshipMovementNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + GetActualSpeed(m_spaceshipSpeed.y) * Nz::Vector3f::Left() + GetActualSpeed(m_spaceshipSpeed.z) * Nz::Vector3f::Up()));
+		//m_controlledSpaceship->GetComponent<Ndk::NodeComponent>().SetRotation(Nz::EulerAnglesf(-m_spaceshipSpeed.x / 5.f, 0.f, m_spaceshipSpeed.y));
 
 		// Rotation
 		if (Nz::Mouse::IsButtonPressed(Nz::Mouse::Right))
@@ -263,10 +376,16 @@ namespace ewn
 		m_rotationDirection.x = Nz::Approach(m_rotationDirection.x, 0.f, 50.f);
 		m_rotationDirection.y = Nz::Approach(m_rotationDirection.y, 0.f, 50.f);
 
-		m_spaceshipRotation.x = Nz::Clamp(-m_rotationDirection.y / 2.f, -200.f, 200.f);
-		m_spaceshipRotation.y = Nz::Clamp(-m_rotationDirection.x / 2.f, -200.f, 200.f);
-		m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
+		m_spaceshipRotation.x = Nz::Clamp(-m_rotationDirection.y, -200.f, 200.f);
+		m_spaceshipRotation.y = Nz::Clamp(-m_rotationDirection.x, -200.f, 200.f);
 
-		return true;
+		//m_spaceshipMovementNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
+		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
+
+		Packets::PlayerMovement movementPacket;
+		movementPacket.direction = m_spaceshipSpeed;
+		movementPacket.rotation = m_spaceshipRotation;
+
+		m_stateData.app->SendPacket(movementPacket);
 	}
 }

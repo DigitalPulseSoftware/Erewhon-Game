@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -45,6 +45,34 @@ namespace ewn
 	bool ClientApplication::Run()
 	{
 		return BaseApplication::Run();
+	}
+
+	void ClientApplication::HandleArenaState(std::size_t peerId, const Packets::ArenaState& data)
+	{
+		assert(peerId == m_serverPeerId);
+
+		OnArenaState(data);
+	}
+
+	void ClientApplication::HandleControlSpaceship(std::size_t peerId, const Packets::ControlSpaceship& data)
+	{
+		assert(peerId == m_serverPeerId);
+
+		OnControlSpaceship(data);
+	}
+
+	void ClientApplication::HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data)
+	{
+		assert(peerId == m_serverPeerId);
+
+		OnCreateSpaceship(data);
+	}
+
+	void ClientApplication::HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data)
+	{
+		assert(peerId == m_serverPeerId);
+
+		OnDeleteSpaceship(data);
 	}
 
 	void ClientApplication::HandleLoginFailure(std::size_t peerId, const Packets::LoginFailure& data)

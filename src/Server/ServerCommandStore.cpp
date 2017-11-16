@@ -1,5 +1,5 @@
-// Copyright (C) 2017 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
+// This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerCommandStore.hpp>
@@ -15,11 +15,16 @@ namespace ewn
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
-		IncomingCommand(Login, std::bind(&ServerApplication::HandleLogin, app, _1, _2));
+		IncomingCommand(Login,          std::bind(&ServerApplication::HandleLogin, app, _1, _2));
+		IncomingCommand(PlayerMovement, std::bind(&ServerApplication::HandlePlayerMovement, app, _1, _2));
 
 		// Outgoing commands
-		OutgoingCommand(LoginFailure, Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(LoginSuccess, Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(ArenaState,       0,                           0);
+		OutgoingCommand(ControlSpaceship, Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateSpaceship,  Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteSpaceship,  Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
 
 #undef IncomingCommand
 #undef OutgoingCommand

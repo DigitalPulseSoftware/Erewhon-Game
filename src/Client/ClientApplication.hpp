@@ -32,8 +32,16 @@ namespace ewn
 			template<typename T> void SendPacket(const T& packet);
 
 			// TEMPORARY
+			void HandleArenaState(std::size_t peerId, const Packets::ArenaState& data);
+			void HandleControlSpaceship(std::size_t peerId, const Packets::ControlSpaceship& data);
+			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
+			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
 			void HandleLoginFailure(std::size_t peerId, const Packets::LoginFailure& data);
 			void HandleLoginSuccess(std::size_t peerId, const Packets::LoginSuccess& data);
+			NazaraSignal(OnArenaState, const Packets::ArenaState& /*data*/);
+			NazaraSignal(OnControlSpaceship, const Packets::ControlSpaceship& /*data*/);
+			NazaraSignal(OnCreateSpaceship, const Packets::CreateSpaceship& /*data*/);
+			NazaraSignal(OnDeleteSpaceship, const Packets::DeleteSpaceship& /*data*/);
 			NazaraSignal(OnLoginFailed, const Packets::LoginFailure& /*data*/);
 			NazaraSignal(OnLoginSucceeded, const Packets::LoginSuccess& /*data*/);
 
