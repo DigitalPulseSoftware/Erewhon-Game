@@ -13,6 +13,11 @@ namespace ewn
 		return m_arena;
 	}
 
+	inline const std::string & Player::GetName() const
+	{
+		return m_login;
+	}
+
 	inline bool Player::IsAuthenticated() const
 	{
 		return m_authenticated;

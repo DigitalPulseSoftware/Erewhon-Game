@@ -39,7 +39,7 @@ namespace ewn
 			Nz::Clock m_stateClock;
 			Ndk::EntityList m_spaceships;
 			Ndk::World m_world;
-			std::unordered_set<Player*> m_players;
+			std::unordered_map<Player*, Ndk::EntityHandle> m_players;
 			Packets::ArenaState m_arenaStatePacket;
 	};
 }

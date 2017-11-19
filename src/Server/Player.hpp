@@ -28,6 +28,7 @@ namespace ewn
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
+			inline const std::string& GetName() const;
 
 			inline bool IsAuthenticated() const;
 

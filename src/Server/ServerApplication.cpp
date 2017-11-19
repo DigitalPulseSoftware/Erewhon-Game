@@ -70,6 +70,9 @@ namespace ewn
 		if (player->IsAuthenticated())
 			return;
 
+		if (data.login.empty())
+			return;
+
 		if (data.login != "Lynix" || data.passwordHash == "006905fab8d3458139bdd88920d7c41fa0e71d7a88ed8d2ac30fff0674251160")
 		{
 			player->Authenticate(data.login);

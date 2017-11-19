@@ -16,8 +16,10 @@ namespace ewn
 		m_world.AddSystem<SpaceshipSystem>();
 	}
 
-	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* owner)
-{
+	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* player)
+	{
+		assert(m_players.find(player) != m_players.end());
+
 		const Ndk::EntityHandle& spaceship = m_world.CreateEntity();
 		auto& nodeComponent = spaceship->AddComponent<Ndk::NodeComponent>();
 		spaceship->AddComponent<PlayerControlledComponent>();
@@ -25,20 +27,22 @@ namespace ewn
 		m_spaceships.Insert(spaceship);
 		spaceship->OnEntityDestruction.Connect(this, &Arena::OnSpaceshipDestroy);
 
+		m_players[player] = spaceship;
+
 		// Create spaceship
 		Packets::CreateSpaceship createSpaceship;
 		createSpaceship.id = spaceship->GetId();
 		createSpaceship.position = nodeComponent.GetPosition();
 		createSpaceship.rotation = nodeComponent.GetRotation();
-		createSpaceship.name = "Janisse";
-		for (Player* owner : m_players)
-			owner->SendPacket(createSpaceship);
+		createSpaceship.name = player->GetName();
+		for (auto& pair : m_players)
+			pair.first->SendPacket(createSpaceship);
 
 		// Control packet
 		Packets::ControlSpaceship controlPacket;
 		controlPacket.id = spaceship->GetId();
 
-		owner->SendPacket(controlPacket);
+		player->SendPacket(controlPacket);
 
 		return spaceship;
 	}
@@ -64,8 +68,8 @@ namespace ewn
 				m_arenaStatePacket.spaceships.emplace_back(std::move(spaceshipData));
 			}
 
-			for (Player* player : m_players)
-				player->SendPacket(m_arenaStatePacket);
+			for (auto& pair : m_players)
+				pair.first->SendPacket(m_arenaStatePacket);
 		}
 	}
 
@@ -80,20 +84,23 @@ namespace ewn
 	{
 		assert(m_players.find(player) == m_players.end());
 
-		m_players.insert(player);
-
-		for (const Ndk::EntityHandle& spaceship : m_spaceships)
+		for (auto& pair : m_players)
 		{
-			Ndk::NodeComponent& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+			if (!pair.second)
+				continue;
+
+			Ndk::NodeComponent& spaceshipNode = pair.second->GetComponent<Ndk::NodeComponent>();
 
 			Packets::CreateSpaceship createSpaceship;
-			createSpaceship.id = spaceship->GetId();
+			createSpaceship.id = pair.second->GetId();
 			createSpaceship.position = spaceshipNode.GetPosition();
 			createSpaceship.rotation = spaceshipNode.GetRotation();
-			createSpaceship.name = "Feldrise";
+			createSpaceship.name = pair.first->GetName();
 
 			player->SendPacket(createSpaceship);
 		}
+
+		m_players[player] = Ndk::EntityHandle::InvalidHandle;
 	}
 
 	void Arena::OnSpaceshipDestroy(Ndk::Entity* spaceship)
@@ -101,7 +108,7 @@ namespace ewn
 		Packets::DeleteSpaceship deletePacket;
 		deletePacket.id = spaceship->GetId();
 
-		for (Player* player : m_players)
-			player->SendPacket(deletePacket);
+		for (auto& pair : m_players)
+			pair.first->SendPacket(deletePacket);
 	}
 }

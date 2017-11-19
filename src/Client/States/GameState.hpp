@@ -25,9 +25,19 @@ namespace ewn
 			~GameState() = default;
 
 		private:
+			struct SpaceshipData
+			{
+				Ndk::EntityHandle shipEntity;
+				Ndk::EntityHandle textEntity;
+				bool isValid = false;
+			};
+
 			void Enter(Ndk::StateMachine& fsm) override;
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
+
+			inline SpaceshipData& CreateServerEntity(std::size_t id);
+			inline SpaceshipData& GetServerEntity(std::size_t id);
 
 			void OnArenaState(const Packets::ArenaState& arenaState);
 			void OnControlSpaceship(const Packets::ControlSpaceship& controlPacket);
@@ -44,7 +54,6 @@ namespace ewn
 			StateData& m_stateData;
 			Ndk::EntityHandle m_cursorEntity;
 			Ndk::EntityHandle m_earthEntity;
-			Ndk::EntityHandle m_controlledSpaceship;
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Nz::Clock m_inputClock;
 			Nz::Node m_spaceshipMovementNode;
@@ -54,7 +63,8 @@ namespace ewn
 			Nz::Vector2f m_rotationDirection;
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
-			std::unordered_map<Nz::UInt64, Ndk::EntityId> m_serverIdToClient;
+			std::size_t m_controlledEntity;
+			std::vector<SpaceshipData> m_serverEntities;
 			bool m_isCurrentlyRotating;
 	};
 }
