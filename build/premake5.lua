@@ -1,12 +1,12 @@
+if (not os.isfile("config.lua")) then
+	error("config.lua is missing")
+end
+
 Config = {}
 
 local configLoader, err = load(io.readfile("config.lua"), "config.lua", "t", Config)
 if (not configLoader) then
-	if (os.isfile("config.lua")) then
-		error("config.lua is missing")
-	else
-		error("config.lua failed to load: " .. err)
-	end
+	error("config.lua failed to load: " .. err)
 end
 
 local configLoaded, err = pcall(configLoader)
