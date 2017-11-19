@@ -27,6 +27,10 @@ namespace ewn
 		private:
 			struct SpaceshipData
 			{
+				Nz::Quaternionf oldRotation;
+				Nz::Quaternionf newRotation;
+				Nz::Vector3f oldPosition;
+				Nz::Vector3f newPosition;
 				Ndk::EntityHandle shipEntity;
 				Ndk::EntityHandle textEntity;
 				bool isValid = false;
@@ -63,6 +67,7 @@ namespace ewn
 			Nz::Vector2f m_rotationDirection;
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
+			Nz::UInt64 m_serverTimeDelta;
 			std::size_t m_controlledEntity;
 			std::vector<SpaceshipData> m_serverEntities;
 			bool m_isCurrentlyRotating;

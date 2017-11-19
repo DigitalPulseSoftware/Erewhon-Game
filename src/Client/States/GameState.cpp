@@ -262,26 +262,37 @@ namespace ewn
 			UpdateInput(inputElapsedTime);
 		}
 
+		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
+		Nz::Quaternionf camRot = cameraNode.GetRotation();
+		for (const SpaceshipData& spaceshipData : m_serverEntities)
+		{
+			if (!spaceshipData.isValid)
+				continue;
+
+			float t = 0.5f;
+
+			auto& spaceshipNode = spaceshipData.shipEntity->GetComponent<Ndk::NodeComponent>();
+			spaceshipNode.SetPosition(Nz::Lerp(spaceshipData.oldPosition, spaceshipData.newPosition, t));
+			spaceshipNode.SetRotation(Nz::Quaternionf::Slerp(spaceshipData.oldRotation, spaceshipData.newRotation, t));
+
+			auto& textGfx = spaceshipData.textEntity->GetComponent<Ndk::GraphicsComponent>();
+			auto& textNode = spaceshipData.textEntity->GetComponent<Ndk::NodeComponent>();
+			textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
+			textNode.SetRotation(cameraNode.GetRotation());
+		}
+
 		return true;
 	}
 
 	void GameState::OnArenaState(const Packets::ArenaState& arenaState)
 	{
-		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
-		Nz::Quaternionf camRot = cameraNode.GetRotation();
-
 		for (const auto& spaceshipData : arenaState.spaceships)
 		{
 			SpaceshipData& data = GetServerEntity(spaceshipData.id);
-
-			auto& spaceshipNode = data.shipEntity->GetComponent<Ndk::NodeComponent>();
-			spaceshipNode.SetPosition(spaceshipData.position);
-			spaceshipNode.SetRotation(spaceshipData.rotation);
-
-			auto& textGfx = data.textEntity->GetComponent<Ndk::GraphicsComponent>();
-			auto& textNode = data.textEntity->GetComponent<Ndk::NodeComponent>();
-			textNode.SetPosition(spaceshipData.position + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
-			textNode.SetRotation(cameraNode.GetRotation());
+			data.oldPosition = data.newPosition;
+			data.oldRotation = data.newRotation;
+			data.newPosition = spaceshipData.position;
+			data.newRotation = spaceshipData.rotation;
 		}
 	}
 
@@ -308,19 +319,19 @@ namespace ewn
 
 	void GameState::OnCreateSpaceship(const Packets::CreateSpaceship& createPacket)
 	{
-		const Ndk::EntityHandle& spaceship = m_spaceshipTemplateEntity->Clone();
+		SpaceshipData& data = CreateServerEntity(createPacket.id);
 
-		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+		data.newPosition = data.oldPosition = createPacket.position;
+		data.newRotation = data.oldRotation = createPacket.rotation;
+		data.shipEntity = m_spaceshipTemplateEntity->Clone();
+
+		auto& spaceshipNode = data.shipEntity->GetComponent<Ndk::NodeComponent>();
 		spaceshipNode.SetPosition(createPacket.position);
 		spaceshipNode.SetRotation(createPacket.rotation);
 
 		Nz::Color spaceshipColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
-		SpaceshipData& data = CreateServerEntity(createPacket.id);
-		data.shipEntity = spaceship;
-
 		// Create spaceship name entity
-
 		Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
 		textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
 		textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, spaceshipColor));
