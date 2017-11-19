@@ -15,7 +15,8 @@ namespace ewn
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
-		IncomingCommand(Login,          std::bind(&ServerApplication::HandleLogin, app, _1, _2));
+		IncomingCommand(JoinArena, std::bind(&ServerApplication::HandleJoinArena, app, _1, _2));
+		IncomingCommand(Login, std::bind(&ServerApplication::HandleLogin, app, _1, _2));
 		IncomingCommand(PlayerMovement, std::bind(&ServerApplication::HandlePlayerMovement, app, _1, _2));
 
 		// Outgoing commands

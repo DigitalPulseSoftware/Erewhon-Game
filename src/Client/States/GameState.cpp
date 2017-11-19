@@ -228,6 +228,8 @@ namespace ewn
 		m_onDeleteSpaceshipSlot.Connect(m_stateData.app->OnDeleteSpaceship, this, &GameState::OnDeleteSpaceship);
 
 		m_inputClock.Restart();
+
+		m_stateData.app->SendPacket(Packets::JoinArena());
 	}
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)

@@ -12,12 +12,27 @@ namespace ewn
 	m_commandStore(commandStore),
 	m_arena(nullptr),
 	m_networkReactor(reactor),
-	m_peerId(peerId)
+	m_peerId(peerId),
+	m_authenticated(false)
 	{
 	}
 
-	void Player::SetArena(Arena* arena)
+	Player::~Player()
 	{
+		if (m_arena)
+			m_arena->HandlePlayerLeave(this);
+	}
+
+	void Player::Authenticate(std::string login)
+	{
+		m_login = std::move(login);
+		m_authenticated = true;
+	}
+
+	void Player::MoveToArena(Arena* arena)
+	{
+		assert(m_arena != arena);
+
 		if (m_arena)
 			m_arena->HandlePlayerLeave(this);
 

@@ -42,8 +42,6 @@ namespace ewn
 
 		m_players[peerId] = m_playerPool.New<Player>(peerId, *reactor, m_commandStore);
 		std::cout << "Client #" << peerId << " connected with data " << data << std::endl;
-
-		m_players[peerId]->SetArena(&m_arena);
 	}
 
 	void ServerApplication::HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data)
@@ -56,34 +54,60 @@ namespace ewn
 
 	void ServerApplication::HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet)
 	{
-		std::cout << "Client #" << peerId << " sent packet of size " << packet.GetDataSize() << std::endl;
+		//std::cout << "Client #" << peerId << " sent packet of size " << packet.GetDataSize() << std::endl;
 
-		m_commandStore.UnserializePacket(peerId, std::move(packet));
+		if (!m_commandStore.UnserializePacket(peerId, std::move(packet)))
+			m_players[peerId]->Disconnect();
 	}
 
 	void ServerApplication::HandleLogin(std::size_t peerId, const Packets::Login& data)
 	{
 		std::cout << "Player #" << peerId << " tried to login with\n";
 		std::cout << " -login: " << data.login << '\n';
-		std::cout << " -hash: " << data.passwordHash << std::endl;
+		std::cout << " -hash: " << data.passwordHash << '\n';
 
-		if (data.login == "Lynix" && data.passwordHash == "7a6f41c05125d270d4ad1893d81b61574445919c03ee4c7299d60328fccbd5be")
+		Player* player = m_players[peerId];
+		if (player->IsAuthenticated())
+			return;
+
+		if (data.login != "Lynix" || data.passwordHash == "006905fab8d3458139bdd88920d7c41fa0e71d7a88ed8d2ac30fff0674251160")
 		{
-			m_players[peerId]->SendPacket(Packets::LoginSuccess());
+			player->Authenticate(data.login);
+
+			player->SendPacket(Packets::LoginSuccess());
+
+			std::cout << "Player #" << peerId << " authenticated as " << data.login << std::endl;
 		}
 		else
 		{
 			Packets::LoginFailure loginFailure;
 			loginFailure.reason = 42;
 
-			m_players[peerId]->SendPacket(loginFailure);
+			player->SendPacket(loginFailure);
+
+			std::cout << "Player #" << peerId << " authenticated failed" << std::endl;
 		}
+	}
+
+	void ServerApplication::HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		Arena* arena = &m_arena; //< One arena atm
+		if (player->GetArena() != arena)
+			player->MoveToArena(arena);
 	}
 
 	void ServerApplication::HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data)
 	{
-		//TODO: Check
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
 
-		m_players[peerId]->UpdateInput(data.direction, data.rotation);
+		//TODO: Check input value
+
+		player->UpdateInput(data.direction, data.rotation);
 	}
 }

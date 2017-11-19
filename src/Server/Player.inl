@@ -8,6 +8,21 @@
 
 namespace ewn
 {
+	inline Arena* Player::GetArena() const
+	{
+		return m_arena;
+	}
+
+	inline bool Player::IsAuthenticated() const
+	{
+		return m_authenticated;
+	}
+
+	inline void Player::Disconnect(Nz::UInt32 data)
+	{
+		m_networkReactor.DisconnectPeer(m_peerId, data);
+	}
+
 	template<typename T>
 	void Player::SendPacket(const T& packet)
 	{

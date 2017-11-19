@@ -24,6 +24,7 @@ namespace ewn
 		ControlSpaceship,
 		CreateSpaceship,
 		DeleteSpaceship,
+		JoinArena,
 		Login,
 		LoginFailure,
 		LoginSuccess,
@@ -69,6 +70,10 @@ namespace ewn
 			Nz::UInt32 id;
 		};
 
+		DeclarePacket(JoinArena)
+		{
+		};
+
 		DeclarePacket(Login)
 		{
 			std::string login;
@@ -96,6 +101,7 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const ControlSpaceship& data);
 		void Serialize(Nz::NetPacket& packet, const CreateSpaceship& data);
 		void Serialize(Nz::NetPacket& packet, const DeleteSpaceship& data);
+		void Serialize(Nz::NetPacket& packet, const JoinArena& data);
 		void Serialize(Nz::NetPacket& packet, const Login& data);
 		void Serialize(Nz::NetPacket& packet, const LoginFailure& data);
 		void Serialize(Nz::NetPacket& packet, const LoginSuccess& data);
@@ -104,6 +110,7 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, ControlSpaceship& data);
 		void Unserialize(Nz::NetPacket& packet, CreateSpaceship& data);
 		void Unserialize(Nz::NetPacket& packet, DeleteSpaceship& data);
+		void Unserialize(Nz::NetPacket& packet, JoinArena& data);
 		void Unserialize(Nz::NetPacket& packet, Login& data);
 		void Unserialize(Nz::NetPacket& packet, LoginFailure& data);
 		void Unserialize(Nz::NetPacket& packet, LoginSuccess& data);

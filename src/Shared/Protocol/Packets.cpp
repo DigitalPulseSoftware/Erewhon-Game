@@ -40,6 +40,10 @@ namespace ewn
 			packet << data.id;
 		}
 
+		void Serialize(Nz::NetPacket& packet, const JoinArena& data)
+		{
+		}
+
 		void Serialize(Nz::NetPacket& packet, const Login& data)
 		{
 			packet << data.login;
@@ -91,6 +95,10 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, DeleteSpaceship& data)
 		{
 			packet >> data.id;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, JoinArena& data)
+		{
 		}
 
 		void Unserialize(Nz::NetPacket& packet, Login& data)

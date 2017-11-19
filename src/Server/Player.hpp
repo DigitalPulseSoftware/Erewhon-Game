@@ -21,11 +21,19 @@ namespace ewn
 
 		public:
 			Player(std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
-			~Player() = default;
+			~Player();
+
+			void Authenticate(std::string login);
+
+			inline void Disconnect(Nz::UInt32 data = 0);
+
+			inline Arena* GetArena() const;
+
+			inline bool IsAuthenticated() const;
+
+			void MoveToArena(Arena* arena);
 
 			template<typename T> void SendPacket(const T& packet);
-
-			void SetArena(Arena* arena);
 
 			void UpdateInput(const Nz::Vector3f& direction, const Nz::Vector3f& rotation);
 
@@ -34,7 +42,9 @@ namespace ewn
 			Arena* m_arena;
 			NetworkReactor& m_networkReactor;
 			std::size_t m_peerId;
+			std::string m_login;
 			Ndk::EntityOwner m_spaceship;
+			bool m_authenticated;
 	};
 }
 

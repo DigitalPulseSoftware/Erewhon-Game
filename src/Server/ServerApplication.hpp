@@ -26,6 +26,7 @@ namespace ewn
 			bool Run() override;
 
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
+			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
 
 		private:

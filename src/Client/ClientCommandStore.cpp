@@ -23,6 +23,7 @@ namespace ewn
 		IncomingCommand(LoginSuccess,      std::bind(&ClientApplication::HandleLoginSuccess, app, _1, _2));
 
 		// Outgoing commands
+		OutgoingCommand(JoinArena,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Login,          Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement, 0,                           0);
 
