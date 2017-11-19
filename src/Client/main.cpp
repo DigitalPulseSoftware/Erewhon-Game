@@ -75,6 +75,12 @@ int main()
 		Nz::TextureLibrary::Register("Background", std::move(background));
 	}
 
+	// Text material
+	Nz::MaterialRef textMaterial = Nz::Material::New("Translucent2D");
+	textMaterial->EnableDepthBuffer(false);
+
+	Nz::MaterialLibrary::Register("SpaceshipText", std::move(textMaterial));
+
 	ewn::StateData stateData;
 	stateData.app = &app;
 	stateData.camera2D = camera2D;
