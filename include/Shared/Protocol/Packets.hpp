@@ -28,7 +28,9 @@ namespace ewn
 		Login,
 		LoginFailure,
 		LoginSuccess,
-		PlayerMovement
+		PlayerMovement,
+		TimeSyncRequest,
+		TimeSyncResponse
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -95,6 +97,17 @@ namespace ewn
 			Nz::Vector3f rotation;
 		};
 
+		DeclarePacket(TimeSyncRequest)
+		{
+			Nz::UInt8 requestId;
+		};
+
+		DeclarePacket(TimeSyncResponse)
+		{
+			Nz::UInt8 requestId;
+			Nz::UInt64 serverTime;
+		};
+
 #undef DeclarePacket
 
 		void Serialize(Nz::NetPacket& packet, const ArenaState& data);
@@ -106,6 +119,9 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const LoginFailure& data);
 		void Serialize(Nz::NetPacket& packet, const LoginSuccess& data);
 		void Serialize(Nz::NetPacket& packet, const PlayerMovement& data);
+		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data);
+		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data);
+
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data);
 		void Unserialize(Nz::NetPacket& packet, ControlSpaceship& data);
 		void Unserialize(Nz::NetPacket& packet, CreateSpaceship& data);
@@ -115,6 +131,8 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, LoginFailure& data);
 		void Unserialize(Nz::NetPacket& packet, LoginSuccess& data);
 		void Unserialize(Nz::NetPacket& packet, PlayerMovement& data);
+		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data);
+		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data);
 	}
 }
 

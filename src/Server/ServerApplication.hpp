@@ -28,6 +28,7 @@ namespace ewn
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
 			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
+			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
 
 		private:
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -20,6 +20,7 @@ namespace ewn
 			BaseApplication() = default;
 			virtual ~BaseApplication();
 
+			inline Nz::UInt64 GetAppTime() const;
 			inline std::size_t GetPeerPerReactor() const;
 			inline std::size_t GetReactorCount() const;
 
@@ -35,6 +36,7 @@ namespace ewn
 			virtual void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) = 0;
 
 		private:
+			Nz::Clock m_appClock;
 			std::size_t m_peerPerReactor;
 			std::vector<std::unique_ptr<NetworkReactor>> m_reactors;
 	};

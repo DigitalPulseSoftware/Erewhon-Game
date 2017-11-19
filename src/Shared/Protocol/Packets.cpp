@@ -65,7 +65,18 @@ namespace ewn
 			packet << data.rotation;
 		}
 
-		void Unserialize(Nz::NetPacket & packet, ArenaState& data)
+		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data)
+		{
+			packet << data.requestId;
+		}
+
+		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data)
+		{
+			packet << data.requestId;
+			packet << data.serverTime;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, ArenaState& data)
 		{
 			Nz::UInt32 spaceshipSize;
 			packet >> spaceshipSize;
@@ -120,6 +131,17 @@ namespace ewn
 		{
 			packet >> data.direction;
 			packet >> data.rotation;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data)
+		{
+			packet >> data.requestId;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data)
+		{
+			packet >> data.requestId;
+			packet >> data.serverTime;
 		}
 	}
 }

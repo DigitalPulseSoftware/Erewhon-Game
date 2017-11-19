@@ -89,6 +89,11 @@ namespace ewn
 		OnLoginSucceeded(data);
 	}
 
+	void ClientApplication::HandleTimeSyncResponse(std::size_t peerId, const Packets::TimeSyncResponse& data)
+	{
+		OnTimeSyncResponse(data);
+	}
+
 	void ClientApplication::HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data)
 	{
 		assert(peerId == m_serverPeerId);

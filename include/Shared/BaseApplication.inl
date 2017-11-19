@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -6,6 +6,11 @@
 
 namespace ewn
 {
+	inline Nz::UInt64 BaseApplication::GetAppTime() const
+	{
+		return m_appClock.GetMilliseconds();
+	}
+
 	inline std::size_t BaseApplication::GetPeerPerReactor() const
 	{
 		return m_peerPerReactor;

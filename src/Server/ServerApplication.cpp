@@ -113,4 +113,17 @@ namespace ewn
 
 		player->UpdateInput(data.direction, data.rotation);
 	}
+
+	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		Packets::TimeSyncResponse response;
+		response.requestId = data.requestId;
+		response.serverTime = GetAppTime();
+
+		player->SendPacket(response);
+	}
 }
