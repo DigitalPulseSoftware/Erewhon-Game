@@ -32,6 +32,7 @@ namespace ewn
 
 			StateData& m_stateData;
 			Ndk::ButtonWidget* m_connectionButton;
+			Ndk::CheckboxWidget* m_rememberCheckbox;
 			Ndk::LabelWidget* m_loginLabel;
 			Ndk::LabelWidget* m_passwordLabel;
 			Ndk::LabelWidget* m_statusLabel;

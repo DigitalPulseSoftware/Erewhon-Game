@@ -45,6 +45,10 @@ namespace ewn
 		m_passwordArea->SetSize({ 200.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
+		m_rememberCheckbox = m_stateData.canvas->Add<Ndk::CheckboxWidget>();
+		m_rememberCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Remember me", 24));
+		m_rememberCheckbox->ResizeToContent();
+
 		m_connectionButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
 		m_connectionButton->ResizeToContent();
@@ -72,6 +76,17 @@ namespace ewn
 		});
 
 		LayoutWidgets();
+
+		// Fill with data from lastlogin.rememberme if present
+		Nz::File loginFile("lastlogin.rememberme");
+		if (loginFile.Open(Nz::OpenMode_ReadOnly))
+		{
+			Nz::String login = loginFile.ReadLine();
+			Nz::String pass = loginFile.ReadLine();
+
+			m_loginArea->SetText(login);
+			m_passwordArea->SetText(pass);
+		}
 	}
 
 	void LoginState::Leave(Ndk::StateMachine& /*fsm*/)
@@ -81,6 +96,7 @@ namespace ewn
 		m_loginArea->Destroy();
 		m_passwordLabel->Destroy();
 		m_passwordArea->Destroy();
+		m_rememberCheckbox->Destroy();
 		m_statusLabel->Destroy();
 		m_onLoginFailedSlot.Disconnect();
 		m_onLoginSucceededSlot.Disconnect();
@@ -100,6 +116,17 @@ namespace ewn
 
 	void LoginState::OnConnectionPressed()
 	{
+		Nz::File loginFile("lastlogin.rememberme");
+		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked)
+		{
+			if (loginFile.Open(Nz::OpenMode_Truncate | Nz::OpenMode_WriteOnly))
+				loginFile.Write(m_loginArea->GetText() + '\n' + m_passwordArea->GetText());
+			else
+				std::cerr << "Failed to open remember.me file" << std::endl;
+		}
+		else
+			loginFile.Delete();
+
 		Packets::Login loginPacket;
 		loginPacket.login = m_loginArea->GetText();
 		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex();
@@ -133,6 +160,10 @@ namespace ewn
 		cursor.y += m_passwordArea->GetSize().y + padding;
 
 		m_passwordLabel->SetPosition(m_passwordArea->GetPosition() - Nz::Vector2f(m_passwordLabel->GetSize().x, 0.f));
+
+		m_rememberCheckbox->SetPosition({ 0.f, cursor.y, 0.f });
+		m_rememberCheckbox->CenterHorizontal();
+		cursor.y += m_rememberCheckbox->GetSize().y + padding;
 
 		m_connectionButton->SetPosition({ 0.f, cursor.y, 0.f });
 		m_connectionButton->CenterHorizontal();
