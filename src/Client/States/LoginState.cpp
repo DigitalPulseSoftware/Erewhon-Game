@@ -107,7 +107,7 @@ namespace ewn
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.SetState(std::make_shared<GameState>(m_stateData));
+				fsm.ResetState(std::make_shared<GameState>(m_stateData));
 		}
 
 		return true;
