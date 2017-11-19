@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -65,12 +65,14 @@ namespace ewn
 
 	void NetworkReactor::DisconnectPeer(std::size_t peerId, Nz::UInt32 data, DisconnectionType type)
 	{
+		assert(peerId >= m_firstId);
+
 		OutgoingEvent::DisconnectEvent disconnectEvent;
 		disconnectEvent.data = data;
 		disconnectEvent.type = type;
 
 		OutgoingEvent outgoingData;
-		outgoingData.peerId = peerId;
+		outgoingData.peerId = peerId - m_firstId;
 		outgoingData.data = std::move(disconnectEvent);
 
 		m_outgoingQueue.enqueue(std::move(outgoingData));
@@ -84,7 +86,7 @@ namespace ewn
 		packetEvent.flags = flags;
 
 		OutgoingEvent outgoingData;
-		outgoingData.peerId = peerId;
+		outgoingData.peerId = peerId - m_firstId;
 		outgoingData.data = std::move(packetEvent);
 
 		m_outgoingQueue.enqueue(std::move(outgoingData));
@@ -99,7 +101,7 @@ namespace ewn
 		while (m_running.load(std::memory_order_acquire))
 		{
 			ReceivePackets(incomingToken);
-			SendPackets(outgoingToken);
+			SendPackets(incomingToken, outgoingToken);
 
 			// Handle connection requests last to treat disconnection request before connection requests
 			HandleConnectionRequests(connectionToken);
@@ -185,7 +187,7 @@ namespace ewn
 		}
 	}
 
-	void NetworkReactor::SendPackets(const moodycamel::ConsumerToken& token)
+	void NetworkReactor::SendPackets(const moodycamel::ProducerToken& producterToken, const moodycamel::ConsumerToken& token)
 	{
 		OutgoingEvent outEvent;
 		while (m_outgoingQueue.try_dequeue(outEvent))
@@ -199,8 +201,22 @@ namespace ewn
 						switch (arg.type)
 						{
 							case DisconnectionType::Kick:
+							{
 								peer->DisconnectNow(arg.data);
+
+								// DisconnectNow does not generate Disconnect event
+								m_clients[outEvent.peerId] = nullptr;
+
+								IncomingEvent::DisconnectEvent disconnectEvent;
+								disconnectEvent.data = 0;
+
+								IncomingEvent newEvent;
+								newEvent.peerId = m_firstId + outEvent.peerId;
+								newEvent.data.emplace<IncomingEvent::DisconnectEvent>(std::move(disconnectEvent));
+
+								m_incomingQueue.enqueue(producterToken, std::move(newEvent));
 								break;
+							}
 
 							case DisconnectionType::Later:
 								peer->DisconnectLater(arg.data);

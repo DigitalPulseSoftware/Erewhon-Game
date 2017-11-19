@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -48,7 +48,7 @@ namespace ewn
 		private:
 			void HandleConnectionRequests(const moodycamel::ConsumerToken& token);
 			void ReceivePackets(const moodycamel::ProducerToken& producterToken);
-			void SendPackets(const moodycamel::ConsumerToken& token);
+			void SendPackets(const moodycamel::ProducerToken& producterToken, const moodycamel::ConsumerToken& token);
 			void WorkerThread();
 
 			struct ConnectionRequest
