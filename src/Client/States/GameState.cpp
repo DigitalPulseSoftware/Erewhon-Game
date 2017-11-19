@@ -352,6 +352,14 @@ namespace ewn
 			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::E))
 				rollSpeedModifier -= rollSpeed * elapsedTime;
 
+			// Rotation
+			if (Nz::Mouse::IsButtonPressed(Nz::Mouse::Right))
+			{
+				m_rotationDirection = Nz::Vector2f(m_rotationCursorPosition);
+				if (m_rotationDirection.GetSquaredLength() < Nz::IntegralPow(50.f, 2))
+					m_rotationDirection.MakeZero();
+			}
+
 			m_spaceshipSpeed.x = Nz::Clamp(m_spaceshipSpeed.x + forwardSpeedModifier, -20.f, 20.f);
 			m_spaceshipSpeed.y = Nz::Clamp(m_spaceshipSpeed.y + leftSpeedModifier, -15.f, 15.f);
 			m_spaceshipSpeed.z = Nz::Clamp(m_spaceshipSpeed.z + jumpSpeedModifier, -15.f, 15.f);
@@ -364,14 +372,6 @@ namespace ewn
 		m_spaceshipRotation.z = Nz::Approach(m_spaceshipRotation.z, 0.f, 50.f * elapsedTime);
 
 		//m_controlledSpaceship->GetComponent<Ndk::NodeComponent>().SetRotation(Nz::EulerAnglesf(-m_spaceshipSpeed.x / 5.f, 0.f, m_spaceshipSpeed.y));
-
-		// Rotation
-		if (Nz::Mouse::IsButtonPressed(Nz::Mouse::Right))
-		{
-			m_rotationDirection = Nz::Vector2f(m_rotationCursorPosition);
-			if (m_rotationDirection.GetSquaredLength() < Nz::IntegralPow(50.f, 2))
-				m_rotationDirection.MakeZero();
-		}
 
 		m_rotationDirection.x = Nz::Approach(m_rotationDirection.x, 0.f, 50.f);
 		m_rotationDirection.y = Nz::Approach(m_rotationDirection.y, 0.f, 50.f);
