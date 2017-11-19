@@ -60,16 +60,12 @@ namespace ewn
 
 		m_onLoginFailedSlot.Connect(m_stateData.app->OnLoginFailed, [this](const Packets::LoginFailure& loginFailure)
 		{
-			m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login failed: " + std::to_string(loginFailure.reason), 24, 0L, Nz::Color::Red));
-			m_statusLabel->CenterHorizontal();
-			m_statusLabel->Show(true);
+			UpdateStatus("Login failed: " + std::to_string(loginFailure.reason), Nz::Color::Red);
 		});
 
 		m_onLoginSucceededSlot.Connect(m_stateData.app->OnLoginSucceeded, [this](const Packets::LoginSuccess&)
 		{
-			m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login succeeded", 24, 0L, Nz::Color::Green));
-			m_statusLabel->CenterHorizontal();
-			m_statusLabel->Show(true);
+			UpdateStatus("Login succeeded", Nz::Color::Green);
 
 			m_loginSucceeded = true;
 			m_loginAccumulator = 0.f;
@@ -86,6 +82,9 @@ namespace ewn
 
 			m_loginArea->SetText(login);
 			m_passwordArea->SetText(pass);
+			m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
+
+			OnConnectionPressed();
 		}
 	}
 
@@ -116,6 +115,13 @@ namespace ewn
 
 	void LoginState::OnConnectionPressed()
 	{
+		Nz::String login = m_loginArea->GetText();
+		if (login.IsEmpty())
+		{
+			UpdateStatus("Error: blank login", Nz::Color::Red);
+			return;
+		}
+
 		Nz::File loginFile("lastlogin.rememberme");
 		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked)
 		{
@@ -167,5 +173,12 @@ namespace ewn
 
 		m_connectionButton->SetPosition({ 0.f, cursor.y, 0.f });
 		m_connectionButton->CenterHorizontal();
+	}
+
+	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
+	{
+		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
+		m_statusLabel->CenterHorizontal();
+		m_statusLabel->Show(true);
 	}
 }
