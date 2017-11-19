@@ -19,7 +19,10 @@ namespace ewn
 		for (Player* player : m_players)
 		{
 			if (player)
+			{
+				player->Disconnect();
 				m_playerPool.Delete(player);
+			}
 		}
 	}
 
