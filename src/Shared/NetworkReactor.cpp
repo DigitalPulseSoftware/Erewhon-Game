@@ -207,10 +207,10 @@ namespace ewn
 								// DisconnectNow does not generate Disconnect event
 								m_clients[outEvent.peerId] = nullptr;
 
-								IncomingEvent::DisconnectEvent disconnectEvent;
+								IncomingEvent::DisconnectEvent disconnectEvent{};
 								disconnectEvent.data = 0;
 
-								IncomingEvent newEvent;
+								IncomingEvent newEvent{};
 								newEvent.peerId = m_firstId + outEvent.peerId;
 								newEvent.data.emplace<IncomingEvent::DisconnectEvent>(std::move(disconnectEvent));
 
