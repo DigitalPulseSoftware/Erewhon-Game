@@ -31,7 +31,10 @@ namespace ewn
 			template<typename T> void SendPacket(const T& packet);
 
 			// <!> TEMPORARY
+			inline Nz::UInt64 GetServerTimeCetteMethodeEstAussiDegueu() const;
+			inline void SetDeltaTimeFromServerToClientCetteMethodeEstDegueuDeTouteFacon(Nz::UInt64 deltaTime);
 			void HandleArenaState(std::size_t peerId, const Packets::ArenaState& data);
+			void HandleChatMessage(std::size_t peerId, const Packets::ChatMessage& data);
 			void HandleControlSpaceship(std::size_t peerId, const Packets::ControlSpaceship& data);
 			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
 			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
@@ -39,6 +42,7 @@ namespace ewn
 			void HandleLoginSuccess(std::size_t peerId, const Packets::LoginSuccess& data);
 			void HandleTimeSyncResponse(std::size_t peerId, const Packets::TimeSyncResponse& data);
 			NazaraSignal(OnArenaState, const Packets::ArenaState& /*data*/);
+			NazaraSignal(OnChatMessage, const Packets::ChatMessage& /*data*/);
 			NazaraSignal(OnControlSpaceship, const Packets::ControlSpaceship& /*data*/);
 			NazaraSignal(OnCreateSpaceship, const Packets::CreateSpaceship& /*data*/);
 			NazaraSignal(OnDeleteSpaceship, const Packets::DeleteSpaceship& /*data*/);
@@ -57,6 +61,7 @@ namespace ewn
 
 			ClientCommandStore m_commandStore;
 			std::size_t m_serverPeerId;
+			Nz::UInt64 m_deltaTimeDegueux;
 			bool m_isServerConnected;
 	};
 }

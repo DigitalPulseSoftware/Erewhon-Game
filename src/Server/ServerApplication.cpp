@@ -10,6 +10,7 @@ namespace ewn
 {
 	ServerApplication::ServerApplication() :
 	m_playerPool(sizeof(Player)),
+	m_arena(this),
 	m_commandStore(this)
 	{
 	}
@@ -101,6 +102,21 @@ namespace ewn
 		Arena* arena = &m_arena; //< One arena atm
 		if (player->GetArena() != arena)
 			player->MoveToArena(arena);
+	}
+
+	void ServerApplication::HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		if (data.text.empty())
+			return;
+
+		Nz::String message = player->GetName() + ": " + data.text;
+		std::cout << message << std::endl;
+
+		player->GetArena()->DispatchChatMessage(player, message);
 	}
 
 	void ServerApplication::HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data)

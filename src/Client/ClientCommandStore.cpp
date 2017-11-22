@@ -16,6 +16,7 @@ namespace ewn
 
 		// Incoming commands
 		IncomingCommand(ArenaState,        std::bind(&ClientApplication::HandleArenaState,       app, _1, _2));
+		IncomingCommand(ChatMessage,       std::bind(&ClientApplication::HandleChatMessage,      app, _1, _2));
 		IncomingCommand(ControlSpaceship,  std::bind(&ClientApplication::HandleControlSpaceship, app, _1, _2));
 		IncomingCommand(CreateSpaceship,   std::bind(&ClientApplication::HandleCreateSpaceship,  app, _1, _2));
 		IncomingCommand(DeleteSpaceship,   std::bind(&ClientApplication::HandleDeleteSpaceship,  app, _1, _2));
@@ -26,6 +27,7 @@ namespace ewn
 		// Outgoing commands
 		OutgoingCommand(JoinArena,       Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Login,           Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(PlayerChat,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement,  0, 0);
 		OutgoingCommand(TimeSyncRequest, 0, 0);
 

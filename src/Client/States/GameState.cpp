@@ -223,12 +223,28 @@ namespace ewn
 			m_spaceshipRotation.y += mouse.deltaY * 0.1f;
 		});*/
 
+		m_chatEnteringBox = nullptr;
+		m_chatLines.resize(10);
+		m_currentInterpolationState = 0;
+		m_interpolationFactor = 0;
+		m_stateCount = 3;
+
 		m_onArenaStateSlot.Connect(m_stateData.app->OnArenaState, this, &GameState::OnArenaState);
+		m_onChatMessageSlot.Connect(m_stateData.app->OnChatMessage, this, &GameState::OnChatMessage);
 		m_onControlSpaceshipSlot.Connect(m_stateData.app->OnControlSpaceship, this, &GameState::OnControlSpaceship);
 		m_onCreateSpaceshipSlot.Connect(m_stateData.app->OnCreateSpaceship, this, &GameState::OnCreateSpaceship);
 		m_onDeleteSpaceshipSlot.Connect(m_stateData.app->OnDeleteSpaceship, this, &GameState::OnDeleteSpaceship);
+		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 
 		m_inputClock.Restart();
+
+		m_chatBox = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_chatBox->EnableBackground(false);
+		//m_chatBox->SetBackgroundColor(Nz::Color(70, 8, 15, 20));
+		m_chatBox->SetSize({ 320.f, 300.f });
+		m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f });
+		m_chatBox->SetTextColor(Nz::Color::White);
+		m_chatBox->SetReadOnly(true);
 
 		m_stateData.app->SendPacket(Packets::JoinArena());
 	}
@@ -236,12 +252,21 @@ namespace ewn
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
 	{
 		m_onArenaStateSlot.Disconnect();
+		m_onChatMessageSlot.Disconnect();
 		m_onControlSpaceshipSlot.Disconnect();
 		m_onCreateSpaceshipSlot.Disconnect();
 		m_onDeleteSpaceshipSlot.Disconnect();
+		m_onKeyPressedSlot.Disconnect();
+
+		m_chatBox->Destroy();
+		if (m_chatEnteringBox)
+			m_chatEnteringBox->Destroy();
 
 		for (const auto& spaceshipData : m_serverEntities)
-			spaceshipData.shipEntity->Kill();
+		{
+			if (spaceshipData.shipEntity)
+				spaceshipData.shipEntity->Kill();
+		}
 
 		m_cursorEntity->Kill();
 		m_earthEntity->Kill();
@@ -250,6 +275,9 @@ namespace ewn
 
 	bool GameState::Update(Ndk::StateMachine& /*fsm*/, float elapsedTime)
 	{
+		if (m_entityStateBuffer.size() < m_stateCount)
+			return true; // Just wait
+
 		auto& earthNode = m_earthEntity->GetComponent<Ndk::NodeComponent>();
 		earthNode.Rotate(Nz::EulerAnglesf(0.f, 2.f * elapsedTime, 0.f));
 
@@ -262,18 +290,42 @@ namespace ewn
 			UpdateInput(inputElapsedTime);
 		}
 
+		m_interpolationFactor += elapsedTime * 10.f;
+		if (m_interpolationFactor > 1.f)
+		{
+			if (m_entityStateBuffer.size() > 1)
+			{
+				if (m_currentInterpolationState +1 < m_entityStateBuffer.size())
+					m_currentInterpolationState++;
+
+				m_interpolationFactor = 0.f;
+			}
+			else
+				m_interpolationFactor = 1.f; //< Wait until new state pops
+		}
+
+		std::size_t nextInterpolationState = m_currentInterpolationState;
+		if (nextInterpolationState + 1 < m_entityStateBuffer.size())
+			nextInterpolationState++;
+
 		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		Nz::Quaternionf camRot = cameraNode.GetRotation();
-		for (const SpaceshipData& spaceshipData : m_serverEntities)
+
+		for (std::size_t i = 0; i < m_serverEntities.size(); ++i)
 		{
+			const ServerEntity& spaceshipData = m_serverEntities[i];
 			if (!spaceshipData.isValid)
 				continue;
 
-			float t = 0.5f;
+			const EntityState::StateData& oldEntityState = m_entityStateBuffer[m_currentInterpolationState].states[i];
+			const EntityState::StateData& newEntityState = m_entityStateBuffer[nextInterpolationState].states[i];
+
+			Nz::Vector3f currentPosition = Nz::Lerp(oldEntityState.position, newEntityState.position, m_interpolationFactor);
+			Nz::Quaternionf currentRotation = Nz::Quaternionf::Slerp(oldEntityState.rotation, newEntityState.rotation, m_interpolationFactor);
 
 			auto& spaceshipNode = spaceshipData.shipEntity->GetComponent<Ndk::NodeComponent>();
-			spaceshipNode.SetPosition(Nz::Lerp(spaceshipData.oldPosition, spaceshipData.newPosition, t));
-			spaceshipNode.SetRotation(Nz::Quaternionf::Slerp(spaceshipData.oldRotation, spaceshipData.newRotation, t));
+			spaceshipNode.SetPosition(currentPosition);
+			spaceshipNode.SetRotation(currentRotation);
 
 			auto& textGfx = spaceshipData.textEntity->GetComponent<Ndk::GraphicsComponent>();
 			auto& textNode = spaceshipData.textEntity->GetComponent<Ndk::NodeComponent>();
@@ -286,25 +338,91 @@ namespace ewn
 
 	void GameState::OnArenaState(const Packets::ArenaState& arenaState)
 	{
+		// Compute new interpolation factor from estimated server time/packet server time 
+		//Nz::UInt64 estimatedServerTime = m_stateData.app->GetServerTimeCetteMethodeEstAussiDegueu();
+		/*std::cout << "Estimated server time:" << estimatedServerTime << std::endl;
+		std::cout << "Received server time:" << arenaState.serverTime << std::endl;
+		std::cout << "Diff server time:" << (estimatedServerTime - std::min(estimatedServerTime, arenaState.serverTime)) << std::endl;*/
+
+		//float lateBy = (estimatedServerTime - std::min(estimatedServerTime, arenaState.serverTime)) / 100.f;
+
+		//m_interpolationFactor = lateBy;
+
+		std::size_t missedState;
+		std::size_t newStateId;
+		if (m_entityStateBuffer.size() < m_stateCount)
+		{
+			missedState = 0;
+			newStateId = m_entityStateBuffer.size();
+
+			if (m_entityStateBuffer.empty())
+				m_entityStateBuffer.emplace_back();
+			else
+				m_entityStateBuffer.emplace_back(m_entityStateBuffer.back()); //< Copy last state
+		}
+		else
+		{
+			missedState = arenaState.stateId - m_lastStateId;
+
+			if (m_entityStateBuffer.size() > missedState)
+			{
+				for (std::size_t i = 0; i < m_entityStateBuffer.size() - missedState; ++i)
+					m_entityStateBuffer[i] = std::move(m_entityStateBuffer[i + missedState]);
+			}
+
+			if (m_currentInterpolationState >= missedState)
+				m_currentInterpolationState -= missedState;
+			else
+				m_currentInterpolationState = 0;
+
+			newStateId = m_stateCount - 1;
+		}
+
+		EntityState& newState = m_entityStateBuffer[newStateId];
+
+		if (!arenaState.spaceships.empty())
+			newState.states.resize(arenaState.spaceships.back().id + 1);
+
+		m_lastStateId = arenaState.stateId;
 		for (const auto& spaceshipData : arenaState.spaceships)
 		{
-			SpaceshipData& data = GetServerEntity(spaceshipData.id);
-			data.oldPosition = data.newPosition;
-			data.oldRotation = data.newRotation;
-			data.newPosition = spaceshipData.position;
-			data.newRotation = spaceshipData.rotation;
+			ServerEntity& data = GetServerEntity(spaceshipData.id);
+
+			EntityState::StateData& state = newState.states[spaceshipData.id];
+			state.position = spaceshipData.position;
+			state.rotation = spaceshipData.rotation;
 		}
+
+		if (missedState > 1)
+		{
+			// We didn't receive at least one state, just duplicate it
+			for (std::size_t i = m_stateCount - missedState; i < m_entityStateBuffer.size() - 1; ++i)
+				m_entityStateBuffer[i] = newState;
+		}
+	}
+
+	void GameState::OnChatMessage(const Packets::ChatMessage & chatMessage)
+	{
+		std::cout << chatMessage.message << std::endl;
+
+		m_chatLines.emplace_back(chatMessage.message);
+		if (m_chatLines.size() > 10)
+			m_chatLines.erase(m_chatLines.begin());
+
+		m_chatBox->SetText(Nz::String());
+		for (const Nz::String& message : m_chatLines)
+			m_chatBox->AppendText(message + "\n");
 	}
 
 	void GameState::OnControlSpaceship(const Packets::ControlSpaceship& controlPacket)
 	{
 		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
-			SpaceshipData& oldData = GetServerEntity(m_controlledEntity);
+			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
 			oldData.textEntity->Enable();
 		}
 
-		SpaceshipData& data = GetServerEntity(controlPacket.id);
+		ServerEntity& data = GetServerEntity(controlPacket.id);
 
 		// Don't show our own name
 		data.textEntity->Enable(false);
@@ -319,10 +437,17 @@ namespace ewn
 
 	void GameState::OnCreateSpaceship(const Packets::CreateSpaceship& createPacket)
 	{
-		SpaceshipData& data = CreateServerEntity(createPacket.id);
+		ServerEntity& data = CreateServerEntity(createPacket.id);
 
-		data.newPosition = data.oldPosition = createPacket.position;
-		data.newRotation = data.oldRotation = createPacket.rotation;
+		for (EntityState& state : m_entityStateBuffer)
+		{
+			if (createPacket.id >= state.states.size())
+				state.states.resize(createPacket.id + 1);
+
+			state.states[createPacket.id].position = createPacket.position;
+			state.states[createPacket.id].rotation = createPacket.rotation;
+		}
+
 		data.shipEntity = m_spaceshipTemplateEntity->Clone();
 
 		auto& spaceshipNode = data.shipEntity->GetComponent<Ndk::NodeComponent>();
@@ -344,7 +469,7 @@ namespace ewn
 
 	void GameState::OnDeleteSpaceship(const Packets::DeleteSpaceship& deletePacket)
 	{
-		SpaceshipData& data = GetServerEntity(deletePacket.id);
+		ServerEntity& data = GetServerEntity(deletePacket.id);
 
 		data.shipEntity->Kill();
 		data.textEntity->Kill();
@@ -354,9 +479,39 @@ namespace ewn
 			m_controlledEntity = std::numeric_limits<std::size_t>::max();
 	}
 
+	void GameState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
+	{
+		if (event.code == Nz::Keyboard::Return)
+		{
+			if (m_chatEnteringBox)
+			{
+				Nz::String text = m_chatEnteringBox->GetText();
+
+				if (!text.IsEmpty())
+				{
+					Packets::PlayerChat chat;
+					chat.text = text;
+					m_stateData.app->SendPacket(chat);
+				}
+
+				m_chatEnteringBox->Destroy();
+				m_chatEnteringBox = nullptr;
+				return;
+			}
+
+			m_chatEnteringBox = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+			m_chatEnteringBox->EnableBackground(true);
+			m_chatEnteringBox->SetBackgroundColor(Nz::Color::White);
+			m_chatEnteringBox->SetSize({ float(m_stateData.window->GetSize().x), 30.f });
+			m_chatEnteringBox->SetPosition({ 0.f, m_stateData.window->GetSize().y - m_chatEnteringBox->GetSize().y, 0.f });
+			m_chatEnteringBox->SetTextColor(Nz::Color::Black);
+			m_chatEnteringBox->SetFocus();
+		}
+	}
+
 	void GameState::UpdateInput(float elapsedTime)
 	{
-		if (m_stateData.window->HasFocus())
+		if (m_stateData.window->HasFocus() && !m_chatEnteringBox)
 		{
 			constexpr float acceleration = 30.f;
 			constexpr float strafeSpeed = 20.f;

@@ -54,6 +54,13 @@ namespace ewn
 		OnArenaState(data);
 	}
 
+	void ClientApplication::HandleChatMessage(std::size_t peerId, const Packets::ChatMessage& data)
+	{
+		assert(peerId == m_serverPeerId);
+
+		OnChatMessage(data);
+	}
+
 	void ClientApplication::HandleControlSpaceship(std::size_t peerId, const Packets::ControlSpaceship& data)
 	{
 		assert(peerId == m_serverPeerId);
@@ -133,6 +140,6 @@ namespace ewn
 
 		m_commandStore.UnserializePacket(peerId, std::move(packet));
 
-		std::cout << "Receive packet from server of size " << packet.GetDataSize() << std::endl;
+		//std::cout << "Receive packet from server of size " << packet.GetDataSize() << std::endl;
 	}
 }

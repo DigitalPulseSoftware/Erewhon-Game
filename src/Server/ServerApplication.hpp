@@ -27,6 +27,7 @@ namespace ewn
 
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
 			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
+			void HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
 			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
 

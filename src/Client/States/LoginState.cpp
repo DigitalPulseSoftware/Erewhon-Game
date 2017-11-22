@@ -10,7 +10,7 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/States/GameState.hpp>
+#include <Client/States/TimeSyncState.hpp>
 #include <cassert>
 
 namespace ewn
@@ -107,7 +107,7 @@ namespace ewn
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.ResetState(std::make_shared<GameState>(m_stateData));
+				fsm.ChangeState(std::make_shared<TimeSyncState>(m_stateData));
 		}
 
 		return true;

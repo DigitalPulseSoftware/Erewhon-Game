@@ -11,12 +11,12 @@ namespace ewn
 	{
 	}
 
-	inline GameState::SpaceshipData& GameState::CreateServerEntity(std::size_t id)
+	inline GameState::ServerEntity& GameState::CreateServerEntity(std::size_t id)
 	{
 		if (id >= m_serverEntities.size())
 			m_serverEntities.resize(id + 1);
 
-		SpaceshipData& data = m_serverEntities[id];
+		ServerEntity& data = m_serverEntities[id];
 		assert(!data.isValid);
 
 		data.isValid = true;
@@ -24,11 +24,11 @@ namespace ewn
 		return data;
 	}
 
-	inline GameState::SpaceshipData& GameState::GetServerEntity(std::size_t id)
+	inline GameState::ServerEntity& GameState::GetServerEntity(std::size_t id)
 	{
 		assert(id < m_serverEntities.size());
 
-		SpaceshipData& data = m_serverEntities[id];
+		ServerEntity& data = m_serverEntities[id];
 		assert(data.isValid);
 
 		return data;

@@ -21,6 +21,7 @@ namespace ewn
 	enum class PacketType
 	{
 		ArenaState,
+		ChatMessage,
 		ControlSpaceship,
 		CreateSpaceship,
 		DeleteSpaceship,
@@ -28,6 +29,7 @@ namespace ewn
 		Login,
 		LoginFailure,
 		LoginSuccess,
+		PlayerChat,
 		PlayerMovement,
 		TimeSyncRequest,
 		TimeSyncResponse
@@ -51,7 +53,14 @@ namespace ewn
 				Nz::Quaternionf rotation;
 			};
 
+			Nz::UInt8 stateId;
+			Nz::UInt64 serverTime;
 			std::vector<Spaceship> spaceships;
+		};
+
+		DeclarePacket(ChatMessage)
+		{
+			std::string message;
 		};
 
 		DeclarePacket(ControlSpaceship)
@@ -91,6 +100,11 @@ namespace ewn
 		{
 		};
 
+		DeclarePacket(PlayerChat)
+		{
+			std::string text;
+		};
+
 		DeclarePacket(PlayerMovement)
 		{
 			Nz::Vector3f direction;
@@ -111,6 +125,7 @@ namespace ewn
 #undef DeclarePacket
 
 		void Serialize(Nz::NetPacket& packet, const ArenaState& data);
+		void Serialize(Nz::NetPacket& packet, const ChatMessage& data);
 		void Serialize(Nz::NetPacket& packet, const ControlSpaceship& data);
 		void Serialize(Nz::NetPacket& packet, const CreateSpaceship& data);
 		void Serialize(Nz::NetPacket& packet, const DeleteSpaceship& data);
@@ -118,11 +133,13 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const Login& data);
 		void Serialize(Nz::NetPacket& packet, const LoginFailure& data);
 		void Serialize(Nz::NetPacket& packet, const LoginSuccess& data);
+		void Serialize(Nz::NetPacket& packet, const PlayerChat& data);
 		void Serialize(Nz::NetPacket& packet, const PlayerMovement& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data);
 
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data);
+		void Unserialize(Nz::NetPacket& packet, ChatMessage& data);
 		void Unserialize(Nz::NetPacket& packet, ControlSpaceship& data);
 		void Unserialize(Nz::NetPacket& packet, CreateSpaceship& data);
 		void Unserialize(Nz::NetPacket& packet, DeleteSpaceship& data);
@@ -130,6 +147,7 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, Login& data);
 		void Unserialize(Nz::NetPacket& packet, LoginFailure& data);
 		void Unserialize(Nz::NetPacket& packet, LoginSuccess& data);
+		void Unserialize(Nz::NetPacket& packet, PlayerChat& data);
 		void Unserialize(Nz::NetPacket& packet, PlayerMovement& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data);

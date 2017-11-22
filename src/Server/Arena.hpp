@@ -17,6 +17,7 @@
 
 namespace ewn
 {
+	class ServerApplication;
 	class Player;
 
 	class Arena
@@ -24,10 +25,12 @@ namespace ewn
 		friend Player;
 
 		public:
-			Arena();
+			Arena(ServerApplication* app);
 			~Arena() = default;
 
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
+
+			void DispatchChatMessage(Player* player, const Nz::String& message);
 
 			void Update(float elapsedTime);
 
@@ -41,6 +44,8 @@ namespace ewn
 			Ndk::World m_world;
 			std::unordered_map<Player*, Ndk::EntityHandle> m_players;
 			Packets::ArenaState m_arenaStatePacket;
+			ServerApplication* m_app;
+			Nz::UInt8 m_stateId;
 	};
 }
 

@@ -6,12 +6,15 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <Server/Player.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
+#include <Server/ServerApplication.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <cassert>
 
 namespace ewn
 {
-	Arena::Arena()
+	Arena::Arena(ServerApplication* app) :
+	m_app(app),
+	m_stateId(0)
 	{
 		m_world.AddSystem<SpaceshipSystem>();
 	}
@@ -47,6 +50,15 @@ namespace ewn
 		return spaceship;
 	}
 
+	void Arena::DispatchChatMessage(Player* player, const Nz::String& message)
+	{
+		Packets::ChatMessage chatPacket;
+		chatPacket.message = message;
+
+		for (auto& pair : m_players)
+			pair.first->SendPacket(chatPacket);
+	}
+
 	void Arena::Update(float elapsedTime)
 	{
 		m_world.Update(elapsedTime);
@@ -55,6 +67,8 @@ namespace ewn
 		{
 			m_stateClock.Restart();
 
+			m_arenaStatePacket.stateId = m_stateId++;
+			m_arenaStatePacket.serverTime = m_app->GetAppTime();
 			m_arenaStatePacket.spaceships.clear();
 			for (const Ndk::EntityHandle& spaceship : m_spaceships)
 			{

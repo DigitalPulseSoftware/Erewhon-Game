@@ -46,6 +46,8 @@ namespace ewn
 			Nz::UInt64 m_requestTime;
 			std::vector<Nz::UInt64> m_results;
 			bool m_connected;
+			bool m_finished;
+			bool m_isClientYounger;
 			float m_accumulator;
 			float m_nextStepTime;
 	};

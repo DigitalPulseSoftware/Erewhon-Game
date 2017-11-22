@@ -7,8 +7,10 @@
 #include <NDK/StateMachine.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
+#include <Client/States/GameState.hpp>
 #include <Client/States/LoginState.hpp>
 #include <cassert>
+#include <numeric>
 
 namespace ewn
 {
@@ -30,6 +32,7 @@ namespace ewn
 		m_onTimeSyncResponseSlot.Connect(m_stateData.app->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
 
 		m_expectedRequestId = 0;
+		m_finished = true;
 		m_nextStepTime = 0.2f;
 	}
 
@@ -46,7 +49,7 @@ namespace ewn
 		if (!m_connected)
 		{
 			if (m_accumulator > 2.f)
-				fsm.ChangeState(std::make_shared<ConnectionState>(m_stateData));
+				fsm.ChangeState(std::make_shared<ConnectionState>(m_stateData)); //< TODO: Put background state in a generic way
 
 			return true;
 		}
@@ -54,13 +57,17 @@ namespace ewn
 		m_accumulator += elapsedTime;
 		if (m_accumulator >= m_nextStepTime)
 		{
-			Packets::TimeSyncRequest timeSyncRequest;
-			timeSyncRequest.requestId = m_expectedRequestId;
+			if (!m_finished)
+			{
+				Packets::TimeSyncRequest timeSyncRequest;
+				timeSyncRequest.requestId = m_expectedRequestId;
 
-			m_requestTime = m_stateData.app->GetAppTime();
-			m_stateData.app->SendPacket(timeSyncRequest);
-
-			m_nextStepTime += 2.f;
+				m_requestTime = m_stateData.app->GetAppTime();
+				m_stateData.app->SendPacket(timeSyncRequest);
+				m_nextStepTime += 1.f;
+			}
+			else
+				fsm.ResetState(std::make_shared<GameState>(m_stateData));
 		}
 
 		return true;
@@ -86,13 +93,50 @@ namespace ewn
 
 	void TimeSyncState::OnTimeSyncResponse(const Packets::TimeSyncResponse& response)
 	{
+		static constexpr std::size_t DesiredRequestCount = 30;
+
 		if (response.requestId != m_expectedRequestId)
 			return;
 
-		m_results.push_back(m_stateData.app->GetAppTime() - m_requestTime);
-		UpdateStatus("Syncing time with server (" + Nz::String::Number(m_results.back()) + ")");
+		Nz::UInt64 appTime = m_stateData.app->GetAppTime();
+		Nz::UInt64 pingTime = appTime - m_requestTime;
 
-		m_nextStepTime = m_accumulator + 1.f;
+		bool youngerThanServer = (response.serverTime >= appTime);
+		if (response.requestId == 0)
+		{
+			// First request, determine if server is younger than user
+			m_isClientYounger = youngerThanServer;
+		}
+		else if (youngerThanServer != m_isClientYounger)
+		{
+			// Oops, server crashed?
+			m_expectedRequestId = 0;
+			m_nextStepTime = m_accumulator + 0.5f;
+			m_results.clear();
+
+			UpdateStatus("Error in time synchronization, restarting process...", Nz::Color::Red);
+			return;
+		}
+
+		Nz::UInt64 diff = (youngerThanServer) ? (response.serverTime - appTime) : (appTime - response.serverTime);
+		diff += pingTime / 2;
+
+		m_results.push_back(diff);
+
+		UpdateStatus("Syncing time with server " + Nz::String::Number(m_results.size()) + "/" + Nz::String::Number(DesiredRequestCount));
+
+		if (m_results.size() >= DesiredRequestCount)
+		{
+			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), 0) / m_results.size();
+			if (!m_isClientYounger)
+				meanDiff = std::numeric_limits<Nz::UInt64>::max() - meanDiff;
+
+			m_stateData.app->SetDeltaTimeFromServerToClientCetteMethodeEstDegueuDeTouteFacon(meanDiff);
+
+			m_finished = true;
+		}
+
+		m_nextStepTime = m_accumulator + 0.1f;
 		m_expectedRequestId++;
 	}
 
