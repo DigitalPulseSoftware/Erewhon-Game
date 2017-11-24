@@ -29,18 +29,11 @@ namespace ewn
 			{
 				Ndk::EntityHandle shipEntity;
 				Ndk::EntityHandle textEntity;
+				Nz::Quaternionf oldRotation;
+				Nz::Quaternionf newRotation;
+				Nz::Vector3f oldPosition;
+				Nz::Vector3f newPosition;
 				bool isValid = false;
-			};
-
-			struct EntityState
-			{
-				struct StateData
-				{
-					Nz::Quaternionf rotation;
-					Nz::Vector3f position;
-				};
-
-				std::vector<StateData> states;
 			};
 
 			void Enter(Ndk::StateMachine& fsm) override;
@@ -85,7 +78,6 @@ namespace ewn
 			std::size_t m_controlledEntity;
 			std::size_t m_currentInterpolationState;
 			std::size_t m_stateCount;
-			std::vector<EntityState> m_entityStateBuffer;
 			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
 			bool m_isCurrentlyRotating;
