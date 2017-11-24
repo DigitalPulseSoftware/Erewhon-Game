@@ -10,6 +10,7 @@
 #include <Client/States/StateData.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
+#include <Nazara/Network/UdpSocket.hpp>
 #include <Nazara/Utility/Node.hpp>
 #include <NDK/Entity.hpp>
 #include <NDK/State.hpp>
@@ -27,6 +28,7 @@ namespace ewn
 		private:
 			struct ServerEntity
 			{
+				Ndk::EntityHandle debugGhostEntity;
 				Ndk::EntityHandle shipEntity;
 				Ndk::EntityHandle textEntity;
 				bool isValid = false;
@@ -69,6 +71,7 @@ namespace ewn
 			StateData& m_stateData;
 			Ndk::EntityHandle m_cursorEntity;
 			Ndk::EntityHandle m_earthEntity;
+			Ndk::EntityHandle m_debugTemplateEntity;
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
@@ -80,6 +83,7 @@ namespace ewn
 			Nz::Vector2f m_rotationDirection;
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
+			Nz::UdpSocket m_debugStateSocket;
 			Nz::UInt8 m_lastStateId;
 			Nz::UInt64 m_serverTimeDelta;
 			std::size_t m_controlledEntity;
