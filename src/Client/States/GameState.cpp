@@ -71,6 +71,18 @@ namespace ewn
 		m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
 		m_spaceshipTemplateEntity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
 
+		Nz::MaterialRef debugMaterial = Nz::Material::New("Translucent3D");
+		debugMaterial->SetDiffuseColor(Nz::Color(255, 255, 255, 50));
+
+		Nz::ModelRef ghostSpaceship = Nz::Model::New(*spaceshipModel);
+		for (std::size_t i = 0; i < ghostSpaceship->GetMaterialCount(); ++i)
+			ghostSpaceship->SetMaterial(i, debugMaterial);
+
+		m_debugTemplateEntity = m_spaceshipTemplateEntity->Clone();
+		m_debugTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ghostSpaceship);
+		m_debugTemplateEntity->AddComponent<Ndk::NodeComponent>();
+		m_debugTemplateEntity->Enable(false);
+
 		// Particle effect
 #if 0
 		Ndk::ParticleEmitterComponent& particleEmitter = m_spaceshipEntity->AddComponent<Ndk::ParticleEmitterComponent>();
@@ -247,6 +259,15 @@ namespace ewn
 		m_chatBox->SetReadOnly(true);
 
 		m_stateData.app->SendPacket(Packets::JoinArena());
+
+		// Listen to debug state
+		static constexpr bool showServerGhosts = false;
+
+		if constexpr (showServerGhosts)
+		{
+			m_debugStateSocket.Create(Nz::NetProtocol_IPv4);
+			m_debugStateSocket.Bind(2050);
+		}
 	}
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
@@ -309,6 +330,31 @@ namespace ewn
 			auto& textNode = entityData.textEntity->GetComponent<Ndk::NodeComponent>();
 			textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
 			textNode.SetRotation(cameraNode.GetRotation());
+		}
+
+		// Debug state socket
+		Nz::NetPacket packet;
+		if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
+		{
+			Packets::ArenaState arenaState;
+			Packets::Unserialize(packet, arenaState);
+
+			for (auto& spaceshipData : arenaState.spaceships)
+			{
+				// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not yet aware
+				if (spaceshipData.id >= m_serverEntities.size() || !m_serverEntities[spaceshipData.id].isValid)
+					continue;
+
+				ServerEntity& entityData = GetServerEntity(spaceshipData.id);
+
+				// Ensure ghost entity existence
+				if (!entityData.debugGhostEntity)
+					entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
+
+				auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
+				ghostNode.SetPosition(spaceshipData.position);
+				ghostNode.SetRotation(spaceshipData.rotation);
+			}
 		}
 
 		return true;
@@ -403,6 +449,9 @@ namespace ewn
 	void GameState::OnDeleteSpaceship(const Packets::DeleteSpaceship& deletePacket)
 	{
 		ServerEntity& data = GetServerEntity(deletePacket.id);
+
+		if (data.debugGhostEntity)
+			data.debugGhostEntity->Kill();
 
 		data.shipEntity->Kill();
 		data.textEntity->Kill();

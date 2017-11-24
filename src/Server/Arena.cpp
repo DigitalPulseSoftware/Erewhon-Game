@@ -17,6 +17,9 @@ namespace ewn
 	m_stateId(0)
 	{
 		m_world.AddSystem<SpaceshipSystem>();
+
+		m_debugSocket.Create(Nz::NetProtocol_IPv4);
+		m_debugSocket.EnableBroadcasting(true);
 	}
 
 	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* player)
@@ -84,6 +87,15 @@ namespace ewn
 
 			for (auto& pair : m_players)
 				pair.first->SendPacket(m_arenaStatePacket);
+
+			// Broadcast arena state over network, for testing purposes
+			Nz::NetPacket debugState(1);
+			Packets::Serialize(debugState, m_arenaStatePacket);
+
+			Nz::IpAddress debugAddress = Nz::IpAddress::BroadcastIpV4;
+			debugAddress.SetPort(2050);
+
+			m_debugSocket.SendPacket(debugAddress, debugState);
 		}
 	}
 

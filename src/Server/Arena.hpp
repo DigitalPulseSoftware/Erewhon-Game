@@ -40,6 +40,7 @@ namespace ewn
 			void OnSpaceshipDestroy(Ndk::Entity* spaceship);
 
 			Nz::Clock m_stateClock;
+			Nz::UdpSocket m_debugSocket;
 			Ndk::EntityList m_spaceships;
 			Ndk::World m_world;
 			std::unordered_map<Player*, Ndk::EntityHandle> m_players;
