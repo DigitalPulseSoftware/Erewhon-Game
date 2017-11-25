@@ -133,9 +133,18 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		//TODO: Check input value
+		// TODO: Set speed limit accordingly to spaceship data
+		Nz::Vector3f directionSpeed;
+		directionSpeed.x = Nz::Clamp(data.direction.x, -50.f, 50.f);
+		directionSpeed.y = Nz::Clamp(data.direction.y, -50.f, 50.f);
+		directionSpeed.z = Nz::Clamp(data.direction.z, -50.f, 50.f);
 
-		player->UpdateInput(data.direction, data.rotation);
+		Nz::Vector3f rotationSpeed;
+		rotationSpeed.x = Nz::Clamp(data.rotation.x, -200.f, 200.f);
+		rotationSpeed.y = Nz::Clamp(data.rotation.y, -200.f, 200.f);
+		rotationSpeed.z = Nz::Clamp(data.rotation.z, -200.f, 200.f);
+
+		player->UpdateInput(directionSpeed, rotationSpeed);
 	}
 
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)
