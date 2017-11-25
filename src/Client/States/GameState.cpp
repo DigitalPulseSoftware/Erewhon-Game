@@ -539,8 +539,8 @@ namespace ewn
 			// Rotation
 			if (Nz::Mouse::IsButtonPressed(Nz::Mouse::Right))
 			{
-				m_rotationDirection = Nz::Vector2f(m_rotationCursorPosition);
-				if (m_rotationDirection.GetSquaredLength() < Nz::IntegralPow(50.f, 2))
+				m_rotationDirection = Nz::Vector2f(m_rotationCursorPosition) / 2.f;
+				if (m_rotationDirection.GetSquaredLength() < Nz::IntegralPow(20.f, 2))
 					m_rotationDirection.MakeZero();
 			}
 
@@ -557,11 +557,11 @@ namespace ewn
 
 		//m_controlledSpaceship->GetComponent<Ndk::NodeComponent>().SetRotation(Nz::EulerAnglesf(-m_spaceshipSpeed.x / 5.f, 0.f, m_spaceshipSpeed.y));
 
-		m_rotationDirection.x = Nz::Approach(m_rotationDirection.x, 0.f, 50.f);
-		m_rotationDirection.y = Nz::Approach(m_rotationDirection.y, 0.f, 50.f);
-
 		m_spaceshipRotation.x = Nz::Clamp(-m_rotationDirection.y, -200.f, 200.f);
 		m_spaceshipRotation.y = Nz::Clamp(-m_rotationDirection.x, -200.f, 200.f);
+
+		m_rotationDirection.x = Nz::Approach(m_rotationDirection.x, 0.f, 200.f * elapsedTime);
+		m_rotationDirection.y = Nz::Approach(m_rotationDirection.y, 0.f, 200.f * elapsedTime);
 
 		//m_spaceshipMovementNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
 		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
