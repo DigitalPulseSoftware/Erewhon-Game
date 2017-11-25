@@ -28,7 +28,7 @@
 
 namespace ewn
 {
-	static constexpr bool showServerGhosts = true;
+	static constexpr bool showServerGhosts = false;
 	static constexpr std::size_t maxChatLines = 15;
 
 	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
