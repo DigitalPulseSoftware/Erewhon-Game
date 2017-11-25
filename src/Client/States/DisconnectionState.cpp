@@ -18,6 +18,7 @@ namespace ewn
 		m_dotCounter = 0;
 		m_disconnected = false;
 		m_statusSprite = Nz::TextSprite::New();
+		m_timeout = 5.f;
 
 		m_statusText = m_stateData.world2D->CreateEntity();
 		m_statusText->AddComponent<Ndk::NodeComponent>();
@@ -50,7 +51,8 @@ namespace ewn
 	bool DisconnectionState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		m_accumulator += elapsedTime;
-		if (m_disconnected)
+		m_timeout -= elapsedTime;
+		if (m_disconnected || m_timeout < 0.f)
 		{
 			constexpr float messageTime = 0.2f;
 			if (m_accumulator > messageTime)

@@ -41,6 +41,7 @@ namespace ewn
 			Nz::TextSpriteRef m_statusSprite;
 			bool m_disconnected;
 			float m_accumulator;
+			float m_timeout;
 			unsigned int m_dotCounter;
 	};
 }
