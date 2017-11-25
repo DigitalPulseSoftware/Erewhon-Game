@@ -113,7 +113,15 @@ namespace ewn
 		if (data.text.empty())
 			return;
 
+		static constexpr std::size_t MaxChatLine = 255;
+
 		Nz::String message = player->GetName() + ": " + data.text;
+		if (message.GetSize() > MaxChatLine)
+		{
+			message.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
+			message += "...";
+		}
+
 		std::cout << message << std::endl;
 
 		player->GetArena()->DispatchChatMessage(player, message);
