@@ -130,7 +130,7 @@ namespace ewn
 			else
 				std::cerr << "Failed to open remember.me file" << std::endl;
 		}
-		else
+		else if (loginFile.Exists())
 			loginFile.Delete();
 
 		Packets::Login loginPacket;
