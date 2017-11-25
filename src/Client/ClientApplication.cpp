@@ -42,6 +42,12 @@ namespace ewn
 		return true;
 	}
 
+	void ClientApplication::Disconnect()
+	{
+		if (m_serverPeerId != NetworkReactor::InvalidPeerId)
+			GetReactor(0)->DisconnectPeer(m_serverPeerId);
+	}
+
 	bool ClientApplication::Run()
 	{
 		return BaseApplication::Run();

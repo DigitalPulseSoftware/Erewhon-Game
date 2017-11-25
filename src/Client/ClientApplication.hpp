@@ -24,6 +24,7 @@ namespace ewn
 			virtual ~ClientApplication();
 
 			bool Connect(const Nz::String& serverHostname, Nz::UInt32 data = 0);
+			void Disconnect();
 
 			inline bool IsConnected() const;
 			bool Run() override;

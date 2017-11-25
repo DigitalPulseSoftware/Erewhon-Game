@@ -14,6 +14,7 @@
 #include <Client/ClientApplication.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionState.hpp>
+#include <Client/States/DisconnectionState.hpp>
 #include <Client/States/GameState.hpp>
 #include <iostream>
 
@@ -27,6 +28,7 @@ int main()
 	app.Connect("localhost");
 
 	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>(Nz::VideoMode(1280, 720), "Utopia");
+	window.EnableCloseOnQuit(false);
 
 	// 3D Scene
 	Ndk::World& world3D = app.AddWorld();
@@ -92,6 +94,11 @@ int main()
 
 	Ndk::StateMachine fsm(std::make_shared<ewn::BackgroundState>(stateData));
 	fsm.PushState(std::make_shared<ewn::ConnectionState>(stateData));
+
+	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
+	{
+		fsm.ResetState(std::make_shared<ewn::DisconnectionState>(stateData));
+	});
 
 	while (app.Run())
 	{
