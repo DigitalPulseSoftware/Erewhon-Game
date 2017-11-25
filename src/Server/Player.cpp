@@ -13,6 +13,7 @@ namespace ewn
 	m_arena(nullptr),
 	m_networkReactor(reactor),
 	m_peerId(peerId),
+	m_lastInputId(0),
 	m_authenticated(false)
 	{
 	}
@@ -43,10 +44,37 @@ namespace ewn
 		m_spaceship = m_arena->CreatePlayerSpaceship(this);
 	}
 
-	void Player::UpdateInput(const Nz::Vector3f& direction, const Nz::Vector3f& rotation)
+	void Player::UpdateInput(Nz::UInt8 lastInput, Nz::Vector3f direction, Nz::Vector3f rotation)
 	{
+		m_lastInputId = lastInput;
+
 		if (!m_spaceship)
 			return;
+
+		if (!std::isfinite(direction.x) ||
+			!std::isfinite(direction.y) ||
+			!std::isfinite(direction.z))
+		{
+			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite direction: " << direction << std::endl;
+			return;
+		}
+
+		if (!std::isfinite(rotation.x) ||
+			!std::isfinite(rotation.y) ||
+			!std::isfinite(rotation.z))
+		{
+			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite rotation: " << direction << std::endl;
+			return;
+		}
+
+		// TODO: Set speed limit accordingly to spaceship data
+		direction.x = Nz::Clamp(direction.x, -50.f, 50.f);
+		direction.y = Nz::Clamp(direction.y, -50.f, 50.f);
+		direction.z = Nz::Clamp(direction.z, -50.f, 50.f);
+
+		rotation.x = Nz::Clamp(rotation.x, -200.f, 200.f);
+		rotation.y = Nz::Clamp(rotation.y, -200.f, 200.f);
+		rotation.z = Nz::Clamp(rotation.z, -200.f, 200.f);
 
 		PlayerControlledComponent& controlComponent = m_spaceship->GetComponent<PlayerControlledComponent>();
 		controlComponent.Update(direction, rotation);

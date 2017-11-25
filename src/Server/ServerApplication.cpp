@@ -133,34 +133,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		if (!std::isfinite(data.direction.x) ||
-		    !std::isfinite(data.direction.y) ||
-		    !std::isfinite(data.direction.z))
-		{
-			std::cout << "Client #" << peerId << " has non-finite direction: " << data.direction << std::endl;
-			return;
-		}
-
-		if (!std::isfinite(data.rotation.x) ||
-			!std::isfinite(data.rotation.y) ||
-			!std::isfinite(data.rotation.z))
-		{
-			std::cout << "Client #" << peerId << " has non-finite rotation: " << data.direction << std::endl;
-			return;
-		}
-
-		// TODO: Set speed limit accordingly to spaceship data
-		Nz::Vector3f directionSpeed;
-		directionSpeed.x = Nz::Clamp(data.direction.x, -50.f, 50.f);
-		directionSpeed.y = Nz::Clamp(data.direction.y, -50.f, 50.f);
-		directionSpeed.z = Nz::Clamp(data.direction.z, -50.f, 50.f);
-
-		Nz::Vector3f rotationSpeed;
-		rotationSpeed.x = Nz::Clamp(data.rotation.x, -200.f, 200.f);
-		rotationSpeed.y = Nz::Clamp(data.rotation.y, -200.f, 200.f);
-		rotationSpeed.z = Nz::Clamp(data.rotation.z, -200.f, 200.f);
-
-		player->UpdateInput(directionSpeed, rotationSpeed);
+		player->UpdateInput(data.inputId, data.direction, data.rotation);
 	}
 
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)

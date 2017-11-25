@@ -26,6 +26,16 @@ namespace ewn
 			~GameState() = default;
 
 		private:
+			struct ClientInput
+			{
+				Nz::UInt8 inputId;
+				Nz::UInt64 inputTime;
+				Nz::Quaternionf rotation;
+				Nz::Vector3f position;
+				Nz::Vector3f velocity;
+				Nz::Vector3f angularVelocity;
+			};
+
 			struct ServerEntity
 			{
 				Ndk::EntityHandle debugGhostEntity;
@@ -78,8 +88,10 @@ namespace ewn
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;
+			Nz::UInt8 m_inputId;
 			Nz::UInt64 m_serverTimeDelta;
 			std::size_t m_controlledEntity;
+			std::vector<ClientInput> m_predictedInputs;
 			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
 			bool m_isCurrentlyRotating;

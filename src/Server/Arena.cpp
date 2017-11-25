@@ -70,7 +70,6 @@ namespace ewn
 		{
 			m_stateClock.Restart();
 
-			m_arenaStatePacket.stateId = m_stateId++;
 			m_arenaStatePacket.serverTime = m_app->GetAppTime();
 			m_arenaStatePacket.spaceships.clear();
 			for (const Ndk::EntityHandle& spaceship : m_spaceships)
@@ -86,7 +85,11 @@ namespace ewn
 			}
 
 			for (auto& pair : m_players)
+			{
+				m_arenaStatePacket.inputId = pair.first->GetLastInputId();
+
 				pair.first->SendPacket(m_arenaStatePacket);
+			}
 
 			// Broadcast arena state over network, for testing purposes
 			Nz::NetPacket debugState(1);

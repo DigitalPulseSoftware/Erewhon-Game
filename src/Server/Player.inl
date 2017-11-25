@@ -13,6 +13,11 @@ namespace ewn
 		return m_arena;
 	}
 
+	inline Nz::UInt8 Player::GetLastInputId() const
+	{
+		return m_lastInputId;
+	}
+
 	inline const std::string & Player::GetName() const
 	{
 		return m_login;

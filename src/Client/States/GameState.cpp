@@ -142,6 +142,7 @@ namespace ewn
 		//m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetParent(m_spaceshipMovementNode);
 
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
+		m_inputId = 0;
 		m_isCurrentlyRotating = false;
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
@@ -292,6 +293,9 @@ namespace ewn
 
 			if (spaceshipData.shipEntity)
 				spaceshipData.shipEntity->Kill();
+
+			if (spaceshipData.textEntity)
+				spaceshipData.textEntity->Kill();
 		}
 
 		m_cursorEntity->Kill();
@@ -318,9 +322,13 @@ namespace ewn
 		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		Nz::Quaternionf camRot = cameraNode.GetRotation();
 
-		for (const ServerEntity& entityData : m_serverEntities)
+		for (std::size_t i = 0; i < m_serverEntities.size(); ++i)
 		{
+			const ServerEntity& entityData = m_serverEntities[i];
 			if (!entityData.isValid)
+				continue;
+
+			if (i == m_controlledEntity)
 				continue;
 
 			Nz::Vector3f currentPosition = Nz::Lerp(entityData.oldPosition, entityData.newPosition, m_interpolationFactor);
@@ -387,10 +395,56 @@ namespace ewn
 
 			auto& spaceshipNode = entityData.shipEntity->GetComponent<Ndk::NodeComponent>();
 
-			entityData.oldPosition = spaceshipNode.GetPosition();
-			entityData.oldRotation = spaceshipNode.GetRotation();
-			entityData.newPosition = spaceshipData.position;
-			entityData.newRotation = spaceshipData.rotation;
+			if (spaceshipData.id == m_controlledEntity)
+			{
+				// Reconciliation
+
+				// First, remove every treated input from the server
+				auto firstNonTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [serverInput = arenaState.inputId](const ClientInput& input)
+				{
+					return input.inputId - serverInput > 128;
+				});
+
+				auto lastTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [serverInput = arenaState.inputId](const ClientInput& input)
+				{
+					return input.inputId == serverInput;
+				});
+
+				Nz::UInt64 lastInputTime = 0;
+				Nz::Vector3f reconciliatedPosition = spaceshipData.position;
+				if (lastTreatedInput != m_predictedInputs.end())
+				{
+					lastInputTime = lastTreatedInput->inputTime;
+
+					Nz::Vector3f diffFromServer = spaceshipData.position - lastTreatedInput->position;
+
+					if (diffFromServer.GetLength() < 2.f)
+						reconciliatedPosition = lastTreatedInput->position + diffFromServer * 0.1f;
+					else
+						std::cout << "Teleport!" << std::endl;
+				}
+
+				m_predictedInputs.erase(m_predictedInputs.begin(), firstNonTreatedInput);
+
+				for (const ClientInput& input : m_predictedInputs)
+				{
+					Nz::UInt64 diffTime = input.inputTime - lastInputTime;
+
+					reconciliatedPosition += input.velocity * (diffTime / 1000.f);
+					lastInputTime = input.inputTime;
+				}
+
+
+				spaceshipNode.SetPosition(reconciliatedPosition);
+				spaceshipNode.SetRotation(spaceshipData.rotation);
+			}
+			else
+			{
+				entityData.oldPosition = spaceshipNode.GetPosition();
+				entityData.oldRotation = spaceshipNode.GetRotation();
+				entityData.newPosition = spaceshipData.position;
+				entityData.newRotation = spaceshipData.rotation;
+			}
 		}
 	}
 
@@ -412,13 +466,17 @@ namespace ewn
 		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
 			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
+			oldData.shipEntity->RemoveComponent<Ndk::VelocityComponent>();
 			oldData.textEntity->Enable();
 		}
 
 		ServerEntity& data = GetServerEntity(controlPacket.id);
 
+		// Add velocity component for client-side prediction
+		data.shipEntity->AddComponent<Ndk::VelocityComponent>();
+
 		// Don't show our own name
-		data.textEntity->Enable(false);
+		data.textEntity->Disable();
 
 		Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		nodeComponent.SetParent(data.shipEntity);
@@ -501,6 +559,9 @@ namespace ewn
 
 	void GameState::UpdateInput(float elapsedTime)
 	{
+		if (m_controlledEntity == std::numeric_limits<std::size_t>::max())
+			return;
+
 		if (m_stateData.window->HasFocus() && !m_chatEnteringBox)
 		{
 			constexpr float acceleration = 30.f;
@@ -567,9 +628,26 @@ namespace ewn
 		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
 
 		Packets::PlayerMovement movementPacket;
+		movementPacket.inputId = m_inputId++;
 		movementPacket.direction = m_spaceshipSpeed;
 		movementPacket.rotation = m_spaceshipRotation;
 
 		m_stateData.server->SendPacket(movementPacket);
+
+		ServerEntity& clientEntity = GetServerEntity(m_controlledEntity);
+		auto& clientNode = clientEntity.shipEntity->GetComponent<Ndk::NodeComponent>();
+
+		// Client-side prediction
+		clientNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
+
+		ClientInput input;
+		input.angularVelocity = m_spaceshipRotation;
+		input.inputId = movementPacket.inputId;
+		input.inputTime = m_stateData.app->GetAppTime();
+		input.position = clientNode.GetPosition();
+		input.rotation = clientNode.GetRotation();
+		input.velocity = m_spaceshipSpeed;
+
+		m_predictedInputs.push_back(input);
 	}
 }

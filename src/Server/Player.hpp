@@ -28,6 +28,7 @@ namespace ewn
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
+			inline Nz::UInt8 GetLastInputId() const;
 			inline const std::string& GetName() const;
 
 			inline bool IsAuthenticated() const;
@@ -36,7 +37,7 @@ namespace ewn
 
 			template<typename T> void SendPacket(const T& packet);
 
-			void UpdateInput(const Nz::Vector3f& direction, const Nz::Vector3f& rotation);
+			void UpdateInput(Nz::UInt8 input, Nz::Vector3f direction, Nz::Vector3f rotation);
 
 		private:
 			const ServerCommandStore& m_commandStore;
@@ -45,6 +46,7 @@ namespace ewn
 			std::size_t m_peerId;
 			std::string m_login;
 			Ndk::EntityOwner m_spaceship;
+			Nz::UInt8 m_lastInputId;
 			bool m_authenticated;
 	};
 }
