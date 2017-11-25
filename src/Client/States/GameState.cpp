@@ -233,9 +233,12 @@ namespace ewn
 		Nz::Mouse::SetPosition(windowSize.x / 2, windowSize.y / 2, *m_stateData.window);*/
 
 		/*eventHandler.OnMouseMoved.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::MouseMoveEvent& mouse)
-		{
-			m_spaceshipRotation.x -= mouse.deltaX * 0.1f;
-			m_spaceshipRotation.y += mouse.deltaY * 0.1f;
+		{
+
+			m_spaceshipRotation.x -= mouse.deltaX * 0.1f;
+
+			m_spaceshipRotation.y += mouse.deltaY * 0.1f;
+
 		});*/
 
 		m_chatEnteringBox = nullptr;
@@ -286,6 +289,9 @@ namespace ewn
 
 		for (const auto& spaceshipData : m_serverEntities)
 		{
+			if (spaceshipData.debugGhostEntity)
+				spaceshipData.debugGhostEntity->Kill();
+
 			if (spaceshipData.shipEntity)
 				spaceshipData.shipEntity->Kill();
 		}
@@ -334,27 +340,30 @@ namespace ewn
 		}
 
 		// Debug state socket
-		Nz::NetPacket packet;
-		if (showServerGhosts && m_debugStateSocket.ReceivePacket(&packet, nullptr))
+		if constexpr (showServerGhosts)
 		{
-			Packets::ArenaState arenaState;
-			Packets::Unserialize(packet, arenaState);
-
-			for (auto& spaceshipData : arenaState.spaceships)
+			Nz::NetPacket packet;
+			if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
 			{
-				// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not yet aware
-				if (spaceshipData.id >= m_serverEntities.size() || !m_serverEntities[spaceshipData.id].isValid)
-					continue;
+				Packets::ArenaState arenaState;
+				Packets::Unserialize(packet, arenaState);
 
-				ServerEntity& entityData = GetServerEntity(spaceshipData.id);
+				for (auto& spaceshipData : arenaState.spaceships)
+				{
+					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not yet aware
+					if (spaceshipData.id >= m_serverEntities.size() || !m_serverEntities[spaceshipData.id].isValid)
+						continue;
 
-				// Ensure ghost entity existence
-				if (!entityData.debugGhostEntity)
-					entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
+					ServerEntity& entityData = GetServerEntity(spaceshipData.id);
 
-				auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
-				ghostNode.SetPosition(spaceshipData.position);
-				ghostNode.SetRotation(spaceshipData.rotation);
+					// Ensure ghost entity existence
+					if (!entityData.debugGhostEntity)
+						entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
+
+					auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
+					ghostNode.SetPosition(spaceshipData.position);
+					ghostNode.SetRotation(spaceshipData.rotation);
+				}
 			}
 		}
 

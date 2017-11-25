@@ -78,11 +78,8 @@ namespace ewn
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;
-			Nz::UInt8 m_lastStateId;
 			Nz::UInt64 m_serverTimeDelta;
 			std::size_t m_controlledEntity;
-			std::size_t m_currentInterpolationState;
-			std::size_t m_stateCount;
 			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
 			bool m_isCurrentlyRotating;
