@@ -28,6 +28,8 @@
 
 namespace ewn
 {
+	static constexpr bool showServerGhosts = true;
+
 	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		if (Nz::Texture* background = Nz::TextureLibrary::Get("Background"); background && background->IsValid())
@@ -261,8 +263,6 @@ namespace ewn
 		m_stateData.app->SendPacket(Packets::JoinArena());
 
 		// Listen to debug state
-		static constexpr bool showServerGhosts = false;
-
 		if constexpr (showServerGhosts)
 		{
 			m_debugStateSocket.Create(Nz::NetProtocol_IPv4);
@@ -356,7 +356,7 @@ namespace ewn
 
 		// Debug state socket
 		Nz::NetPacket packet;
-		if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
+		if (showServerGhosts && m_debugStateSocket.ReceivePacket(&packet, nullptr))
 		{
 			Packets::ArenaState arenaState;
 			Packets::Unserialize(packet, arenaState);
