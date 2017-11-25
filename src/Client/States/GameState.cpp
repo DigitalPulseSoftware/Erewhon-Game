@@ -234,12 +234,10 @@ namespace ewn
 
 		/*eventHandler.OnMouseMoved.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::MouseMoveEvent& mouse)
 		{
-
 			m_spaceshipRotation.x -= mouse.deltaX * 0.1f;
-
 			m_spaceshipRotation.y += mouse.deltaY * 0.1f;
-
-		});*/
+		});
+		*/
 
 		m_chatEnteringBox = nullptr;
 		m_chatLines.resize(maxChatLines);
@@ -251,7 +249,7 @@ namespace ewn
 		m_chatBox->EnableBackground(false);
 		//m_chatBox->SetBackgroundColor(Nz::Color(70, 8, 15, 20));
 		m_chatBox->SetSize({ 320.f, maxChatLines * 30.f });
-		m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f });
+		m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 40.f - m_chatBox->GetSize().y - 5.f, 0.f });
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
 
@@ -396,7 +394,6 @@ namespace ewn
 		}
 	}
 
-
 	void GameState::OnChatMessage(const Packets::ChatMessage & chatMessage)
 	{
 		std::cout << chatMessage.message << std::endl;
@@ -494,10 +491,10 @@ namespace ewn
 
 			m_chatEnteringBox = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
 			m_chatEnteringBox->EnableBackground(true);
-			m_chatEnteringBox->SetBackgroundColor(Nz::Color::White);
-			m_chatEnteringBox->SetSize({ float(m_stateData.window->GetSize().x), 30.f });
-			m_chatEnteringBox->SetPosition({ 0.f, m_stateData.window->GetSize().y - m_chatEnteringBox->GetSize().y, 0.f });
-			m_chatEnteringBox->SetTextColor(Nz::Color::Black);
+			m_chatEnteringBox->SetBackgroundColor(Nz::Color(0, 0, 0, 150));
+			m_chatEnteringBox->SetSize({ float(m_stateData.window->GetSize().x), 40.f });
+			m_chatEnteringBox->SetPosition({ 0.f, m_stateData.window->GetSize().y - m_chatEnteringBox->GetSize().y - 5.f, 0.f });
+			m_chatEnteringBox->SetTextColor(Nz::Color::White);
 			m_chatEnteringBox->SetFocus();
 		}
 	}
