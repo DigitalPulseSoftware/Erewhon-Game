@@ -133,6 +133,22 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
+		if (!std::isfinite(data.direction.x) ||
+		    !std::isfinite(data.direction.y) ||
+		    !std::isfinite(data.direction.z))
+		{
+			std::cout << "Client #" << peerId << " has non-finite direction: " << data.direction << std::endl;
+			return;
+		}
+
+		if (!std::isfinite(data.rotation.x) ||
+			!std::isfinite(data.rotation.y) ||
+			!std::isfinite(data.rotation.z))
+		{
+			std::cout << "Client #" << peerId << " has non-finite rotation: " << data.direction << std::endl;
+			return;
+		}
+
 		// TODO: Set speed limit accordingly to spaceship data
 		Nz::Vector3f directionSpeed;
 		directionSpeed.x = Nz::Clamp(data.direction.x, -50.f, 50.f);
