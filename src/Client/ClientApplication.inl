@@ -6,25 +6,6 @@
 
 namespace ewn
 {
-	inline bool ClientApplication::IsConnected() const
-	{
-		return m_isServerConnected;
-	}
-
-	template<typename T>
-	void ClientApplication::SendPacket(const T& packet)
-	{
-		if (m_serverPeerId == NetworkReactor::InvalidPeerId)
-			return;
-
-		const auto& command = m_commandStore.GetOutgoingCommand<T>();
-
-		Nz::NetPacket data;
-		m_commandStore.SerializePacket(data, packet);
-
-		GetReactor(0)->SendData(m_serverPeerId, command.channelId, command.flags, std::move(data));
-	}
-
 	inline Nz::UInt64 ClientApplication::GetServerTimeCetteMethodeEstAussiDegueu() const
 	{
 		return GetAppTime() + m_deltaTimeDegueux;

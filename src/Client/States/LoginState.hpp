@@ -30,8 +30,8 @@ namespace ewn
 
 			void LayoutWidgets();
 
-			NazaraSlot(ClientApplication, OnLoginFailed, m_onLoginFailedSlot);
-			NazaraSlot(ClientApplication, OnLoginSucceeded, m_onLoginSucceededSlot);
+			NazaraSlot(ServerConnection, OnLoginFailure, m_onLoginFailureSlot);
+			NazaraSlot(ServerConnection, OnLoginSuccess, m_onLoginSuccess);
 
 			StateData& m_stateData;
 			Ndk::ButtonWidget* m_connectionButton;

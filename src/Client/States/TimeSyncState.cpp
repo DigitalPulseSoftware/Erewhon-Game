@@ -17,7 +17,7 @@ namespace ewn
 	void TimeSyncState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		m_accumulator = 0.f;
-		m_connected = m_stateData.app->IsConnected();
+		m_connected = m_stateData.server->IsConnected();
 		m_results.clear();
 		m_statusSprite = Nz::TextSprite::New();
 
@@ -27,9 +27,9 @@ namespace ewn
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
 		graphicsComponent.Attach(m_statusSprite);
 
-		m_onServerDisconnectedSlot.Connect(m_stateData.app->OnServerDisconnected, this, &TimeSyncState::OnServerDisconnected);
+		m_onServerDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &TimeSyncState::OnServerDisconnected);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
-		m_onTimeSyncResponseSlot.Connect(m_stateData.app->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
+		m_onTimeSyncResponseSlot.Connect(m_stateData.server->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
 
 		m_expectedRequestId = 0;
 		m_finished = true;
@@ -63,7 +63,7 @@ namespace ewn
 				timeSyncRequest.requestId = m_expectedRequestId;
 
 				m_requestTime = m_stateData.app->GetAppTime();
-				m_stateData.app->SendPacket(timeSyncRequest);
+				m_stateData.server->SendPacket(timeSyncRequest);
 				m_nextStepTime += 1.f;
 			}
 			else
@@ -83,7 +83,7 @@ namespace ewn
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
 
-	void TimeSyncState::OnServerDisconnected(Nz::UInt32 /*data*/)
+	void TimeSyncState::OnServerDisconnected(ServerConnection*, Nz::UInt32 /*data*/)
 	{
 		UpdateStatus("Connection lost", Nz::Color::Red);
 
@@ -91,7 +91,7 @@ namespace ewn
 		m_connected = false;
 	}
 
-	void TimeSyncState::OnTimeSyncResponse(const Packets::TimeSyncResponse& response)
+	void TimeSyncState::OnTimeSyncResponse(ServerConnection*, const Packets::TimeSyncResponse& response)
 	{
 		static constexpr std::size_t DesiredRequestCount = 30;
 
@@ -127,7 +127,7 @@ namespace ewn
 
 		if (m_results.size() >= DesiredRequestCount)
 		{
-			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), 0) / m_results.size();
+			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0)) / m_results.size();
 			if (!m_isClientYounger)
 				meanDiff = std::numeric_limits<Nz::UInt64>::max() - meanDiff;
 

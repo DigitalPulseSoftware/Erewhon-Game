@@ -45,20 +45,20 @@ namespace ewn
 			inline ServerEntity& CreateServerEntity(std::size_t id);
 			inline ServerEntity& GetServerEntity(std::size_t id);
 
-			void OnArenaState(const Packets::ArenaState& arenaState);
-			void OnChatMessage(const Packets::ChatMessage& chatMessage);
-			void OnControlSpaceship(const Packets::ControlSpaceship& controlPacket);
-			void OnCreateSpaceship(const Packets::CreateSpaceship& createPacket);
-			void OnDeleteSpaceship(const Packets::DeleteSpaceship& deletePacket);
+			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
+			void OnChatMessage(ServerConnection* server, const Packets::ChatMessage& chatMessage);
+			void OnControlSpaceship(ServerConnection* server, const Packets::ControlSpaceship& controlPacket);
+			void OnCreateSpaceship(ServerConnection* server, const Packets::CreateSpaceship& createPacket);
+			void OnDeleteSpaceship(ServerConnection* server, const Packets::DeleteSpaceship& deletePacket);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 
 			void UpdateInput(float elapsedTime);
 
-			NazaraSlot(ClientApplication, OnArenaState, m_onArenaStateSlot);
-			NazaraSlot(ClientApplication, OnChatMessage, m_onChatMessageSlot);
-			NazaraSlot(ClientApplication, OnControlSpaceship, m_onControlSpaceshipSlot);
-			NazaraSlot(ClientApplication, OnCreateSpaceship, m_onCreateSpaceshipSlot);
-			NazaraSlot(ClientApplication, OnDeleteSpaceship, m_onDeleteSpaceshipSlot);
+			NazaraSlot(ServerConnection, OnArenaState, m_onArenaStateSlot);
+			NazaraSlot(ServerConnection, OnChatMessage, m_onChatMessageSlot);
+			NazaraSlot(ServerConnection, OnControlSpaceship, m_onControlSpaceshipSlot);
+			NazaraSlot(ServerConnection, OnCreateSpaceship, m_onCreateSpaceshipSlot);
+			NazaraSlot(ServerConnection, OnDeleteSpaceship, m_onDeleteSpaceshipSlot);
 			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 

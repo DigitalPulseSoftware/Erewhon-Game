@@ -253,15 +253,15 @@ namespace ewn
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
 
-		m_onArenaStateSlot.Connect(m_stateData.app->OnArenaState, this, &GameState::OnArenaState);
-		m_onChatMessageSlot.Connect(m_stateData.app->OnChatMessage, this, &GameState::OnChatMessage);
-		m_onControlSpaceshipSlot.Connect(m_stateData.app->OnControlSpaceship, this, &GameState::OnControlSpaceship);
-		m_onCreateSpaceshipSlot.Connect(m_stateData.app->OnCreateSpaceship, this, &GameState::OnCreateSpaceship);
-		m_onDeleteSpaceshipSlot.Connect(m_stateData.app->OnDeleteSpaceship, this, &GameState::OnDeleteSpaceship);
+		m_onArenaStateSlot.Connect(m_stateData.server->OnArenaState, this, &GameState::OnArenaState);
+		m_onChatMessageSlot.Connect(m_stateData.server->OnChatMessage, this, &GameState::OnChatMessage);
+		m_onControlSpaceshipSlot.Connect(m_stateData.server->OnControlSpaceship, this, &GameState::OnControlSpaceship);
+		m_onCreateSpaceshipSlot.Connect(m_stateData.server->OnCreateSpaceship, this, &GameState::OnCreateSpaceship);
+		m_onDeleteSpaceshipSlot.Connect(m_stateData.server->OnDeleteSpaceship, this, &GameState::OnDeleteSpaceship);
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f }); });
 
-		m_stateData.app->SendPacket(Packets::JoinArena());
+		m_stateData.server->SendPacket(Packets::JoinArena());
 
 		// Listen to debug state
 		if constexpr (showServerGhosts)
@@ -368,7 +368,7 @@ namespace ewn
 		return true;
 	}
 
-	void GameState::OnArenaState(const Packets::ArenaState& arenaState)
+	void GameState::OnArenaState(ServerConnection*, const Packets::ArenaState& arenaState)
 	{
 		// Compute new interpolation factor from estimated server time/packet server time 
 		//Nz::UInt64 estimatedServerTime = m_stateData.app->GetServerTimeCetteMethodeEstAussiDegueu();
@@ -394,7 +394,7 @@ namespace ewn
 		}
 	}
 
-	void GameState::OnChatMessage(const Packets::ChatMessage & chatMessage)
+	void GameState::OnChatMessage(ServerConnection*, const Packets::ChatMessage & chatMessage)
 	{
 		std::cout << chatMessage.message << std::endl;
 
@@ -407,7 +407,7 @@ namespace ewn
 			m_chatBox->AppendText(message + "\n");
 	}
 
-	void GameState::OnControlSpaceship(const Packets::ControlSpaceship& controlPacket)
+	void GameState::OnControlSpaceship(ServerConnection*, const Packets::ControlSpaceship& controlPacket)
 	{
 		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
@@ -422,13 +422,13 @@ namespace ewn
 
 		Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		nodeComponent.SetParent(data.shipEntity);
-		nodeComponent.SetPosition(Nz::Vector3f::Backward() * 8.f + Nz::Vector3f::Up() * 3.f);
+		nodeComponent.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
 		nodeComponent.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
 
 		m_controlledEntity = controlPacket.id;
 	}
 
-	void GameState::OnCreateSpaceship(const Packets::CreateSpaceship& createPacket)
+	void GameState::OnCreateSpaceship(ServerConnection*, const Packets::CreateSpaceship& createPacket)
 	{
 		ServerEntity& data = CreateServerEntity(createPacket.id);
 
@@ -454,7 +454,7 @@ namespace ewn
 		data.textEntity->AddComponent<Ndk::NodeComponent>();
 	}
 
-	void GameState::OnDeleteSpaceship(const Packets::DeleteSpaceship& deletePacket)
+	void GameState::OnDeleteSpaceship(ServerConnection*, const Packets::DeleteSpaceship& deletePacket)
 	{
 		ServerEntity& data = GetServerEntity(deletePacket.id);
 
@@ -481,7 +481,7 @@ namespace ewn
 				{
 					Packets::PlayerChat chat;
 					chat.text = text;
-					m_stateData.app->SendPacket(chat);
+					m_stateData.server->SendPacket(chat);
 				}
 
 				m_chatEnteringBox->Destroy();
@@ -570,6 +570,6 @@ namespace ewn
 		movementPacket.direction = m_spaceshipSpeed;
 		movementPacket.rotation = m_spaceshipRotation;
 
-		m_stateData.app->SendPacket(movementPacket);
+		m_stateData.server->SendPacket(movementPacket);
 	}
 }

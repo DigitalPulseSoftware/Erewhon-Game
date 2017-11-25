@@ -7,14 +7,15 @@
 #ifndef EREWHON_CLIENT_STATES_DISCONNECTIONSTATE_HPP
 #define EREWHON_CLIENT_STATES_DISCONNECTIONSTATE_HPP
 
-#include <Client/ClientApplication.hpp>
-#include <Client/States/StateData.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Renderer/RenderTarget.hpp>
 #include <NDK/EntityOwner.hpp>
 #include <NDK/State.hpp>
 #include <NDK/World.hpp>
+#include <Client/ClientApplication.hpp>
+#include <Client/States/StateData.hpp>
+#include <Client/ServerConnection.hpp>
 
 namespace ewn
 {
@@ -30,10 +31,10 @@ namespace ewn
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
 			void CenterStatus();
-			void OnServerDisconnected(Nz::UInt32 data);
+			void OnServerDisconnected(ServerConnection* server, Nz::UInt32 data);
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White, bool center = true);
 
-			NazaraSlot(ClientApplication, OnServerDisconnected, m_onServerDisconnectedSlot);
+			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			StateData& m_stateData;

@@ -10,20 +10,16 @@
 
 namespace ewn
 {
-	ClientApplication::ClientApplication() :
-	m_commandStore(this),
-	m_serverPeerId(NetworkReactor::InvalidPeerId),
-	m_isServerConnected(false)
-	{
-	}
-
+	ClientApplication::ClientApplication() = default;
 	ClientApplication::~ClientApplication() = default;
 
-	bool ClientApplication::Connect(const Nz::String& serverHostname, Nz::UInt32 data)
+	bool ClientApplication::Run()
 	{
-		if (m_serverPeerId != NetworkReactor::InvalidPeerId)
-			GetReactor(0)->DisconnectPeer(m_serverPeerId, 0, DisconnectionType::Kick);
+		return BaseApplication::Run();
+	}
 
+	bool ClientApplication::ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor)
+	{
 		Nz::ResolveError resolveError = Nz::ResolveError_NoError;
 		std::vector<Nz::HostnameInfo> results = Nz::IpAddress::ResolveHostname(Nz::NetProtocol_IPv4, serverHostname, "2049", &resolveError);
 		if (results.empty())
@@ -32,120 +28,37 @@ namespace ewn
 			return false;
 		}
 
-		m_serverPeerId = GetReactor(0)->ConnectTo(results.front().address, data);
-		if (m_serverPeerId == NetworkReactor::InvalidPeerId)
+		std::size_t newPeerId = GetReactor(0)->ConnectTo(results.front().address, data);
+		if (newPeerId == NetworkReactor::InvalidPeerId)
 		{
 			std::cerr << "Failed to allocate new peer" << std::endl;
 			return false;
 		}
 
+		*peerId = newPeerId;
+		*reactor = GetReactor(0).get();
+
+		if (newPeerId >= m_servers.size())
+			m_servers.resize(newPeerId + 1);
+
+		m_servers[newPeerId] = connection;
+
 		return true;
-	}
-
-	void ClientApplication::Disconnect()
-	{
-		if (m_serverPeerId != NetworkReactor::InvalidPeerId)
-			GetReactor(0)->DisconnectPeer(m_serverPeerId);
-	}
-
-	bool ClientApplication::Run()
-	{
-		return BaseApplication::Run();
-	}
-
-	void ClientApplication::HandleArenaState(std::size_t peerId, const Packets::ArenaState& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnArenaState(data);
-	}
-
-	void ClientApplication::HandleChatMessage(std::size_t peerId, const Packets::ChatMessage& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnChatMessage(data);
-	}
-
-	void ClientApplication::HandleControlSpaceship(std::size_t peerId, const Packets::ControlSpaceship& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnControlSpaceship(data);
-	}
-
-	void ClientApplication::HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnCreateSpaceship(data);
-	}
-
-	void ClientApplication::HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnDeleteSpaceship(data);
-	}
-
-	void ClientApplication::HandleLoginFailure(std::size_t peerId, const Packets::LoginFailure& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnLoginFailed(data);
-	}
-
-	void ClientApplication::HandleLoginSuccess(std::size_t peerId, const Packets::LoginSuccess& data)
-	{
-		assert(peerId == m_serverPeerId);
-
-		OnLoginSucceeded(data);
-	}
-
-	void ClientApplication::HandleTimeSyncResponse(std::size_t peerId, const Packets::TimeSyncResponse& data)
-	{
-		OnTimeSyncResponse(data);
 	}
 
 	void ClientApplication::HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data)
 	{
-		assert(peerId == m_serverPeerId);
-
-		m_isServerConnected = true;
-
-		OnServerConnected(data);
-/*
-		Packets::Login login;
-		login.login = "Lynix";
-		login.passwordHash = "FD47AC41DEADBEEF";
-
-		Nz::NetPacket loginPacket;
-		loginPacket << static_cast<Nz::UInt8>(PacketType::Login);
-		Packets::Serialize(loginPacket, login);
-
-		GetReactor(0)->SendData(m_serverPeerId, 0, Nz::ENetPacketFlag_Reliable, std::move(loginPacket));*/
-
-		std::cout << "Connected to server with data " << data << std::endl;
+		m_servers[peerId]->NotifyConnected(data);
 	}
 
 	void ClientApplication::HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data)
 	{
-		assert(peerId == m_serverPeerId);
-		m_serverPeerId = NetworkReactor::InvalidPeerId;
-
-		m_isServerConnected = false;
-
-		OnServerDisconnected(data);
-
-		std::cout << "Disconnected from server with data " << data << std::endl;
+		m_servers[peerId]->NotifyDisconnected(data);
+		m_servers[peerId] = nullptr;
 	}
 
 	void ClientApplication::HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet)
 	{
-		assert(peerId == m_serverPeerId);
-
-		m_commandStore.UnserializePacket(peerId, std::move(packet));
-
-		//std::cout << "Receive packet from server of size " << packet.GetDataSize() << std::endl;
+		m_servers[peerId]->DispatchIncomingPacket(std::move(packet));
 	}
 }

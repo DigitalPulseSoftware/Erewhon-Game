@@ -26,16 +26,16 @@ namespace ewn
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
 		graphicsComponent.Attach(m_statusSprite);
 
-		if (m_stateData.app->IsConnected())
+		if (m_stateData.server->IsConnected())
 		{
 			UpdateStatus("Disconnecting");
 
-			m_onServerDisconnectedSlot.Connect(m_stateData.app->OnServerDisconnected, this, &DisconnectionState::OnServerDisconnected);
+			m_onServerDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &DisconnectionState::OnServerDisconnected);
 
-			m_stateData.app->Disconnect();
+			m_stateData.server->Disconnect();
 		}
 		else
-			OnServerDisconnected(0); //< Data is unused anyway
+			OnServerDisconnected(m_stateData.server, 0); //< Data is unused anyway
 
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
 	}
@@ -84,7 +84,7 @@ namespace ewn
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
 
-	void DisconnectionState::OnServerDisconnected(Nz::UInt32 /*data*/)
+	void DisconnectionState::OnServerDisconnected(ServerConnection* server, Nz::UInt32 /*data*/)
 	{
 		UpdateStatus("Disconnected", Nz::Color::White);
 

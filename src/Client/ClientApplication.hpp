@@ -12,6 +12,7 @@
 #include <Shared/BaseApplication.hpp>
 #include <Shared/NetworkReactor.hpp>
 #include <Client/ClientCommandStore.hpp>
+#include <Client/ServerConnection.hpp>
 #include <memory>
 #include <vector>
 
@@ -19,51 +20,28 @@ namespace ewn
 {
 	class ClientApplication final : public BaseApplication
 	{
+		friend class ServerConnection;
+
 		public:
 			ClientApplication();
 			virtual ~ClientApplication();
 
-			bool Connect(const Nz::String& serverHostname, Nz::UInt32 data = 0);
-			void Disconnect();
-
-			inline bool IsConnected() const;
 			bool Run() override;
-
-			template<typename T> void SendPacket(const T& packet);
 
 			// <!> TEMPORARY
 			inline Nz::UInt64 GetServerTimeCetteMethodeEstAussiDegueu() const;
 			inline void SetDeltaTimeFromServerToClientCetteMethodeEstDegueuDeTouteFacon(Nz::UInt64 deltaTime);
-			void HandleArenaState(std::size_t peerId, const Packets::ArenaState& data);
-			void HandleChatMessage(std::size_t peerId, const Packets::ChatMessage& data);
-			void HandleControlSpaceship(std::size_t peerId, const Packets::ControlSpaceship& data);
-			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
-			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
-			void HandleLoginFailure(std::size_t peerId, const Packets::LoginFailure& data);
-			void HandleLoginSuccess(std::size_t peerId, const Packets::LoginSuccess& data);
-			void HandleTimeSyncResponse(std::size_t peerId, const Packets::TimeSyncResponse& data);
-			NazaraSignal(OnArenaState, const Packets::ArenaState& /*data*/);
-			NazaraSignal(OnChatMessage, const Packets::ChatMessage& /*data*/);
-			NazaraSignal(OnControlSpaceship, const Packets::ControlSpaceship& /*data*/);
-			NazaraSignal(OnCreateSpaceship, const Packets::CreateSpaceship& /*data*/);
-			NazaraSignal(OnDeleteSpaceship, const Packets::DeleteSpaceship& /*data*/);
-			NazaraSignal(OnLoginFailed, const Packets::LoginFailure& /*data*/);
-			NazaraSignal(OnLoginSucceeded, const Packets::LoginSuccess& /*data*/);
-			NazaraSignal(OnTimeSyncResponse, const Packets::TimeSyncResponse& /*data*/);
 			// <!> TEMPORARY
 
-			NazaraSignal(OnServerConnected, Nz::UInt32 /*data*/);
-			NazaraSignal(OnServerDisconnected, Nz::UInt32 /*data*/);
-
 		private:
+			bool ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor);
+
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) override;
 
-			ClientCommandStore m_commandStore;
-			std::size_t m_serverPeerId;
+			std::vector<ServerConnection*> m_servers;
 			Nz::UInt64 m_deltaTimeDegueux;
-			bool m_isServerConnected;
 	};
 }
 

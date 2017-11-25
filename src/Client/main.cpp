@@ -16,6 +16,7 @@
 #include <Client/States/ConnectionState.hpp>
 #include <Client/States/DisconnectionState.hpp>
 #include <Client/States/GameState.hpp>
+#include <Client/ServerConnection.hpp>
 #include <iostream>
 
 int main()
@@ -25,7 +26,8 @@ int main()
 	app.EnableFPSCounter(true);
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
 
-	app.Connect("localhost");
+	ewn::ServerConnection serverConnection(app);
+	serverConnection.Connect("localhost");
 
 	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>(Nz::VideoMode(1280, 720), "Utopia");
 	window.EnableCloseOnQuit(false);
@@ -88,6 +90,7 @@ int main()
 	stateData.camera2D = camera2D;
 	stateData.camera3D = camera3D;
 	stateData.canvas = &canvas;
+	stateData.server = &serverConnection;
 	stateData.window = &window;
 	stateData.world2D = world2D.CreateHandle();
 	stateData.world3D = world3D.CreateHandle();

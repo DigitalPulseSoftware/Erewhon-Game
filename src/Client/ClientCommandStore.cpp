@@ -3,26 +3,29 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/ClientCommandStore.hpp>
-#include <Client/ClientApplication.hpp>
+#include <Client/ServerConnection.hpp>
 
 namespace ewn
 {
-	ClientCommandStore::ClientCommandStore(ClientApplication* app)
+	ClientCommandStore::ClientCommandStore(ServerConnection* server)
 	{
 		using namespace std::placeholders;
 
-#define IncomingCommand(Type, Func) RegisterIncomingCommand<Packets::Type>(#Type, Func)
+#define IncomingCommand(Type) RegisterIncomingCommand<Packets::Type>(#Type, [server](std::size_t peerId, const Packets::Type& data) \
+{ \
+	server->On##Type(server, data); \
+})
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
-		IncomingCommand(ArenaState,        std::bind(&ClientApplication::HandleArenaState,       app, _1, _2));
-		IncomingCommand(ChatMessage,       std::bind(&ClientApplication::HandleChatMessage,      app, _1, _2));
-		IncomingCommand(ControlSpaceship,  std::bind(&ClientApplication::HandleControlSpaceship, app, _1, _2));
-		IncomingCommand(CreateSpaceship,   std::bind(&ClientApplication::HandleCreateSpaceship,  app, _1, _2));
-		IncomingCommand(DeleteSpaceship,   std::bind(&ClientApplication::HandleDeleteSpaceship,  app, _1, _2));
-		IncomingCommand(LoginFailure,      std::bind(&ClientApplication::HandleLoginFailure,     app, _1, _2));
-		IncomingCommand(LoginSuccess,      std::bind(&ClientApplication::HandleLoginSuccess,     app, _1, _2));
-		IncomingCommand(TimeSyncResponse,  std::bind(&ClientApplication::HandleTimeSyncResponse, app, _1, _2));
+		IncomingCommand(ArenaState);
+		IncomingCommand(ChatMessage);
+		IncomingCommand(ControlSpaceship);
+		IncomingCommand(CreateSpaceship);
+		IncomingCommand(DeleteSpaceship);
+		IncomingCommand(LoginFailure);
+		IncomingCommand(LoginSuccess);
+		IncomingCommand(TimeSyncResponse);
 
 		// Outgoing commands
 		OutgoingCommand(JoinArena,       Nz::ENetPacketFlag_Reliable, 0);

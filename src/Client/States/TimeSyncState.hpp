@@ -31,12 +31,12 @@ namespace ewn
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
 			void CenterStatus();
-			void OnServerDisconnected(Nz::UInt32 data);
-			void OnTimeSyncResponse(const Packets::TimeSyncResponse& response);
+			void OnServerDisconnected(ServerConnection* server, Nz::UInt32 data);
+			void OnTimeSyncResponse(ServerConnection* server, const Packets::TimeSyncResponse& response);
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
 
-			NazaraSlot(ClientApplication, OnTimeSyncResponse, m_onTimeSyncResponseSlot);
-			NazaraSlot(ClientApplication, OnServerDisconnected, m_onServerDisconnectedSlot);
+			NazaraSlot(ServerConnection, OnTimeSyncResponse, m_onTimeSyncResponseSlot);
+			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
 			NazaraSlot(Nz::RenderTarget,  OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			StateData& m_stateData;

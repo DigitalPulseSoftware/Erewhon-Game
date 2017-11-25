@@ -25,16 +25,16 @@ namespace ewn
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
 		graphicsComponent.Attach(m_statusSprite);
 
-		if (m_stateData.app->IsConnected())
+		if (m_stateData.server->IsConnected())
 		{
-			OnServerConnected(0); //< Data is unused anyway
+			OnServerConnected(m_stateData.server, 0); //< Data is unused anyway
 		}
 		else
 		{
 			UpdateStatus("Connecting");
 
-			m_onServerConnectedSlot.Connect(m_stateData.app->OnServerConnected, this, &ConnectionState::OnServerConnected);
-			m_onServerDisconnectedSlot.Connect(m_stateData.app->OnServerDisconnected, this, &ConnectionState::OnServerDisconnected);
+			m_onServerConnectedSlot.Connect(m_stateData.server->OnConnected, this, &ConnectionState::OnServerConnected);
+			m_onServerDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &ConnectionState::OnServerDisconnected);
 		}
 
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
@@ -88,7 +88,7 @@ namespace ewn
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
 
-	void ConnectionState::OnServerConnected(Nz::UInt32 /*data*/)
+	void ConnectionState::OnServerConnected(ServerConnection*, Nz::UInt32 /*data*/)
 	{
 		UpdateStatus("Connected");
 
@@ -96,7 +96,7 @@ namespace ewn
 		m_connected = Nz::Ternary_True;
 	}
 
-	void ConnectionState::OnServerDisconnected(Nz::UInt32 /*data*/)
+	void ConnectionState::OnServerDisconnected(ServerConnection*, Nz::UInt32 /*data*/)
 	{
 		UpdateStatus("Connection failed", Nz::Color::Red);
 

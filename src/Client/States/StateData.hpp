@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -16,10 +16,12 @@
 namespace ewn
 {
 	class ClientApplication;
-
+	class ServerConnection;
+	
 	struct StateData
 	{
 		ClientApplication* app;
+		ServerConnection* server;
 		Nz::RenderWindow* window;
 		Ndk::Canvas* canvas;
 		Ndk::EntityHandle camera2D;

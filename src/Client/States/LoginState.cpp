@@ -58,12 +58,12 @@ namespace ewn
 			OnConnectionPressed();
 		});
 
-		m_onLoginFailedSlot.Connect(m_stateData.app->OnLoginFailed, [this](const Packets::LoginFailure& loginFailure)
+		m_onLoginFailureSlot.Connect(m_stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
 			UpdateStatus("Login failed: " + std::to_string(loginFailure.reason), Nz::Color::Red);
 		});
 
-		m_onLoginSucceededSlot.Connect(m_stateData.app->OnLoginSucceeded, [this](const Packets::LoginSuccess&)
+		m_onLoginSuccess.Connect(m_stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
 		{
 			UpdateStatus("Login succeeded", Nz::Color::Green);
 
@@ -97,8 +97,8 @@ namespace ewn
 		m_passwordArea->Destroy();
 		m_rememberCheckbox->Destroy();
 		m_statusLabel->Destroy();
-		m_onLoginFailedSlot.Disconnect();
-		m_onLoginSucceededSlot.Disconnect();
+		m_onLoginFailureSlot.Disconnect();
+		m_onLoginSuccess.Disconnect();
 	}
 
 	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)
@@ -137,7 +137,7 @@ namespace ewn
 		loginPacket.login = m_loginArea->GetText();
 		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex();
 
-		m_stateData.app->SendPacket(loginPacket);
+		m_stateData.server->SendPacket(loginPacket);
 	}
 
 	void LoginState::LayoutWidgets()
