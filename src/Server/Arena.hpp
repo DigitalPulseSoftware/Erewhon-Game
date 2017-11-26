@@ -47,6 +47,8 @@ namespace ewn
 			Packets::ArenaState m_arenaStatePacket;
 			ServerApplication* m_app;
 			Nz::UInt8 m_stateId;
+			float m_ghostBroadcastAccumulator;
+			float m_stateBroadcastAccumulator;
 	};
 }
 
