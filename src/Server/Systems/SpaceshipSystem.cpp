@@ -11,6 +11,7 @@ namespace ewn
 	SpaceshipSystem::SpaceshipSystem()
 	{
 		Requires<Ndk::NodeComponent, PlayerControlledComponent>();
+		SetMaximumUpdateRate(60.f);
 	}
 
 	void SpaceshipSystem::OnUpdate(float elapsedTime)

@@ -19,7 +19,6 @@
 #include <NDK/Components/ParticleEmitterComponent.hpp>
 #include <NDK/Components/ParticleGroupComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
-#include <NDK/Components/VelocityComponent.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
 #include <cassert>
 #include <cmath>
@@ -400,11 +399,6 @@ namespace ewn
 				// Reconciliation
 
 				// First, remove every treated input from the server
-				auto firstNonTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [serverInput = arenaState.inputId](const ClientInput& input)
-				{
-					return input.inputId - serverInput > 128;
-				});
-
 				auto lastTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [serverInput = arenaState.inputId](const ClientInput& input)
 				{
 					return input.inputId == serverInput;
@@ -416,27 +410,36 @@ namespace ewn
 				{
 					lastInputTime = lastTreatedInput->inputTime;
 
-					Nz::Vector3f diffFromServer = spaceshipData.position - lastTreatedInput->position;
+					Nz::Vector3f deltaPosition = spaceshipData.position - lastTreatedInput->position;
 
-					if (diffFromServer.GetLength() < 2.f)
-						reconciliatedPosition = lastTreatedInput->position + diffFromServer * 0.1f;
+					if (deltaPosition.GetLength() < 2.f)
+						reconciliatedPosition = lastTreatedInput->position + deltaPosition * 0.1f;
 					else
-						std::cout << "Teleport!" << std::endl;
+						std::cout << "Teleport to " << reconciliatedPosition << std::endl;
+
+					m_predictedInputs.erase(m_predictedInputs.begin(), ++lastTreatedInput);
 				}
 
-				m_predictedInputs.erase(m_predictedInputs.begin(), firstNonTreatedInput);
+				Nz::Node reconciliatedNode;
+				reconciliatedNode.SetPosition(reconciliatedPosition);
+				reconciliatedNode.SetRotation(spaceshipData.rotation);
 
 				for (const ClientInput& input : m_predictedInputs)
 				{
+					assert(input.inputTime >= lastInputTime);
+
 					Nz::UInt64 diffTime = input.inputTime - lastInputTime;
 
-					reconciliatedPosition += input.velocity * (diffTime / 1000.f);
+					float elapsedTime = diffTime / 1000.f;
+
+					reconciliatedNode.Move(elapsedTime * (input.velocity.x * Nz::Vector3f::Forward() + input.velocity.y * Nz::Vector3f::Left() + input.velocity.z * Nz::Vector3f::Up()));
+					reconciliatedNode.Rotate(Nz::EulerAnglesf(input.rotation.x * elapsedTime, input.rotation.y * elapsedTime, input.rotation.z * elapsedTime));
+
 					lastInputTime = input.inputTime;
 				}
 
-
-				spaceshipNode.SetPosition(reconciliatedPosition);
-				spaceshipNode.SetRotation(spaceshipData.rotation);
+				spaceshipNode.SetPosition(reconciliatedNode.GetPosition());
+				spaceshipNode.SetRotation(reconciliatedNode.GetRotation());
 			}
 			else
 			{
@@ -466,14 +469,10 @@ namespace ewn
 		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
 			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
-			oldData.shipEntity->RemoveComponent<Ndk::VelocityComponent>();
 			oldData.textEntity->Enable();
 		}
 
 		ServerEntity& data = GetServerEntity(controlPacket.id);
-
-		// Add velocity component for client-side prediction
-		data.shipEntity->AddComponent<Ndk::VelocityComponent>();
 
 		// Don't show our own name
 		data.textEntity->Disable();
@@ -639,6 +638,7 @@ namespace ewn
 
 		// Client-side prediction
 		clientNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
+		clientNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
 
 		ClientInput input;
 		input.angularVelocity = m_spaceshipRotation;
