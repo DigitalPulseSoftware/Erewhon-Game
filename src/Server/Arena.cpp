@@ -12,14 +12,21 @@
 
 namespace ewn
 {
+	static constexpr bool sendServerGhosts = true;
+
 	Arena::Arena(ServerApplication* app) :
 	m_app(app),
-	m_stateId(0)
+	m_stateId(0),
+	m_ghostBroadcastAccumulator(0.f),
+	m_stateBroadcastAccumulator(0.f)
 	{
 		m_world.AddSystem<SpaceshipSystem>();
 
-		m_debugSocket.Create(Nz::NetProtocol_IPv4);
-		m_debugSocket.EnableBroadcasting(true);
+		if constexpr (sendServerGhosts)
+		{
+			m_debugSocket.Create(Nz::NetProtocol_IPv4);
+			m_debugSocket.EnableBroadcasting(true);
+		}
 	}
 
 	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* player)
@@ -66,11 +73,33 @@ namespace ewn
 	{
 		m_world.Update(elapsedTime);
 
-		if (m_stateClock.GetSeconds() > 1.f / 30.f)
-		{
-			m_stateClock.Restart();
+		bool sendArenaStates = false;
+		bool sendGhostStates = false;
 
-			m_arenaStatePacket.stateId = m_stateId++;
+		m_stateBroadcastAccumulator += elapsedTime;
+		constexpr float stateBroadcastInterval = 1.f / 10.f;
+		if (m_stateBroadcastAccumulator >= stateBroadcastInterval)
+		{
+			m_stateBroadcastAccumulator -= stateBroadcastInterval;
+
+			sendArenaStates = true;
+		}
+
+		if constexpr (sendServerGhosts)
+		{
+			m_ghostBroadcastAccumulator += elapsedTime;
+
+			constexpr float ghostBroadcastInterval = 1.f / 60.f;
+			if (m_ghostBroadcastAccumulator >= ghostBroadcastInterval)
+			{
+				m_ghostBroadcastAccumulator -= ghostBroadcastInterval;
+
+				sendGhostStates = true;
+			}
+		}
+
+		if (sendArenaStates || sendGhostStates)
+		{
 			m_arenaStatePacket.serverTime = m_app->GetAppTime();
 			m_arenaStatePacket.spaceships.clear();
 			for (const Ndk::EntityHandle& spaceship : m_spaceships)
@@ -84,10 +113,16 @@ namespace ewn
 
 				m_arenaStatePacket.spaceships.emplace_back(std::move(spaceshipData));
 			}
+		}
 
+		if (sendArenaStates)
+		{
 			for (auto& pair : m_players)
 				pair.first->SendPacket(m_arenaStatePacket);
+		}
 
+		if (sendGhostStates)
+		{
 			// Broadcast arena state over network, for testing purposes
 			Nz::NetPacket debugState(1);
 			Packets::Serialize(debugState, m_arenaStatePacket);
