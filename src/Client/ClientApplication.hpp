@@ -28,11 +28,6 @@ namespace ewn
 
 			bool Run() override;
 
-			// <!> TEMPORARY
-			inline Nz::UInt64 GetServerTimeCetteMethodeEstAussiDegueu() const;
-			inline void SetDeltaTimeFromServerToClientCetteMethodeEstDegueuDeTouteFacon(Nz::UInt64 deltaTime);
-			// <!> TEMPORARY
-
 		private:
 			bool ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor);
 

@@ -31,9 +31,13 @@ namespace ewn
 			bool Connect(const Nz::String& serverHostname, Nz::UInt32 data = 0);
 			inline void Disconnect(Nz::UInt32 data = 0);
 
-			inline bool IsConnected();
+			Nz::UInt64 EstimateServerTime() const;
 
+			inline bool IsConnected();
+			
 			template<typename T> void SendPacket(const T& packet);
+
+			inline void UpdateServerTimeDelta(Nz::UInt64 deltaTime);
 
 			ServerConnection& operator=(const ServerConnection&) = delete;
 			ServerConnection& operator=(ServerConnection&&) = delete;
@@ -59,6 +63,7 @@ namespace ewn
 			ClientApplication& m_application;
 			ClientCommandStore m_commandStore;
 			NetworkReactor* m_networkReactor;
+			Nz::UInt64 m_deltaTime;
 			std::size_t m_peerId;
 			bool m_connected;
 	};

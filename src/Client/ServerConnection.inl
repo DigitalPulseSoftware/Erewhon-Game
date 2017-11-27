@@ -28,6 +28,11 @@ namespace ewn
 		return m_connected;
 	}
 
+	inline void ServerConnection::UpdateServerTimeDelta(Nz::UInt64 deltaTime)
+	{
+		m_deltaTime = deltaTime;
+	}
+
 	template<typename T>
 	void ServerConnection::SendPacket(const T& packet)
 	{

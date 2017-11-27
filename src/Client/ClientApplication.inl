@@ -6,13 +6,4 @@
 
 namespace ewn
 {
-	inline Nz::UInt64 ClientApplication::GetServerTimeCetteMethodeEstAussiDegueu() const
-	{
-		return GetAppTime() + m_deltaTimeDegueux;
-	}
-
-	inline void ClientApplication::SetDeltaTimeFromServerToClientCetteMethodeEstDegueuDeTouteFacon(Nz::UInt64 deltaTime)
-	{
-		m_deltaTimeDegueux = deltaTime;
-	}
 }

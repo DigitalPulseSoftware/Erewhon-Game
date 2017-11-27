@@ -15,4 +15,10 @@ namespace ewn
 		m_connected = false;
 		return m_application.ConnectNewServer(serverHostname, data, this, &m_peerId, &m_networkReactor);
 	}
+
+	Nz::UInt64 ServerConnection::EstimateServerTime() const
+	{
+		return m_application.GetAppTime() + m_deltaTime;
+	}
+
 }

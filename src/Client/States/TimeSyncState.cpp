@@ -32,7 +32,7 @@ namespace ewn
 		m_onTimeSyncResponseSlot.Connect(m_stateData.server->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
 
 		m_expectedRequestId = 0;
-		m_finished = true;
+		m_finished = false;
 		m_nextStepTime = 0.2f;
 	}
 
@@ -63,7 +63,8 @@ namespace ewn
 				timeSyncRequest.requestId = m_expectedRequestId;
 
 				m_requestTime = m_stateData.app->GetAppTime();
-				m_stateData.server->SendPacket(timeSyncRequest);
+				m_stateData.server->SendPacket(timeSyncRequest);
+
 				m_nextStepTime += 1.f;
 			}
 			else
@@ -127,11 +128,17 @@ namespace ewn
 
 		if (m_results.size() >= DesiredRequestCount)
 		{
-			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0)) / m_results.size();
 			if (!m_isClientYounger)
-				meanDiff = std::numeric_limits<Nz::UInt64>::max() - meanDiff;
+				std::transform(m_results.begin(), m_results.end(), m_results.begin(), [](Nz::UInt64 time) { return std::numeric_limits<Nz::UInt64>::max() - time; });
 
-			m_stateData.app->SetDeltaTimeFromServerToClientCetteMethodeEstDegueuDeTouteFacon(meanDiff);
+			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0)) / m_results.size();
+			Nz::UInt64 variance = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0), [meanDiff](Nz::UInt64 init, Nz::UInt64 delta)
+			{
+				return (delta - meanDiff) * (delta - meanDiff);
+			});
+			variance /= m_results.size() - 1;
+
+			m_stateData.server->UpdateServerTimeDelta(meanDiff);
 
 			m_finished = true;
 		}
