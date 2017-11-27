@@ -74,6 +74,7 @@ namespace ewn
 		void Serialize(Nz::NetPacket & packet, const PlayerMovement& data)
 		{
 			packet << data.inputId;
+			packet << data.inputTime;
 			packet << data.direction;
 			packet << data.rotation;
 		}
@@ -156,6 +157,7 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, PlayerMovement& data)
 		{
 			packet >> data.inputId;
+			packet >> data.inputTime;
 			packet >> data.direction;
 			packet >> data.rotation;
 		}

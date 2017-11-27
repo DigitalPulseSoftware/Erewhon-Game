@@ -628,6 +628,7 @@ namespace ewn
 
 		Packets::PlayerMovement movementPacket;
 		movementPacket.inputId = m_inputId++;
+		movementPacket.inputTime = m_stateData.server->EstimateServerTime();
 		movementPacket.direction = m_spaceshipSpeed;
 		movementPacket.rotation = m_spaceshipRotation;
 
@@ -643,7 +644,7 @@ namespace ewn
 		ClientInput input;
 		input.angularVelocity = m_spaceshipRotation;
 		input.inputId = movementPacket.inputId;
-		input.inputTime = m_stateData.app->GetAppTime();
+		input.inputTime = m_stateData.server->EstimateServerTime();
 		input.position = clientNode.GetPosition();
 		input.rotation = clientNode.GetRotation();
 		input.velocity = m_spaceshipSpeed;
