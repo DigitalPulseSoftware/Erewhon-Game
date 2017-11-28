@@ -133,7 +133,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		player->UpdateInput(data.inputId, data.direction, data.rotation);
+		player->UpdateInput(data.inputTime, data.direction, data.rotation);
 	}
 
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)

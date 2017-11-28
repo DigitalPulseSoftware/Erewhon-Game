@@ -12,7 +12,7 @@
 
 namespace ewn
 {
-	static constexpr bool sendServerGhosts = false;
+	static constexpr bool sendServerGhosts = true;
 
 	Arena::Arena(ServerApplication* app) :
 	m_app(app),
@@ -119,7 +119,7 @@ namespace ewn
 		{
 			for (auto& pair : m_players)
 			{
-				m_arenaStatePacket.inputId = pair.first->GetLastInputId();
+				m_arenaStatePacket.lastProcessedInputTime = pair.first->GetLastInputProcessedTime();
 
 				pair.first->SendPacket(m_arenaStatePacket);
 			}

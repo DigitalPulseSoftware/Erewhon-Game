@@ -83,7 +83,7 @@ namespace ewn
 		m_debugTemplateEntity = m_spaceshipTemplateEntity->Clone();
 		m_debugTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ghostSpaceship);
 		m_debugTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_debugTemplateEntity->Enable(false);
+		m_debugTemplateEntity->Disable();
 
 		// Particle effect
 #if 0
@@ -141,7 +141,6 @@ namespace ewn
 		//m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetParent(m_spaceshipMovementNode);
 
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
-		m_inputId = 0;
 		m_isCurrentlyRotating = false;
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
@@ -159,7 +158,7 @@ namespace ewn
 				m_rotationCursorPosition.MakeZero();
 
 				m_stateData.window->SetCursor(Nz::SystemCursor_None);
-				m_cursorEntity->Enable(true);
+				m_cursorEntity->Enable();
 				m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
 			}
 		});
@@ -172,7 +171,7 @@ namespace ewn
 				m_stateData.window->SetCursor(Nz::SystemCursor_Default);
 				Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, *m_stateData.window);
 
-				m_cursorEntity->Enable(false);
+				m_cursorEntity->Disable();
 			}
 		});
 
@@ -226,7 +225,7 @@ namespace ewn
 		m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
 		m_cursorEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ 200.f, 200.f, 0.f });
 
-		m_cursorEntity->Enable(false);
+		m_cursorEntity->Disable();
 
 		/*m_stateData.window->SetCursor(Nz::SystemCursor_None);
 		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
@@ -399,23 +398,23 @@ namespace ewn
 				// Reconciliation
 
 				// First, remove every treated input from the server
-				auto lastTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [serverInput = arenaState.inputId](const ClientInput& input)
+				auto lastTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [processedTime = arenaState.lastProcessedInputTime](const ClientInput& input)
 				{
-					return input.inputId == serverInput;
+					return input.inputId == processedTime;
 				});
 
-				Nz::UInt64 lastInputTime = 0;
+				Nz::UInt64 lastInputTime = arenaState.lastProcessedInputTime;
 				Nz::Vector3f reconciliatedPosition = spaceshipData.position;
 				if (lastTreatedInput != m_predictedInputs.end())
 				{
 					lastInputTime = lastTreatedInput->inputTime;
 
-					Nz::Vector3f deltaPosition = spaceshipData.position - lastTreatedInput->position;
+					/*Nz::Vector3f deltaPosition = spaceshipData.position - lastTreatedInput->position;
 
 					if (deltaPosition.GetLength() < 2.f)
 						reconciliatedPosition = lastTreatedInput->position + deltaPosition * 0.1f;
 					else
-						std::cout << "Teleport to " << reconciliatedPosition << std::endl;
+						std::cout << "Teleport to " << reconciliatedPosition << std::endl;*/
 
 					m_predictedInputs.erase(m_predictedInputs.begin(), ++lastTreatedInput);
 				}
@@ -627,7 +626,6 @@ namespace ewn
 		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
 
 		Packets::PlayerMovement movementPacket;
-		movementPacket.inputId = m_inputId++;
 		movementPacket.inputTime = m_stateData.server->EstimateServerTime();
 		movementPacket.direction = m_spaceshipSpeed;
 		movementPacket.rotation = m_spaceshipRotation;
@@ -643,7 +641,6 @@ namespace ewn
 
 		ClientInput input;
 		input.angularVelocity = m_spaceshipRotation;
-		input.inputId = movementPacket.inputId;
 		input.inputTime = m_stateData.server->EstimateServerTime();
 		input.position = clientNode.GetPosition();
 		input.rotation = clientNode.GetRotation();

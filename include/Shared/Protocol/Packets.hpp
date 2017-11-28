@@ -53,8 +53,8 @@ namespace ewn
 				Nz::Quaternionf rotation;
 			};
 
-			Nz::UInt8 inputId;
 			Nz::UInt64 serverTime;
+			Nz::UInt64 lastProcessedInputTime;
 			std::vector<Spaceship> spaceships;
 		};
 
@@ -107,7 +107,6 @@ namespace ewn
 
 		DeclarePacket(PlayerMovement)
 		{
-			Nz::UInt8 inputId;
 			Nz::UInt64 inputTime; //< Server time
 			Nz::Vector3f direction;
 			Nz::Vector3f rotation;

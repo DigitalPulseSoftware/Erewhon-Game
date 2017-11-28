@@ -5,6 +5,7 @@
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
+#include <iostream>
 
 namespace ewn
 {
@@ -14,18 +15,28 @@ namespace ewn
 		SetMaximumUpdateRate(60.f);
 	}
 
-	void SpaceshipSystem::OnUpdate(float elapsedTime)
+	void SpaceshipSystem::OnUpdate(float /*elapsedTime*/)
 	{
 		for (const Ndk::EntityHandle& spaceship : GetEntities())
 		{
 			auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
 			auto& spaceshipControl = spaceship->GetComponent<PlayerControlledComponent>();
 
-			const Nz::Vector3f& spaceshipMovement = spaceshipControl.GetDirection();
-			const Nz::Vector3f& spaceshipRotation = spaceshipControl.GetRotation();
+			Nz::UInt64 lastInput = spaceshipControl.GetLastInputTime();
+			spaceshipControl.ProcessInputs([&] (Nz::UInt64 time, const Nz::Vector3f& movement, const Nz::Vector3f& rotation)
+			{
+				float elapsedTime = (time - lastInput) / 1000.f;
+				lastInput = time;
 
-			spaceshipNode.Move(elapsedTime * (spaceshipMovement.x * Nz::Vector3f::Forward() + spaceshipMovement.y * Nz::Vector3f::Left() + spaceshipMovement.z * Nz::Vector3f::Up()));
-			spaceshipNode.Rotate(Nz::EulerAnglesf(spaceshipRotation.x * elapsedTime, spaceshipRotation.y * elapsedTime, spaceshipRotation.z * elapsedTime));
+				Nz::Vector3f totalMovement = elapsedTime * (movement.x * Nz::Vector3f::Forward() + movement.y * Nz::Vector3f::Left() + movement.z * Nz::Vector3f::Up());
+				Nz::EulerAnglesf totalRotation = Nz::EulerAnglesf(rotation.x * elapsedTime, rotation.y * elapsedTime, rotation.z * elapsedTime);
+
+				spaceshipNode.Move(totalMovement);
+				spaceshipNode.Rotate(totalRotation);
+
+				std::cout << "At " << time << ": Move by " << totalMovement << " (final pos: " << spaceshipNode.GetPosition() << ")\n";
+				std::cout << "   " << time << ": Rotate by " << totalRotation << " (final pos: " << spaceshipNode.GetRotation().ToEulerAngles() << ')' << std::endl;
+			});
 		}
 	}
 

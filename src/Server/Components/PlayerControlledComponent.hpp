@@ -17,16 +17,24 @@ namespace ewn
 		public:
 			inline PlayerControlledComponent();
 
-			inline const Nz::Vector3f& GetDirection() const;
-			inline const Nz::Vector3f& GetRotation() const;
+			inline Nz::UInt64 GetLastInputTime() const;
 
-			inline void Update(const Nz::Vector3f& direction, const Nz::Vector3f& rotation);
+			template<typename F> void ProcessInputs(F inputFunc);
+
+			inline void PushInput(Nz::UInt64 inputTime, const Nz::Vector3f& direction, const Nz::Vector3f& rotation);
 
 			static Ndk::ComponentIndex componentIndex;
 
 		private:
-			Nz::Vector3f m_direction;
-			Nz::Vector3f m_rotation;
+			struct InputData
+			{
+				Nz::UInt64 serverTime;
+				Nz::Vector3f direction;
+				Nz::Vector3f rotation;
+			};
+
+			Nz::UInt64 m_lastInputTime;
+			std::vector<InputData> m_inputs;
 	};
 }
 

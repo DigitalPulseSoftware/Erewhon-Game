@@ -7,24 +7,37 @@
 namespace ewn
 {
 	inline PlayerControlledComponent::PlayerControlledComponent() :
-	m_direction(Nz::Vector3f::Zero()),
-	m_rotation(Nz::Vector3f::Zero())
+	m_lastInputTime(0)
 	{
 	}
 
-	inline const Nz::Vector3f& PlayerControlledComponent::GetDirection() const
+	inline Nz::UInt64 PlayerControlledComponent::GetLastInputTime() const
 	{
-		return m_direction;
+		return m_lastInputTime;
 	}
 
-	inline const Nz::Vector3f& PlayerControlledComponent::GetRotation() const
+	template<typename F>
+	void PlayerControlledComponent::ProcessInputs(F inputFunc)
 	{
-		return m_rotation;
+		for (const InputData& input : m_inputs)
+			inputFunc(input.serverTime, input.direction, input.rotation);
+
+		if (!m_inputs.empty())
+		{
+			m_lastInputTime = m_inputs.back().serverTime;
+			m_inputs.clear();
+		}
 	}
 
-	inline void PlayerControlledComponent::Update(const Nz::Vector3f& direction, const Nz::Vector3f& rotation)
+	inline void PlayerControlledComponent::PushInput(Nz::UInt64 inputTime, const Nz::Vector3f& direction, const Nz::Vector3f& rotation)
 	{
-		m_direction = direction;
-		m_rotation = rotation;
+		assert(inputTime > m_lastInputTime);
+
+		InputData inputData;
+		inputData.serverTime = inputTime;
+		inputData.direction = direction;
+		inputData.rotation = rotation;
+
+		m_inputs.emplace_back(std::move(inputData));
 	}
 }

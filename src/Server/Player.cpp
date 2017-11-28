@@ -13,7 +13,6 @@ namespace ewn
 	m_arena(nullptr),
 	m_networkReactor(reactor),
 	m_peerId(peerId),
-	m_lastInputId(0),
 	m_authenticated(false)
 	{
 	}
@@ -30,6 +29,17 @@ namespace ewn
 		m_authenticated = true;
 	}
 
+	Nz::UInt64 Player::GetLastInputProcessedTime() const
+	{
+		if (m_spaceship)
+		{
+			auto& controlComponent = m_spaceship->GetComponent<PlayerControlledComponent>();
+			return controlComponent.GetLastInputTime();
+		}
+
+		return 0;
+	}
+
 	void Player::MoveToArena(Arena* arena)
 	{
 		assert(m_arena != arena);
@@ -44,9 +54,9 @@ namespace ewn
 		m_spaceship = m_arena->CreatePlayerSpaceship(this);
 	}
 
-	void Player::UpdateInput(Nz::UInt8 lastInput, Nz::Vector3f direction, Nz::Vector3f rotation)
+	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)
 	{
-		m_lastInputId = lastInput;
+		m_lastInputTime = lastInputTime;
 
 		if (!m_spaceship)
 			return;
@@ -77,6 +87,6 @@ namespace ewn
 		rotation.z = Nz::Clamp(rotation.z, -200.f, 200.f);
 
 		PlayerControlledComponent& controlComponent = m_spaceship->GetComponent<PlayerControlledComponent>();
-		controlComponent.Update(direction, rotation);
+		controlComponent.PushInput(lastInputTime, direction, rotation);
 	}
 }

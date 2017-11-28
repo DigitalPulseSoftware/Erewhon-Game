@@ -88,7 +88,6 @@ namespace ewn
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;
-			Nz::UInt8 m_inputId;
 			Nz::UInt64 m_serverTimeDelta;
 			std::size_t m_controlledEntity;
 			std::vector<ClientInput> m_predictedInputs;
