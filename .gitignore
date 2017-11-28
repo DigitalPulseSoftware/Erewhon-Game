@@ -35,6 +35,7 @@ build/**/*.nativecodeanalysis.all.xml
 build/**/*.nativecodeanalysis.xml
 build/**/*.VC.opendb
 build/**/*.VC.db*
+build/**/*.leu
 
 # Compiled Object files
 build/**/*.slo
