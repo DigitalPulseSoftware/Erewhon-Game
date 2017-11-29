@@ -25,17 +25,18 @@ namespace ewn
 			Nz::UInt64 lastInput = spaceshipControl.GetLastInputTime();
 			spaceshipControl.ProcessInputs([&] (Nz::UInt64 time, const Nz::Vector3f& movement, const Nz::Vector3f& rotation)
 			{
-				float elapsedTime = (time - lastInput) / 1000.f;
-				lastInput = time;
+				float inputElapsedTime = (lastInput != 0) ? (time - lastInput) / 1000.f : 0.f;
 
-				Nz::Vector3f totalMovement = elapsedTime * (movement.x * Nz::Vector3f::Forward() + movement.y * Nz::Vector3f::Left() + movement.z * Nz::Vector3f::Up());
-				Nz::EulerAnglesf totalRotation = Nz::EulerAnglesf(rotation.x * elapsedTime, rotation.y * elapsedTime, rotation.z * elapsedTime);
+				Nz::Vector3f totalMovement = inputElapsedTime * (movement.x * Nz::Vector3f::Forward() + movement.y * Nz::Vector3f::Left() + movement.z * Nz::Vector3f::Up());
+				Nz::EulerAnglesf totalRotation = Nz::EulerAnglesf(rotation.x * inputElapsedTime, rotation.y * inputElapsedTime, rotation.z * inputElapsedTime);
 
 				spaceshipNode.Move(totalMovement);
 				spaceshipNode.Rotate(totalRotation);
 
 				/*std::cout << "At " << time << ": Move by " << totalMovement << " (final pos: " << spaceshipNode.GetPosition() << ")\n";
 				std::cout << "   " << time << ": Rotate by " << totalRotation << " (final pos: " << spaceshipNode.GetRotation().ToEulerAngles() << ')' << std::endl;*/
+
+				lastInput = time;
 			});
 		}
 	}
