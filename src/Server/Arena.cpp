@@ -3,7 +3,10 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Arena.hpp>
+#include <NDK/Components/CollisionComponent3D.hpp>
 #include <NDK/Components/NodeComponent.hpp>
+#include <NDK/Components/PhysicsComponent3D.hpp>
+#include <NDK/Systems/PhysicsSystem3D.hpp>
 #include <Server/Player.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/ServerApplication.hpp>
@@ -22,6 +25,11 @@ namespace ewn
 	{
 		m_world.AddSystem<SpaceshipSystem>();
 
+		// Earth entity
+		const Ndk::EntityHandle& earthEntity = m_world.CreateEntity();
+		earthEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
+		earthEntity->AddComponent<Ndk::NodeComponent>().SetPosition(Nz::Vector3f::Forward() * 50.f);
+
 		if constexpr (sendServerGhosts)
 		{
 			m_debugSocket.Create(Nz::NetProtocol_IPv4);
@@ -34,6 +42,15 @@ namespace ewn
 		assert(m_players.find(player) != m_players.end());
 
 		const Ndk::EntityHandle& spaceship = m_world.CreateEntity();
+
+		Nz::SphereCollider3DRef collider = Nz::SphereCollider3D::New(5.f);
+		auto& collisionComponent = spaceship->AddComponent<Ndk::CollisionComponent3D>(collider);
+
+		auto& physComponent = spaceship->AddComponent<Ndk::PhysicsComponent3D>();
+		physComponent.SetMass(42.f);
+		physComponent.SetAngularDamping(Nz::Vector3f(0.2f));
+		physComponent.SetLinearDamping(0.2f);
+
 		auto& nodeComponent = spaceship->AddComponent<Ndk::NodeComponent>();
 		spaceship->AddComponent<PlayerControlledComponent>();
 
