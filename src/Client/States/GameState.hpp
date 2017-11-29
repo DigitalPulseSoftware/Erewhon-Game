@@ -28,7 +28,6 @@ namespace ewn
 		private:
 			struct ClientInput
 			{
-				Nz::UInt8 inputId;
 				Nz::UInt64 inputTime;
 				Nz::Quaternionf rotation;
 				Nz::Vector3f position;
@@ -88,7 +87,7 @@ namespace ewn
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;
-			Nz::UInt64 m_serverTimeDelta;
+			Nz::UInt64 m_lastInputTime;
 			std::size_t m_controlledEntity;
 			std::vector<ClientInput> m_predictedInputs;
 			std::vector<ServerEntity> m_serverEntities;

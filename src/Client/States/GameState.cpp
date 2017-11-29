@@ -142,6 +142,7 @@ namespace ewn
 
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
 		m_isCurrentlyRotating = false;
+		m_lastInputTime = 0;
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
 		m_spaceshipSpeed.MakeZero();
@@ -398,31 +399,17 @@ namespace ewn
 				// Reconciliation
 
 				// First, remove every treated input from the server
-				auto lastTreatedInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [processedTime = arenaState.lastProcessedInputTime](const ClientInput& input)
+				auto firstClientInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [processedTime = arenaState.lastProcessedInputTime](const ClientInput& input)
 				{
-					return input.inputId == processedTime;
+					return input.inputTime > processedTime;
 				});
-
-				Nz::UInt64 lastInputTime = arenaState.lastProcessedInputTime;
-				Nz::Vector3f reconciliatedPosition = spaceshipData.position;
-				if (lastTreatedInput != m_predictedInputs.end())
-				{
-					lastInputTime = lastTreatedInput->inputTime;
-
-					/*Nz::Vector3f deltaPosition = spaceshipData.position - lastTreatedInput->position;
-
-					if (deltaPosition.GetLength() < 2.f)
-						reconciliatedPosition = lastTreatedInput->position + deltaPosition * 0.1f;
-					else
-						std::cout << "Teleport to " << reconciliatedPosition << std::endl;*/
-
-					m_predictedInputs.erase(m_predictedInputs.begin(), ++lastTreatedInput);
-				}
+				m_predictedInputs.erase(m_predictedInputs.begin(), firstClientInput);
 
 				Nz::Node reconciliatedNode;
-				reconciliatedNode.SetPosition(reconciliatedPosition);
+				reconciliatedNode.SetPosition(spaceshipData.position);
 				reconciliatedNode.SetRotation(spaceshipData.rotation);
 
+				Nz::UInt64 lastInputTime = arenaState.lastProcessedInputTime;
 				for (const ClientInput& input : m_predictedInputs)
 				{
 					assert(input.inputTime >= lastInputTime);
@@ -431,14 +418,47 @@ namespace ewn
 
 					float elapsedTime = diffTime / 1000.f;
 
-					reconciliatedNode.Move(elapsedTime * (input.velocity.x * Nz::Vector3f::Forward() + input.velocity.y * Nz::Vector3f::Left() + input.velocity.z * Nz::Vector3f::Up()));
-					reconciliatedNode.Rotate(Nz::EulerAnglesf(input.rotation.x * elapsedTime, input.rotation.y * elapsedTime, input.rotation.z * elapsedTime));
+					Nz::Vector3f totalMovement = elapsedTime * (input.velocity.x * Nz::Vector3f::Forward() + input.velocity.y * Nz::Vector3f::Left() + input.velocity.z * Nz::Vector3f::Up());
+					Nz::EulerAnglesf totalRotation = Nz::EulerAnglesf(input.angularVelocity.x * elapsedTime, input.angularVelocity.y * elapsedTime, input.angularVelocity.z * elapsedTime);
+
+					reconciliatedNode.Move(totalMovement);
+					reconciliatedNode.Rotate(totalRotation);
+
+/*
+					std::cout << "Reconciliation:" << std::endl;
+					std::cout << "At " << input.inputTime << ": Move by " << totalMovement << " (final pos: " << reconciliatedNode.GetPosition() << ")\n";
+					std::cout << "   " << input.inputTime << ": Rotate by " << totalRotation << " (final rot: " << reconciliatedNode.GetRotation().ToEulerAngles() << ')' << std::endl;
+*/
 
 					lastInputTime = input.inputTime;
 				}
 
-				spaceshipNode.SetPosition(reconciliatedNode.GetPosition());
-				spaceshipNode.SetRotation(reconciliatedNode.GetRotation());
+				// Smooth position
+				Nz::Vector3f clientPosition = spaceshipNode.GetPosition();
+				Nz::Vector3f reconciliatedPosition = reconciliatedNode.GetPosition();
+				if (reconciliatedPosition.SquaredDistance(clientPosition) < Nz::IntegralPow(2.f, 2))
+					reconciliatedPosition = Nz::Vector3f::Lerp(clientPosition, reconciliatedPosition, 0.1f);
+				else
+				{
+					std::cout << "Teleport!" << std::endl;
+				}
+
+				// Smooth rotation
+				Nz::Quaternionf clientRotation = spaceshipNode.GetRotation();
+				Nz::Quaternionf reconciliatedRotation = reconciliatedNode.GetRotation();
+
+				reconciliatedRotation = Nz::Quaternionf::Slerp(clientRotation, reconciliatedRotation, 0.1f);
+				/*if (reconciliatedPosition.SquaredDistance(clientPosition) < Nz::IntegralPow(2.f, 2))
+					reconciliatedRotation = Nz::Vector3f::Lerp(clientPosition, reconciliatedPosition, 0.1f);
+				else
+				{
+					std::cout << "Teleport to " << reconciliatedPosition << std::endl;
+					reconciliatedRotation = reconciliatedPosition;
+				}*/
+
+
+				spaceshipNode.SetPosition(reconciliatedPosition);
+				spaceshipNode.SetRotation(reconciliatedRotation);
 			}
 			else
 			{
@@ -625,8 +645,10 @@ namespace ewn
 		//m_spaceshipMovementNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
 		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
 
+		Nz::UInt64 serverTime = m_stateData.server->EstimateServerTime();
+
 		Packets::PlayerMovement movementPacket;
-		movementPacket.inputTime = m_stateData.server->EstimateServerTime();
+		movementPacket.inputTime = serverTime;
 		movementPacket.direction = m_spaceshipSpeed;
 		movementPacket.rotation = m_spaceshipRotation;
 
@@ -636,16 +658,28 @@ namespace ewn
 		auto& clientNode = clientEntity.shipEntity->GetComponent<Ndk::NodeComponent>();
 
 		// Client-side prediction
-		clientNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
-		clientNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
+		float inputElapsedTime = (m_lastInputTime != 0) ? (serverTime - m_lastInputTime) / 1000.f : 0.f;
+
+		Nz::Vector3f totalMovement = inputElapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up());
+		Nz::EulerAnglesf totalRotation = Nz::EulerAnglesf(m_spaceshipRotation.x * inputElapsedTime, m_spaceshipRotation.y * inputElapsedTime, m_spaceshipRotation.z * inputElapsedTime);
+
+		clientNode.Move(totalMovement);
+		clientNode.Rotate(totalRotation);
+/*
+		std::cout << "Prediction:" << std::endl;
+		std::cout << "At " << serverTime << ": Move by " << totalMovement << " (final pos: " << clientNode.GetPosition() << ")\n";
+		std::cout << "   " << serverTime << ": Rotate by " << totalRotation << " (final rot: " << clientNode.GetRotation().ToEulerAngles() << ')' << std::endl;
+*/
 
 		ClientInput input;
 		input.angularVelocity = m_spaceshipRotation;
-		input.inputTime = m_stateData.server->EstimateServerTime();
+		input.inputTime = serverTime;
 		input.position = clientNode.GetPosition();
 		input.rotation = clientNode.GetRotation();
 		input.velocity = m_spaceshipSpeed;
 
 		m_predictedInputs.push_back(input);
+
+		m_lastInputTime = serverTime;
 	}
 }
