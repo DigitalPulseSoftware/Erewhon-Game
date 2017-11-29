@@ -58,7 +58,7 @@ namespace ewn
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)
 	{
 		//TODO: Check input time consistency and possibly kick player
-		if (lastInputTime < m_lastInputTime)
+		if (lastInputTime <= m_lastInputTime)
 			return;
 
 		m_lastInputTime = lastInputTime;
