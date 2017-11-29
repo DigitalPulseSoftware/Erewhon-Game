@@ -329,7 +329,7 @@ namespace ewn
 			if (!entityData.isValid)
 				continue;
 
-			if (i == m_controlledEntity)
+			if (i == m_controlledEntity && false)
 				continue;
 
 			Nz::Vector3f currentPosition = Nz::Lerp(entityData.oldPosition, entityData.newPosition, m_interpolationFactor);
@@ -396,7 +396,7 @@ namespace ewn
 
 			auto& spaceshipNode = entityData.shipEntity->GetComponent<Ndk::NodeComponent>();
 
-			if (spaceshipData.id == m_controlledEntity)
+			if (spaceshipData.id == m_controlledEntity && false)
 			{
 				// Reconciliation
 
@@ -621,9 +621,6 @@ namespace ewn
 
 		Nz::UInt64 serverTime = m_stateData.server->EstimateServerTime();
 
-		ServerEntity& clientEntity = GetServerEntity(m_controlledEntity);
-		auto& clientNode = clientEntity.shipEntity->GetComponent<Ndk::NodeComponent>();
-
 		ClientInput input;
 		input.inputTime = serverTime;
 		input.movement = m_spaceshipSpeed;
@@ -632,7 +629,7 @@ namespace ewn
 		m_predictedInputs.push_back(input);
 
 		// Client-side prediction
-		ApplyInput(clientNode, m_lastInputTime, m_predictedInputs.back());
+		//ApplyInput(clientNode, m_lastInputTime, m_predictedInputs.back());
 
 		m_lastInputTime = serverTime;
 
