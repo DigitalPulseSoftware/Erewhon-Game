@@ -13,6 +13,7 @@ namespace ewn
 	m_arena(nullptr),
 	m_networkReactor(reactor),
 	m_peerId(peerId),
+	m_lastInputTime(0),
 	m_authenticated(false)
 	{
 	}
