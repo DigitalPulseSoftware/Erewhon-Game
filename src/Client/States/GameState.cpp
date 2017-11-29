@@ -268,6 +268,8 @@ namespace ewn
 		{
 			m_debugStateSocket.Create(Nz::NetProtocol_IPv4);
 			m_debugStateSocket.Bind(2050);
+
+			m_debugStateSocket.EnableBlocking(false);
 		}
 	}
 
