@@ -29,10 +29,8 @@ namespace ewn
 			struct ClientInput
 			{
 				Nz::UInt64 inputTime;
-				Nz::Quaternionf rotation;
-				Nz::Vector3f position;
-				Nz::Vector3f velocity;
-				Nz::Vector3f angularVelocity;
+				Nz::Vector3f movement;
+				Nz::Vector3f rotation;
 			};
 
 			struct ServerEntity
@@ -62,6 +60,8 @@ namespace ewn
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 
 			void UpdateInput(float elapsedTime);
+
+			static void ApplyInput(Nz::Node& node, Nz::UInt64 lastInputTime, const ClientInput& input);
 
 			NazaraSlot(ServerConnection, OnArenaState, m_onArenaStateSlot);
 			NazaraSlot(ServerConnection, OnChatMessage, m_onChatMessageSlot);
