@@ -48,8 +48,8 @@ namespace ewn
 
 		auto& physComponent = spaceship->AddComponent<Ndk::PhysicsComponent3D>();
 		physComponent.SetMass(42.f);
-		physComponent.SetAngularDamping(Nz::Vector3f(0.2f));
-		physComponent.SetLinearDamping(0.2f);
+		physComponent.SetAngularDamping(Nz::Vector3f(0.3f));
+		physComponent.SetLinearDamping(0.25f);
 
 		auto& nodeComponent = spaceship->AddComponent<Ndk::NodeComponent>();
 		spaceship->AddComponent<PlayerControlledComponent>();
