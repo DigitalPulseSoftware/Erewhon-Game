@@ -74,7 +74,7 @@ namespace ewn
 		m_world.Update(elapsedTime);
 
 		// Attraction
-		if (m_attractionPoint)
+		/*if (m_attractionPoint)
 		{
 			constexpr float G = 6.6740831f / 10'000.f;
 
@@ -94,7 +94,7 @@ namespace ewn
 					phys.AddForce(dir * G * attractorMass * phys.GetMass() / d2);
 				}
 			}
-		}
+		}*/
 
 		m_stateBroadcastAccumulator += elapsedTime;
 	}
