@@ -15,7 +15,11 @@ if (not configLoaded) then
 end
 
 local libs = {"NazaraPath"}
-local libsDirs = {"", "/bin", "/include", "/lib"}
+local libsDirs = {"", "/bin", "/include"}
+if (os.istarget("windows")) then
+	table.insert(libsDirs, "/lib")
+end
+
 for k,v in pairs(libs) do
 	local dir = Config[v]
 	for k,v in pairs(libsDirs) do
