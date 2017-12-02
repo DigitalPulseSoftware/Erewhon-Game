@@ -360,9 +360,9 @@ namespace ewn
 			textNode.SetRotation(cameraNode.GetRotation());
 		}
 
-		m_cameraRotation.x = Nz::Approach(m_cameraRotation.x, m_spaceshipRotation.x / 10.f, 20.f * elapsedTime);
-		m_cameraRotation.y = Nz::Approach(m_cameraRotation.y, m_spaceshipRotation.y / 10.f, 20.f * elapsedTime);
-		m_cameraRotation.z = Nz::Approach(m_cameraRotation.z, m_spaceshipRotation.z / 10.f, 20.f * elapsedTime);
+		m_cameraRotation.x = Nz::Approach(m_cameraRotation.x, m_spaceshipRotation.x / 10.f, 10.f * elapsedTime);
+		m_cameraRotation.y = Nz::Approach(m_cameraRotation.y, m_spaceshipRotation.y / 10.f, 10.f * elapsedTime);
+		m_cameraRotation.z = Nz::Approach(m_cameraRotation.z, m_spaceshipRotation.z / 10.f, 10.f * elapsedTime);
 		m_cameraNode.SetRotation(Nz::EulerAnglesf(m_cameraRotation.x, m_cameraRotation.y, m_cameraRotation.z));
 
 		// Debug state socket
@@ -376,7 +376,7 @@ namespace ewn
 
 				for (auto& serverData : arenaState.entities)
 				{
-					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not yet aware
+					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not aware yet
 					if (!IsServerEntityValid(serverData.id))
 						continue;
 
