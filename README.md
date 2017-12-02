@@ -13,6 +13,33 @@ Vous pouvez suivre le [wiki de NazaraEngine](https://github.com/DigitalPulseSoft
 ### Compilation du projet
 
 Le dépôt contient le serveur ainsi que le client. Vous pouvez tester le projet en lançant le client sur un serveur existant ou en lançant le serveur sur votre machine locale avant.
+Pour compiler le projet, il vous faudra une version d'un compilateur supportant C++17 avec la libstdc++ à jour.
+
+La première étape est d'avoir bien installé Nazara Engine, **ou bien** de l'avoir packagé.
+
+#### Compilation sous Linux
+
+Pour packager Nazara Engine, il faudra aller dans ``NazaraEngine/build``, lancer la commande
+
+```
+# Dans NazaraEngine/build
+./premake5-linux64 package
+```
+
+puis copier NazaraEngine/lib/gmake/x64 dans le package
+
+```
+# Dans NazaraEngine/
+cp lib/gmake/x64 package/lib -r
+```
+
+Une fois ceci fait, il faut indiquer aux scripts de compilation d'Utopia où se trouve Nazara Engine.
+
+On copiera le fichier ``build/config.lua.default`` dans ``build/config.lua``, puis on éditera le fichier de façon à obtenir cela :
+
+```
+NazaraPath = [[chemin/vers/NazaraEngine/package]]
+```
 
 ## Contribuer au projet
 
