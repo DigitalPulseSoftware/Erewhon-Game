@@ -28,6 +28,7 @@ int main()
 
 	ewn::ServerConnection serverConnection(app);
 	serverConnection.Connect("localhost");
+	//serverConnection.Connect("malcolm.digitalpulsesoftware.net");
 
 	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>(Nz::VideoMode(1280, 720), "Utopia");
 	window.EnableCloseOnQuit(false);

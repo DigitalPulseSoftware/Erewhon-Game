@@ -14,11 +14,13 @@
 #include <Shared/Protocol/Packets.hpp>
 #include <Server/ServerCommandStore.hpp>
 #include <unordered_set>
+#include <vector>
 
 namespace ewn
 {
-	class ServerApplication;
+	class BroadcastSystem;
 	class Player;
+	class ServerApplication;
 
 	class Arena
 	{
@@ -35,19 +37,20 @@ namespace ewn
 			void Update(float elapsedTime);
 
 		private:
+			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, const Nz::Vector3f& position);
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
-			void OnSpaceshipDestroy(Ndk::Entity* spaceship);
 
-			Nz::Clock m_stateClock;
+			void OnBroadcastEntityCreation(const BroadcastSystem* system, const Packets::CreateEntity& packet);
+			void OnBroadcastEntityDestruction(const BroadcastSystem* system, const Packets::DeleteEntity& packet);
+			void OnBroadcastStateUpdate(const BroadcastSystem* system, Packets::ArenaState& statePacket);
+
 			Nz::UdpSocket m_debugSocket;
-			Ndk::EntityList m_spaceships;
+			Ndk::EntityHandle m_attractionPoint;
 			Ndk::World m_world;
 			std::unordered_map<Player*, Ndk::EntityHandle> m_players;
-			Packets::ArenaState m_arenaStatePacket;
+			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;
-			Nz::UInt8 m_stateId;
-			float m_ghostBroadcastAccumulator;
 			float m_stateBroadcastAccumulator;
 	};
 }

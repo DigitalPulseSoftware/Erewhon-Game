@@ -22,9 +22,9 @@ namespace ewn
 	{
 		ArenaState,
 		ChatMessage,
-		ControlSpaceship,
-		CreateSpaceship,
-		DeleteSpaceship,
+		ControlEntity,
+		CreateEntity,
+		DeleteEntity,
 		JoinArena,
 		Login,
 		LoginFailure,
@@ -46,7 +46,7 @@ namespace ewn
 
 		DeclarePacket(ArenaState)
 		{
-			struct Spaceship
+			struct Entity
 			{
 				Nz::UInt32 id;
 				Nz::Vector3f position;
@@ -55,7 +55,7 @@ namespace ewn
 
 			Nz::UInt64 serverTime;
 			Nz::UInt64 lastProcessedInputTime;
-			std::vector<Spaceship> spaceships;
+			std::vector<Entity> entities;
 		};
 
 		DeclarePacket(ChatMessage)
@@ -63,20 +63,21 @@ namespace ewn
 			std::string message;
 		};
 
-		DeclarePacket(ControlSpaceship)
+		DeclarePacket(ControlEntity)
 		{
 			Nz::UInt32 id;
 		};
 
-		DeclarePacket(CreateSpaceship)
+		DeclarePacket(CreateEntity)
 		{
 			Nz::UInt32 id;
 			Nz::Vector3f position;
 			Nz::Quaternionf rotation;
 			Nz::String name;
+			Nz::String entityType;
 		};
 
-		DeclarePacket(DeleteSpaceship)
+		DeclarePacket(DeleteEntity)
 		{
 			Nz::UInt32 id;
 		};
@@ -127,9 +128,9 @@ namespace ewn
 
 		void Serialize(Nz::NetPacket& packet, const ArenaState& data);
 		void Serialize(Nz::NetPacket& packet, const ChatMessage& data);
-		void Serialize(Nz::NetPacket& packet, const ControlSpaceship& data);
-		void Serialize(Nz::NetPacket& packet, const CreateSpaceship& data);
-		void Serialize(Nz::NetPacket& packet, const DeleteSpaceship& data);
+		void Serialize(Nz::NetPacket& packet, const ControlEntity& data);
+		void Serialize(Nz::NetPacket& packet, const CreateEntity& data);
+		void Serialize(Nz::NetPacket& packet, const DeleteEntity& data);
 		void Serialize(Nz::NetPacket& packet, const JoinArena& data);
 		void Serialize(Nz::NetPacket& packet, const Login& data);
 		void Serialize(Nz::NetPacket& packet, const LoginFailure& data);
@@ -141,9 +142,9 @@ namespace ewn
 
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data);
 		void Unserialize(Nz::NetPacket& packet, ChatMessage& data);
-		void Unserialize(Nz::NetPacket& packet, ControlSpaceship& data);
-		void Unserialize(Nz::NetPacket& packet, CreateSpaceship& data);
-		void Unserialize(Nz::NetPacket& packet, DeleteSpaceship& data);
+		void Unserialize(Nz::NetPacket& packet, ControlEntity& data);
+		void Unserialize(Nz::NetPacket& packet, CreateEntity& data);
+		void Unserialize(Nz::NetPacket& packet, DeleteEntity& data);
 		void Unserialize(Nz::NetPacket& packet, JoinArena& data);
 		void Unserialize(Nz::NetPacket& packet, Login& data);
 		void Unserialize(Nz::NetPacket& packet, LoginFailure& data);

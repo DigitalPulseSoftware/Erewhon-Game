@@ -26,11 +26,12 @@ namespace ewn
 
 	inline GameState::ServerEntity& GameState::GetServerEntity(std::size_t id)
 	{
-		assert(id < m_serverEntities.size());
+		assert(IsServerEntityValid(id));
+		return m_serverEntities[id];
+	}
 
-		ServerEntity& data = m_serverEntities[id];
-		assert(data.isValid);
-
-		return data;
+	inline bool GameState::IsServerEntityValid(std::size_t id) const
+	{
+		return id < m_serverEntities.size() && m_serverEntities[id].isValid;
 	}
 }

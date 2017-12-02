@@ -48,9 +48,9 @@ namespace ewn
 			// Packet reception signals
 			NazaraSignal(OnArenaState,       ServerConnection* /*server*/, const Packets::ArenaState&       /*data*/);
 			NazaraSignal(OnChatMessage,      ServerConnection* /*server*/, const Packets::ChatMessage&      /*data*/);
-			NazaraSignal(OnControlSpaceship, ServerConnection* /*server*/, const Packets::ControlSpaceship& /*data*/);
-			NazaraSignal(OnCreateSpaceship,  ServerConnection* /*server*/, const Packets::CreateSpaceship&  /*data*/);
-			NazaraSignal(OnDeleteSpaceship,  ServerConnection* /*server*/, const Packets::DeleteSpaceship&  /*data*/);
+			NazaraSignal(OnControlEntity,    ServerConnection* /*server*/, const Packets::ControlEntity& /*data*/);
+			NazaraSignal(OnCreateEntity,     ServerConnection* /*server*/, const Packets::CreateEntity&  /*data*/);
+			NazaraSignal(OnDeleteEntity,     ServerConnection* /*server*/, const Packets::DeleteEntity&  /*data*/);
 			NazaraSignal(OnLoginFailure,     ServerConnection* /*server*/, const Packets::LoginFailure&     /*data*/);
 			NazaraSignal(OnLoginSuccess,     ServerConnection* /*server*/, const Packets::LoginSuccess&     /*data*/);
 			NazaraSignal(OnTimeSyncResponse, ServerConnection* /*server*/, const Packets::TimeSyncResponse& /*data*/);

@@ -37,6 +37,19 @@ namespace ewn
 		else
 			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
 
+		Nz::ModelParameters params;
+		params.mesh.center = true;
+		params.material.shaderName = "Basic";
+
+		// Ball
+		Nz::ModelRef ballModel = Nz::Model::New();
+		ballModel->LoadFromFile("Assets/ball/ball.obj", params);
+
+		m_ballTemplateEntity = m_stateData.world3D->CreateEntity();
+		m_ballTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ballModel);
+		m_ballTemplateEntity->AddComponent<Ndk::NodeComponent>();
+		m_ballTemplateEntity->Disable();
+
 		// Earth
 		Nz::MeshRef earthMesh = Nz::Mesh::New();
 		earthMesh->CreateStatic();
@@ -50,20 +63,19 @@ namespace ewn
 		earthModel->SetMesh(earthMesh);
 		earthModel->SetMaterial(0, earthMaterial);
 
-		m_earthEntity = m_stateData.world3D->CreateEntity();
-		m_earthEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
+		m_earthTemplateEntity = m_stateData.world3D->CreateEntity();
+		m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
 
-		auto& earthNode = m_earthEntity->AddComponent<Ndk::NodeComponent>();
+		auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
 		earthNode.SetPosition(Nz::Vector3f::Forward() * 50.f);
 		earthNode.SetRotation(Nz::EulerAnglesf(0.f, 180.f, 0.f));
 		earthNode.SetScale(20.f);
 
+		m_earthTemplateEntity->Disable();
+
 		// Spaceship
-		Nz::ModelParameters params;
-		params.mesh.center = true;
 		params.mesh.matrix.MakeTransform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(0.01f));
 		params.mesh.texCoordScale.Set(1.f, -1.f);
-		params.material.shaderName = "Basic";
 
 		Nz::ModelRef spaceshipModel = Nz::Model::New();
 		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
@@ -72,6 +84,7 @@ namespace ewn
 		m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
 		m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
 		m_spaceshipTemplateEntity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
+		m_spaceshipTemplateEntity->Disable();
 
 		Nz::MaterialRef debugMaterial = Nz::Material::New("Translucent3D");
 		debugMaterial->SetDiffuseColor(Nz::Color(255, 255, 255, 50));
@@ -255,9 +268,9 @@ namespace ewn
 
 		m_onArenaStateSlot.Connect(m_stateData.server->OnArenaState, this, &GameState::OnArenaState);
 		m_onChatMessageSlot.Connect(m_stateData.server->OnChatMessage, this, &GameState::OnChatMessage);
-		m_onControlSpaceshipSlot.Connect(m_stateData.server->OnControlSpaceship, this, &GameState::OnControlSpaceship);
-		m_onCreateSpaceshipSlot.Connect(m_stateData.server->OnCreateSpaceship, this, &GameState::OnCreateSpaceship);
-		m_onDeleteSpaceshipSlot.Connect(m_stateData.server->OnDeleteSpaceship, this, &GameState::OnDeleteSpaceship);
+		m_onControlEntitySlot.Connect(m_stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
+		m_onCreateEntitySlot.Connect(m_stateData.server->OnCreateEntity, this, &GameState::OnCreateEntity);
+		m_onDeleteEntitySlot.Connect(m_stateData.server->OnDeleteEntity, this, &GameState::OnDeleteEntity);
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f }); });
 
@@ -277,9 +290,9 @@ namespace ewn
 	{
 		m_onArenaStateSlot.Disconnect();
 		m_onChatMessageSlot.Disconnect();
-		m_onControlSpaceshipSlot.Disconnect();
-		m_onCreateSpaceshipSlot.Disconnect();
-		m_onDeleteSpaceshipSlot.Disconnect();
+		m_onControlEntitySlot.Disconnect();
+		m_onCreateEntitySlot.Disconnect();
+		m_onDeleteEntitySlot.Disconnect();
 		m_onKeyPressedSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 
@@ -292,22 +305,22 @@ namespace ewn
 			if (spaceshipData.debugGhostEntity)
 				spaceshipData.debugGhostEntity->Kill();
 
-			if (spaceshipData.shipEntity)
-				spaceshipData.shipEntity->Kill();
+			if (spaceshipData.entity)
+				spaceshipData.entity->Kill();
 
 			if (spaceshipData.textEntity)
 				spaceshipData.textEntity->Kill();
 		}
 
 		m_cursorEntity->Kill();
-		m_earthEntity->Kill();
+		m_earthTemplateEntity->Kill();
 		m_spaceshipTemplateEntity->Kill();
 	}
 
 	bool GameState::Update(Ndk::StateMachine& /*fsm*/, float elapsedTime)
 	{
-		auto& earthNode = m_earthEntity->GetComponent<Ndk::NodeComponent>();
-		earthNode.Rotate(Nz::EulerAnglesf(0.f, 2.f * elapsedTime, 0.f));
+		//auto& earthNode = m_earthEntity->GetComponent<Ndk::NodeComponent>();
+		//earthNode.Rotate(Nz::EulerAnglesf(0.f, 2.f * elapsedTime, 0.f));
 
 		// Update and send input
 		float inputElapsedTime = m_inputClock.GetSeconds();
@@ -335,7 +348,7 @@ namespace ewn
 			Nz::Vector3f currentPosition = Nz::Lerp(entityData.oldPosition, entityData.newPosition, m_interpolationFactor);
 			Nz::Quaternionf currentRotation = Nz::Quaternionf::Slerp(entityData.oldRotation, entityData.newRotation, m_interpolationFactor);
 
-			auto& spaceshipNode = entityData.shipEntity->GetComponent<Ndk::NodeComponent>();
+			auto& spaceshipNode = entityData.entity->GetComponent<Ndk::NodeComponent>();
 			spaceshipNode.SetPosition(currentPosition);
 			spaceshipNode.SetRotation(currentRotation);
 
@@ -355,26 +368,50 @@ namespace ewn
 				Packets::ArenaState arenaState;
 				Packets::Unserialize(packet, arenaState);
 
-				for (auto& spaceshipData : arenaState.spaceships)
+				for (auto& serverData : arenaState.entities)
 				{
 					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not yet aware
-					if (spaceshipData.id >= m_serverEntities.size() || !m_serverEntities[spaceshipData.id].isValid)
+					if (!IsServerEntityValid(serverData.id))
 						continue;
 
-					ServerEntity& entityData = GetServerEntity(spaceshipData.id);
+					ServerEntity& entityData = GetServerEntity(serverData.id);
 
 					// Ensure ghost entity existence
 					if (!entityData.debugGhostEntity)
 						entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
 
 					auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
-					ghostNode.SetPosition(spaceshipData.position);
-					ghostNode.SetRotation(spaceshipData.rotation);
+					ghostNode.SetPosition(serverData.position);
+					ghostNode.SetRotation(serverData.rotation);
 				}
 			}
 		}
 
 		return true;
+	}
+
+	void GameState::ControlEntity(std::size_t entityId)
+	{
+		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
+		{
+			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
+			oldData.textEntity->Enable();
+		}
+
+		if (IsServerEntityValid(entityId))
+		{
+			ServerEntity& data = GetServerEntity(entityId);
+
+			// Don't show our own name
+			data.textEntity->Disable();
+
+			Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
+			nodeComponent.SetParent(data.entity);
+			nodeComponent.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
+			nodeComponent.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
+		}
+
+		m_controlledEntity = entityId;
 	}
 
 	void GameState::OnArenaState(ServerConnection*, const Packets::ArenaState& arenaState)
@@ -390,13 +427,13 @@ namespace ewn
 		//m_interpolationFactor = lateBy;
 		m_interpolationFactor = 0.f;
 
-		for (const auto& spaceshipData : arenaState.spaceships)
+		for (const auto& serverData : arenaState.entities)
 		{
-			ServerEntity& entityData = GetServerEntity(spaceshipData.id);
+			ServerEntity& entityData = GetServerEntity(serverData.id);
 
-			auto& spaceshipNode = entityData.shipEntity->GetComponent<Ndk::NodeComponent>();
+			auto& spaceshipNode = entityData.entity->GetComponent<Ndk::NodeComponent>();
 
-			if (spaceshipData.id == m_controlledEntity && false)
+			if (serverData.id == m_controlledEntity && false)
 			{
 				// Reconciliation
 
@@ -411,8 +448,8 @@ namespace ewn
 				Nz::Quaternionf clientRotation = spaceshipNode.GetRotation();
 
 				// Restore server position
-				spaceshipNode.SetPosition(spaceshipData.position);
-				spaceshipNode.SetRotation(spaceshipData.rotation);
+				spaceshipNode.SetPosition(serverData.position);
+				spaceshipNode.SetRotation(serverData.rotation);
 
 				// Apply unacknowledged inputs
 				Nz::UInt64 lastInputTime = arenaState.lastProcessedInputTime;
@@ -438,8 +475,8 @@ namespace ewn
 			{
 				entityData.oldPosition = spaceshipNode.GetPosition();
 				entityData.oldRotation = spaceshipNode.GetRotation();
-				entityData.newPosition = spaceshipData.position;
-				entityData.newRotation = spaceshipData.rotation;
+				entityData.newPosition = serverData.position;
+				entityData.newRotation = serverData.rotation;
 			}
 		}
 	}
@@ -457,61 +494,55 @@ namespace ewn
 			m_chatBox->AppendText(message + "\n");
 	}
 
-	void GameState::OnControlSpaceship(ServerConnection*, const Packets::ControlSpaceship& controlPacket)
+	void GameState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
 	{
-		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
-		{
-			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
-			oldData.textEntity->Enable();
-		}
-
-		ServerEntity& data = GetServerEntity(controlPacket.id);
-
-		// Don't show our own name
-		data.textEntity->Disable();
-
-		Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
-		nodeComponent.SetParent(data.shipEntity);
-		nodeComponent.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
-		nodeComponent.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
-
-		m_controlledEntity = controlPacket.id;
+		ControlEntity(controlPacket.id);
 	}
 
-	void GameState::OnCreateSpaceship(ServerConnection*, const Packets::CreateSpaceship& createPacket)
+	void GameState::OnCreateEntity(ServerConnection*, const Packets::CreateEntity& createPacket)
 	{
 		ServerEntity& data = CreateServerEntity(createPacket.id);
 
 		data.newPosition = data.oldPosition = createPacket.position;
 		data.newRotation = data.oldRotation = createPacket.rotation;
 
-		data.shipEntity = m_spaceshipTemplateEntity->Clone();
+		if (createPacket.entityType == "spaceship")
+			data.entity = m_spaceshipTemplateEntity->Clone();
+		else if (createPacket.entityType == "earth")
+			data.entity = m_earthTemplateEntity->Clone();
+		else if (createPacket.entityType == "ball")
+			data.entity = m_ballTemplateEntity->Clone();
+		else
+			return; //< TODO: Fallback
 
-		auto& spaceshipNode = data.shipEntity->GetComponent<Ndk::NodeComponent>();
-		spaceshipNode.SetPosition(createPacket.position);
-		spaceshipNode.SetRotation(createPacket.rotation);
+		auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
+		entityNode.SetPosition(createPacket.position);
+		entityNode.SetRotation(createPacket.rotation);
 
-		Nz::Color spaceshipColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
+		Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
-		// Create spaceship name entity
+		// Create entity name entity
 		Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
 		textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-		textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, spaceshipColor));
+		textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
 		textSprite->SetScale(0.01f);
 
 		data.textEntity = m_stateData.world3D->CreateEntity();
 		data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
 		data.textEntity->AddComponent<Ndk::NodeComponent>();
+
+		if (createPacket.id == m_controlledEntity)
+			ControlEntity(createPacket.id);
 	}
 
-	void GameState::OnDeleteSpaceship(ServerConnection*, const Packets::DeleteSpaceship& deletePacket)
+	void GameState::OnDeleteEntity(ServerConnection*, const Packets::DeleteEntity& deletePacket)
 	{
 		ServerEntity& data = GetServerEntity(deletePacket.id);
 
 		if (data.debugGhostEntity)
 			data.debugGhostEntity->Kill();
 
-		data.shipEntity->Kill();
+		data.entity->Kill();
 		data.textEntity->Kill();
 		data.isValid = false;
 

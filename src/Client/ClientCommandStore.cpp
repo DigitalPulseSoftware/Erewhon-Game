@@ -20,9 +20,9 @@ namespace ewn
 		// Incoming commands
 		IncomingCommand(ArenaState);
 		IncomingCommand(ChatMessage);
-		IncomingCommand(ControlSpaceship);
-		IncomingCommand(CreateSpaceship);
-		IncomingCommand(DeleteSpaceship);
+		IncomingCommand(ControlEntity);
+		IncomingCommand(CreateEntity);
+		IncomingCommand(DeleteEntity);
 		IncomingCommand(LoginFailure);
 		IncomingCommand(LoginSuccess);
 		IncomingCommand(TimeSyncResponse);

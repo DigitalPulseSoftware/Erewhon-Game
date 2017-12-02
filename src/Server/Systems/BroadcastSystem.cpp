@@ -1,0 +1,89 @@
+// Copyright (C) 2017 Jérôme Leclercq
+// This file is part of the "Erewhon Server" project
+// For conditions of distribution and use, see copyright notice in LICENSE
+
+#include <Server/Systems/BroadcastSystem.hpp>
+#include <Server/Components/SynchronizedComponent.hpp>
+#include <Nazara/Physics3D/Collider3D.hpp>
+#include <NDK/Components/CollisionComponent3D.hpp>
+#include <NDK/Components/NodeComponent.hpp>
+#include <NDK/Components/PhysicsComponent3D.hpp>
+#include <Server/ServerApplication.hpp>
+#include <Server/Systems/SpaceshipSystem.hpp>
+#include <cassert>
+
+namespace ewn
+{
+	BroadcastSystem::BroadcastSystem(ServerApplication* app) :
+	m_app(app)
+	{
+		Requires<Ndk::NodeComponent, SynchronizedComponent>();
+		SetMaximumUpdateRate(10.f);
+	}
+
+	void BroadcastSystem::CreateAllEntities(std::vector<Packets::CreateEntity>& packetVector)
+	{
+		for (const Ndk::EntityHandle& entity : GetEntities())
+		{
+			auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
+			auto& syncComponent = entity->GetComponent<SynchronizedComponent>();
+
+			Packets::CreateEntity createPacket;
+			createPacket.entityType = syncComponent.GetType();
+			createPacket.id = entity->GetId();
+			createPacket.name = syncComponent.GetName();
+			createPacket.position = nodeComponent.GetPosition();
+			createPacket.rotation = nodeComponent.GetRotation();
+
+			packetVector.emplace_back(std::move(createPacket));
+		}
+	}
+
+	void BroadcastSystem::OnEntityAdded(Ndk::Entity* entity)
+	{
+		m_movingEntities.Insert(entity);
+
+		auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
+		auto& syncComponent = entity->GetComponent<SynchronizedComponent>();
+
+		Packets::CreateEntity createPacket;
+		createPacket.entityType = syncComponent.GetType();
+		createPacket.id = entity->GetId();
+		createPacket.name = syncComponent.GetName();
+		createPacket.position = nodeComponent.GetPosition();
+		createPacket.rotation = nodeComponent.GetRotation();
+
+		BroadcastEntityCreation(this, createPacket);
+	}
+
+	void BroadcastSystem::OnEntityRemoved(Ndk::Entity* entity)
+	{
+		m_movingEntities.Remove(entity);
+
+		Packets::DeleteEntity deletePacket;
+		deletePacket.id = entity->GetId();
+
+		BroadcastEntityDestruction(this, deletePacket);
+	}
+
+	void BroadcastSystem::OnUpdate(float /*elapsedTime*/)
+	{
+		m_arenaStatePacket.serverTime = m_app->GetAppTime();
+		m_arenaStatePacket.entities.clear();
+		for (const Ndk::EntityHandle& entity : m_movingEntities)
+		{
+			Ndk::NodeComponent& entityNode = entity->GetComponent<Ndk::NodeComponent>();
+
+			Packets::ArenaState::Entity entityData;
+			entityData.id = entity->GetId();
+			entityData.position = entityNode.GetPosition();
+			entityData.rotation = entityNode.GetRotation();
+
+			m_arenaStatePacket.entities.emplace_back(std::move(entityData));
+		}
+
+		BroadcastStateUpdate(this, m_arenaStatePacket);
+	}
+
+	Ndk::SystemIndex BroadcastSystem::systemIndex;
+}

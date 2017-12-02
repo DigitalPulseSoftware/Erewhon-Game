@@ -16,8 +16,8 @@ namespace ewn
 			packet << data.serverTime;
 			packet << data.lastProcessedInputTime;
 
-			packet << Nz::UInt32(data.spaceships.size());
-			for (const auto& spaceship : data.spaceships)
+			packet << Nz::UInt32(data.entities.size());
+			for (const auto& spaceship : data.entities)
 			{
 				packet << spaceship.id;
 				packet << spaceship.position;
@@ -30,20 +30,21 @@ namespace ewn
 			packet << data.message;
 		}
 
-		void Serialize(Nz::NetPacket& packet, const ControlSpaceship& data)
+		void Serialize(Nz::NetPacket& packet, const ControlEntity& data)
 		{
 			packet << data.id;
 		}
 
-		void Serialize(Nz::NetPacket& packet, const CreateSpaceship& data)
+		void Serialize(Nz::NetPacket& packet, const CreateEntity& data)
 		{
+			packet << data.entityType;
 			packet << data.id;
 			packet << data.position;
 			packet << data.rotation;
 			packet << data.name;
 		}
 
-		void Serialize(Nz::NetPacket& packet, const DeleteSpaceship& data)
+		void Serialize(Nz::NetPacket& packet, const DeleteEntity& data)
 		{
 			packet << data.id;
 		}
@@ -98,8 +99,8 @@ namespace ewn
 			Nz::UInt32 spaceshipSize;
 			packet >> spaceshipSize;
 
-			data.spaceships.resize(spaceshipSize);
-			for (auto& spaceship : data.spaceships)
+			data.entities.resize(spaceshipSize);
+			for (auto& spaceship : data.entities)
 			{
 				packet >> spaceship.id;
 				packet >> spaceship.position;
@@ -112,20 +113,21 @@ namespace ewn
 			packet >> data.message;
 		}
 
-		void Unserialize(Nz::NetPacket& packet, ControlSpaceship& data)
+		void Unserialize(Nz::NetPacket& packet, ControlEntity& data)
 		{
 			packet >> data.id;
 		}
 
-		void Unserialize(Nz::NetPacket& packet, CreateSpaceship& data)
+		void Unserialize(Nz::NetPacket& packet, CreateEntity& data)
 		{
+			packet >> data.entityType;
 			packet >> data.id;
 			packet >> data.position;
 			packet >> data.rotation;
 			packet >> data.name;
 		}
 
-		void Unserialize(Nz::NetPacket& packet, DeleteSpaceship& data)
+		void Unserialize(Nz::NetPacket& packet, DeleteEntity& data)
 		{
 			packet >> data.id;
 		}

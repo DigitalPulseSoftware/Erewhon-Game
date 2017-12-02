@@ -53,6 +53,12 @@ namespace ewn
 			m_arena->HandlePlayerJoin(this);
 
 		m_spaceship = m_arena->CreatePlayerSpaceship(this);
+
+		// Control packet
+		Packets::ControlEntity controlPacket;
+		controlPacket.id = m_spaceship->GetId();
+
+		SendPacket(controlPacket);
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)
