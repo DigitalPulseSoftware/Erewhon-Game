@@ -84,11 +84,13 @@ namespace ewn
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
 			Nz::Clock m_inputClock;
+			Nz::Node m_cameraNode;
 			Nz::Node m_spaceshipMovementNode;
 			Nz::SpriteRef m_cursorOrientationSprite;
 			Nz::Vector2i m_rotationCursorOrigin;
 			Nz::Vector2i m_rotationCursorPosition;
 			Nz::Vector2f m_rotationDirection;
+			Nz::Vector3f m_cameraRotation;
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;

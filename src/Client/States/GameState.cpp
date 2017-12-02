@@ -252,6 +252,7 @@ namespace ewn
 		});
 		*/
 
+		m_cameraRotation = Nz::Vector3f::Zero();
 		m_chatEnteringBox = nullptr;
 		m_chatLines.resize(maxChatLines);
 		m_interpolationFactor = 0;
@@ -359,6 +360,11 @@ namespace ewn
 			textNode.SetRotation(cameraNode.GetRotation());
 		}
 
+		m_cameraRotation.x = Nz::Approach(m_cameraRotation.x, m_spaceshipRotation.x / 10.f, 20.f * elapsedTime);
+		m_cameraRotation.y = Nz::Approach(m_cameraRotation.y, m_spaceshipRotation.y / 10.f, 20.f * elapsedTime);
+		m_cameraRotation.z = Nz::Approach(m_cameraRotation.z, m_spaceshipRotation.z / 10.f, 20.f * elapsedTime);
+		m_cameraNode.SetRotation(Nz::EulerAnglesf(m_cameraRotation.x, m_cameraRotation.y, m_cameraRotation.z));
+
 		// Debug state socket
 		if constexpr (showServerGhosts)
 		{
@@ -405,10 +411,12 @@ namespace ewn
 			// Don't show our own name
 			data.textEntity->Disable();
 
-			Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
-			nodeComponent.SetParent(data.entity);
-			nodeComponent.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
-			nodeComponent.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
+			m_cameraNode.SetParent(data.entity->GetComponent<Ndk::NodeComponent>());
+
+			Ndk::NodeComponent& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
+			cameraNode.SetParent(m_cameraNode);
+			cameraNode.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
+			cameraNode.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
 		}
 
 		m_controlledEntity = entityId;
