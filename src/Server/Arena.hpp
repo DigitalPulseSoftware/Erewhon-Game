@@ -31,6 +31,7 @@ namespace ewn
 			~Arena() = default;
 
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
+			const Ndk::EntityHandle& CreateProjectile(Player* owner, const Nz::Vector3f& position);
 
 			void DispatchChatMessage(Player* player, const Nz::String& message);
 

@@ -55,6 +55,11 @@ namespace ewn
 		return spaceship;
 	}
 
+	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Nz::Vector3f& position)
+	{
+		return CreateEntity("projectile", "Projectile de " + owner->GetName(), position);
+	}
+
 	void Arena::DispatchChatMessage(Player* player, const Nz::String& message)
 	{
 		Packets::ChatMessage chatPacket;
@@ -108,14 +113,14 @@ namespace ewn
 			physComponent.SetAngularDamping(Nz::Vector3f(0.3f));
 			physComponent.SetLinearDamping(0.25f);
 
-			newEntity->AddComponent<Ndk::NodeComponent>();
+			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<PlayerControlledComponent>();
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
 		}
 		else if (type == "earth")
 		{
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
-			newEntity->AddComponent<Ndk::NodeComponent>();
+			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<SynchronizedComponent>(type, name, false);
 		}
 		else if (type == "ball")
@@ -123,14 +128,25 @@ namespace ewn
 			constexpr float radius = 18.251904f / 2.f;
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			newEntity->AddComponent<Ndk::NodeComponent>();
+			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
 
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.SetMass(10.f);
+			physComponent.SetPosition(position);
 		}
+		else if (type == "projectile")
+		{
+			constexpr float radius = 18.251904f / (2.f * 5.f);
 
-		newEntity->GetComponent<Ndk::NodeComponent>().SetPosition(position);
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
+			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
+			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
+
+			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.SetMass(10.f);
+			physComponent.SetPosition(position);
+		}
 
 		return newEntity;
 	}

@@ -32,6 +32,7 @@ namespace ewn
 		OutgoingCommand(Login,           Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerChat,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement,  0, 0);
+		OutgoingCommand(PlayerShoot,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncRequest, 0, 0);
 
 #undef IncomingCommand

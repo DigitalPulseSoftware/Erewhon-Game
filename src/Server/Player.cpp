@@ -3,6 +3,8 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Player.hpp>
+#include <NDK/Components/NodeComponent.hpp>
+#include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/Arena.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 
@@ -59,6 +61,14 @@ namespace ewn
 		controlPacket.id = m_spaceship->GetId();
 
 		SendPacket(controlPacket);
+	}
+
+	void Player::Shoot()
+	{
+		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+
+		const Ndk::EntityHandle& projectile = m_arena->CreateProjectile(this, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 20.f);
+		projectile->GetComponent<Ndk::PhysicsComponent3D>().AddForce(spaceshipNode.GetForward() * 200'000.f);
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)

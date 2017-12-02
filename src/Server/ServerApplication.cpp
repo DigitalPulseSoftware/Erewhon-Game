@@ -136,6 +136,15 @@ namespace ewn
 		player->UpdateInput(data.inputTime, data.direction, data.rotation);
 	}
 
+	void ServerApplication::HandlePlayerShoot(std::size_t peerId, const Packets::PlayerShoot& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		player->Shoot();
+	}
+
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)
 	{
 		Player* player = m_players[peerId];

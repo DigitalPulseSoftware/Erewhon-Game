@@ -37,6 +37,8 @@ namespace ewn
 
 			template<typename T> void SendPacket(const T& packet);
 
+			void Shoot();
+
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
 
 		private:

@@ -520,6 +520,11 @@ namespace ewn
 			data.entity = m_earthTemplateEntity->Clone();
 		else if (createPacket.entityType == "ball")
 			data.entity = m_ballTemplateEntity->Clone();
+		else if (createPacket.entityType == "projectile")
+		{
+			data.entity = m_ballTemplateEntity->Clone();
+			data.entity->GetComponent<Ndk::NodeComponent>().SetScale(1.f / 5.f);
+		}
 		else
 			return; //< TODO: Fallback
 
@@ -585,6 +590,10 @@ namespace ewn
 			m_chatEnteringBox->SetPosition({ 0.f, m_stateData.window->GetSize().y - m_chatEnteringBox->GetSize().y - 5.f, 0.f });
 			m_chatEnteringBox->SetTextColor(Nz::Color::White);
 			m_chatEnteringBox->SetFocus();
+		}
+		else if (event.code == Nz::Keyboard::Space)
+		{
+			m_stateData.server->SendPacket(Packets::PlayerShoot());
 		}
 	}
 

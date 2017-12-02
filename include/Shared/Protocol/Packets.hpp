@@ -31,6 +31,7 @@ namespace ewn
 		LoginSuccess,
 		PlayerChat,
 		PlayerMovement,
+		PlayerShoot,
 		TimeSyncRequest,
 		TimeSyncResponse
 	};
@@ -113,6 +114,10 @@ namespace ewn
 			Nz::Vector3f rotation;
 		};
 
+		DeclarePacket(PlayerShoot)
+		{
+		};
+
 		DeclarePacket(TimeSyncRequest)
 		{
 			Nz::UInt8 requestId;
@@ -137,6 +142,7 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const LoginSuccess& data);
 		void Serialize(Nz::NetPacket& packet, const PlayerChat& data);
 		void Serialize(Nz::NetPacket& packet, const PlayerMovement& data);
+		void Serialize(Nz::NetPacket& packet, const PlayerShoot& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data);
 
@@ -151,6 +157,7 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, LoginSuccess& data);
 		void Unserialize(Nz::NetPacket& packet, PlayerChat& data);
 		void Unserialize(Nz::NetPacket& packet, PlayerMovement& data);
+		void Unserialize(Nz::NetPacket& packet, PlayerShoot& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data);
 	}

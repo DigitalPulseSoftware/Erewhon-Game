@@ -19,14 +19,15 @@ namespace ewn
 		IncomingCommand(Login,           std::bind(&ServerApplication::HandleLogin, app, _1, _2));
 		IncomingCommand(PlayerChat,      std::bind(&ServerApplication::HandlePlayerChat, app, _1, _2));
 		IncomingCommand(PlayerMovement,  std::bind(&ServerApplication::HandlePlayerMovement, app, _1, _2));
+		IncomingCommand(PlayerShoot,     std::bind(&ServerApplication::HandlePlayerShoot, app, _1, _2));
 		IncomingCommand(TimeSyncRequest, std::bind(&ServerApplication::HandleTimeSyncRequest, app, _1, _2));
 
 		// Outgoing commands
 		OutgoingCommand(ArenaState,       0,                           0);
 		OutgoingCommand(ChatMessage,      Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(ControlEntity, Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(CreateEntity,  Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(DeleteEntity,  Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(ControlEntity,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateEntity,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteEntity,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncResponse, 0, 0);

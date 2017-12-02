@@ -80,6 +80,10 @@ namespace ewn
 			packet << data.rotation;
 		}
 
+		void Serialize(Nz::NetPacket& packet, const PlayerShoot& data)
+		{
+		}
+
 		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data)
 		{
 			packet << data.requestId;
@@ -161,6 +165,10 @@ namespace ewn
 			packet >> data.inputTime;
 			packet >> data.direction;
 			packet >> data.rotation;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, PlayerShoot& data)
+		{
 		}
 
 		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data)
