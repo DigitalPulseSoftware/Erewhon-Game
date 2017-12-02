@@ -17,11 +17,11 @@ namespace ewn
 			packet << data.lastProcessedInputTime;
 
 			packet << Nz::UInt32(data.entities.size());
-			for (const auto& spaceship : data.entities)
+			for (const auto& entity : data.entities)
 			{
-				packet << spaceship.id;
-				packet << spaceship.position;
-				packet << spaceship.rotation;
+				packet << entity.id;
+				packet << entity.position;
+				packet << entity.rotation;
 			}
 		}
 
@@ -100,10 +100,10 @@ namespace ewn
 			packet >> data.serverTime;
 			packet >> data.lastProcessedInputTime;
 
-			Nz::UInt32 spaceshipSize;
-			packet >> spaceshipSize;
+			Nz::UInt32 entityCount;
+			packet >> entityCount;
 
-			data.entities.resize(spaceshipSize);
+			data.entities.resize(entityCount);
 			for (auto& spaceship : data.entities)
 			{
 				packet >> spaceship.id;
