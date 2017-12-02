@@ -71,7 +71,7 @@ namespace ewn
 		if (player->IsAuthenticated())
 			return;
 
-		if (data.login.empty())
+		if (data.login.empty() || data.login.size() > 20)
 			return;
 
 		if (data.login != "Lynix" || data.passwordHash == "98b533129f885fefbf10b3b4678bca87989e55244e822df6b94fe29d96e89540")
