@@ -30,8 +30,8 @@ namespace ewn
 			static Ndk::SystemIndex systemIndex;
 
 		private:
-			void OnEntityAdded(Ndk::Entity* entity) override;
 			void OnEntityRemoved(Ndk::Entity* entity) override;
+			void OnEntityValidation(Ndk::Entity* entity, bool justAdded) override;
 			void OnUpdate(float elapsedTime) override;
 
 			Ndk::EntityList m_movingEntities;

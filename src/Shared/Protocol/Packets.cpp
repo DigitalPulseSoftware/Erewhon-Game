@@ -22,6 +22,8 @@ namespace ewn
 				packet << entity.id;
 				packet << entity.position;
 				packet << entity.rotation;
+				packet << entity.angularVelocity;
+				packet << entity.linearVelocity;
 			}
 		}
 
@@ -104,11 +106,13 @@ namespace ewn
 			packet >> entityCount;
 
 			data.entities.resize(entityCount);
-			for (auto& spaceship : data.entities)
+			for (auto& entity : data.entities)
 			{
-				packet >> spaceship.id;
-				packet >> spaceship.position;
-				packet >> spaceship.rotation;
+				packet >> entity.id;
+				packet >> entity.position;
+				packet >> entity.rotation;
+				packet >> entity.angularVelocity;
+				packet >> entity.linearVelocity;
 			}
 		}
 

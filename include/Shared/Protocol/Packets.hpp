@@ -50,6 +50,8 @@ namespace ewn
 			struct Entity
 			{
 				Nz::UInt32 id;
+				Nz::Vector3f angularVelocity;
+				Nz::Vector3f linearVelocity;
 				Nz::Vector3f position;
 				Nz::Quaternionf rotation;
 			};

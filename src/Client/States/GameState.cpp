@@ -15,10 +15,12 @@
 #include <Nazara/Graphics/ParticleStruct.hpp>
 #include <Nazara/Graphics/SkyboxBackground.hpp>
 #include <Nazara/Utility/Mesh.hpp>
+#include <NDK/Components/CollisionComponent3D.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/ParticleEmitterComponent.hpp>
 #include <NDK/Components/ParticleGroupComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
+#include <NDK/Components/PhysicsComponent3D.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
 #include <cassert>
 #include <cmath>
@@ -80,11 +82,21 @@ namespace ewn
 		Nz::ModelRef spaceshipModel = Nz::Model::New();
 		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
 
-		m_spaceshipTemplateEntity = m_stateData.world3D->CreateEntity();
-		m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
-		m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_spaceshipTemplateEntity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
-		m_spaceshipTemplateEntity->Disable();
+		{
+			m_spaceshipTemplateEntity = m_stateData.world3D->CreateEntity();
+
+			Nz::SphereCollider3DRef collider = Nz::SphereCollider3D::New(5.f);
+			auto& collisionComponent = m_spaceshipTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
+
+			m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
+			m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
+			auto& spaceshipPhys = m_spaceshipTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			spaceshipPhys.SetMass(42.f);
+			spaceshipPhys.SetAngularDamping(Nz::Vector3f(0.3f));
+			spaceshipPhys.SetLinearDamping(0.25f);
+
+			m_spaceshipTemplateEntity->Disable();
+		}
 
 		Nz::MaterialRef debugMaterial = Nz::Material::New("Translucent3D");
 		debugMaterial->SetDiffuseColor(Nz::Color(255, 255, 255, 50));

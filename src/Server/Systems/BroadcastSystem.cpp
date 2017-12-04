@@ -39,23 +39,6 @@ namespace ewn
 		}
 	}
 
-	void BroadcastSystem::OnEntityAdded(Ndk::Entity* entity)
-	{
-		m_movingEntities.Insert(entity);
-
-		auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
-		auto& syncComponent = entity->GetComponent<SynchronizedComponent>();
-
-		Packets::CreateEntity createPacket;
-		createPacket.entityType = syncComponent.GetType();
-		createPacket.id = entity->GetId();
-		createPacket.name = syncComponent.GetName();
-		createPacket.position = nodeComponent.GetPosition();
-		createPacket.rotation = nodeComponent.GetRotation();
-
-		BroadcastEntityCreation(this, createPacket);
-	}
-
 	void BroadcastSystem::OnEntityRemoved(Ndk::Entity* entity)
 	{
 		m_movingEntities.Remove(entity);
@@ -66,18 +49,43 @@ namespace ewn
 		BroadcastEntityDestruction(this, deletePacket);
 	}
 
+	void BroadcastSystem::OnEntityValidation(Ndk::Entity * entity, bool justAdded)
+	{
+		auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
+		auto& syncComponent = entity->GetComponent<SynchronizedComponent>();
+
+		if (entity->HasComponent<Ndk::PhysicsComponent3D>())
+			m_movingEntities.Insert(entity);
+		else
+			m_movingEntities.Remove(entity);
+
+		if (justAdded)
+		{
+			Packets::CreateEntity createPacket;
+			createPacket.entityType = syncComponent.GetType();
+			createPacket.id = entity->GetId();
+			createPacket.name = syncComponent.GetName();
+			createPacket.position = nodeComponent.GetPosition();
+			createPacket.rotation = nodeComponent.GetRotation();
+
+			BroadcastEntityCreation(this, createPacket);
+		}
+	}
+
 	void BroadcastSystem::OnUpdate(float /*elapsedTime*/)
 	{
 		m_arenaStatePacket.serverTime = m_app->GetAppTime();
 		m_arenaStatePacket.entities.clear();
 		for (const Ndk::EntityHandle& entity : m_movingEntities)
 		{
-			Ndk::NodeComponent& entityNode = entity->GetComponent<Ndk::NodeComponent>();
+			Ndk::PhysicsComponent3D& entityPhys = entity->GetComponent<Ndk::PhysicsComponent3D>();
 
 			Packets::ArenaState::Entity entityData;
 			entityData.id = entity->GetId();
-			entityData.position = entityNode.GetPosition();
-			entityData.rotation = entityNode.GetRotation();
+			entityData.angularVelocity = entityPhys.GetAngularVelocity();
+			entityData.linearVelocity = entityPhys.GetVelocity();
+			entityData.position = entityPhys.GetPosition();
+			entityData.rotation = entityPhys.GetRotation();
 
 			m_arenaStatePacket.entities.emplace_back(std::move(entityData));
 		}
