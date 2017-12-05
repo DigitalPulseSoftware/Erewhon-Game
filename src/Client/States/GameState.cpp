@@ -47,10 +47,20 @@ namespace ewn
 		Nz::ModelRef ballModel = Nz::Model::New();
 		ballModel->LoadFromFile("Assets/ball/ball.obj", params);
 
-		m_ballTemplateEntity = m_stateData.world3D->CreateEntity();
-		m_ballTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ballModel);
-		m_ballTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_ballTemplateEntity->Disable();
+		{
+			m_ballTemplateEntity = m_stateData.world3D->CreateEntity();
+
+			constexpr float radius = 18.251904f / 2.f;
+
+			m_ballTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
+			m_ballTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ballModel);
+			m_ballTemplateEntity->AddComponent<Ndk::NodeComponent>();
+
+			auto& physComponent = m_ballTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.SetMass(10.f);
+
+			m_ballTemplateEntity->Disable();
+		}
 
 		// Earth
 		Nz::MeshRef earthMesh = Nz::Mesh::New();
@@ -66,6 +76,7 @@ namespace ewn
 		earthModel->SetMaterial(0, earthMaterial);
 
 		m_earthTemplateEntity = m_stateData.world3D->CreateEntity();
+		m_earthTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
 		m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
 
 		auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
@@ -105,7 +116,7 @@ namespace ewn
 		for (std::size_t i = 0; i < ghostSpaceship->GetMaterialCount(); ++i)
 			ghostSpaceship->SetMaterial(i, debugMaterial);
 
-		m_debugTemplateEntity = m_spaceshipTemplateEntity->Clone();
+		m_debugTemplateEntity = m_stateData.world3D->CreateEntity();
 		m_debugTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ghostSpaceship);
 		m_debugTemplateEntity->AddComponent<Ndk::NodeComponent>();
 		m_debugTemplateEntity->Disable();
@@ -362,8 +373,8 @@ namespace ewn
 			Nz::Quaternionf currentRotation = Nz::Quaternionf::Slerp(entityData.oldRotation, entityData.newRotation, m_interpolationFactor);
 
 			auto& spaceshipNode = entityData.entity->GetComponent<Ndk::NodeComponent>();
-			spaceshipNode.SetPosition(currentPosition);
-			spaceshipNode.SetRotation(currentRotation);
+			/*spaceshipNode.SetPosition(currentPosition);
+			spaceshipNode.SetRotation(currentRotation);*/
 
 			// Update text position
 			auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
@@ -452,6 +463,7 @@ namespace ewn
 			ServerEntity& entityData = GetServerEntity(serverData.id);
 
 			auto& spaceshipNode = entityData.entity->GetComponent<Ndk::NodeComponent>();
+			auto& spaceshipPhys = entityData.entity->GetComponent<Ndk::PhysicsComponent3D>();
 
 			if (serverData.id == m_controlledEntity && false)
 			{
@@ -493,6 +505,11 @@ namespace ewn
 			}
 			else
 			{
+				spaceshipPhys.SetAngularVelocity(serverData.angularVelocity);
+				spaceshipPhys.SetPosition(serverData.position);
+				spaceshipPhys.SetRotation(serverData.rotation);
+				spaceshipPhys.SetVelocity(serverData.linearVelocity);
+
 				entityData.oldPosition = spaceshipNode.GetPosition();
 				entityData.oldRotation = spaceshipNode.GetRotation();
 				entityData.newPosition = serverData.position;
@@ -509,7 +526,7 @@ namespace ewn
 		if (m_chatLines.size() > maxChatLines)
 			m_chatLines.erase(m_chatLines.begin());
 
-		m_chatBox->SetText(Nz::String());
+		m_chatBox->Clear();
 		for (const Nz::String& message : m_chatLines)
 			m_chatBox->AppendText(message + "\n");
 	}

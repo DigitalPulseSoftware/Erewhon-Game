@@ -100,6 +100,7 @@ namespace ewn
 			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
 			bool m_isCurrentlyRotating;
+			bool m_syncEnabled;
 			float m_interpolationFactor;
 	};
 }
