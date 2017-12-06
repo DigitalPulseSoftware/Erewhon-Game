@@ -56,6 +56,7 @@ namespace ewn
 				Nz::Quaternionf rotation;
 			};
 
+			Nz::UInt16 stateId;
 			Nz::UInt64 serverTime;
 			Nz::UInt64 lastProcessedInputTime;
 			std::vector<Entity> entities;

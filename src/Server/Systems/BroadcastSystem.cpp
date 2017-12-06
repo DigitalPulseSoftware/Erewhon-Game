@@ -15,6 +15,7 @@
 namespace ewn
 {
 	BroadcastSystem::BroadcastSystem(ServerApplication* app) :
+	m_snapshotId(0),
 	m_app(app)
 	{
 		Requires<Ndk::NodeComponent, SynchronizedComponent>();
@@ -74,7 +75,9 @@ namespace ewn
 
 	void BroadcastSystem::OnUpdate(float /*elapsedTime*/)
 	{
+		m_arenaStatePacket.stateId = m_snapshotId++;
 		m_arenaStatePacket.serverTime = m_app->GetAppTime();
+
 		m_arenaStatePacket.entities.clear();
 		for (const Ndk::EntityHandle& entity : m_movingEntities)
 		{

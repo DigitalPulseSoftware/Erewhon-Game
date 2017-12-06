@@ -33,15 +33,24 @@ namespace ewn
 				Nz::Vector3f rotation;
 			};
 
+			struct ServerSnapshot
+			{
+				struct StateData
+				{
+					Nz::Quaternionf rotation;
+					Nz::Vector3f position;
+					Nz::Vector3f angularVelocity;
+					Nz::Vector3f linearVelocity;
+				};
+
+				std::vector<StateData> states;
+			};
+
 			struct ServerEntity
 			{
 				Ndk::EntityHandle debugGhostEntity;
 				Ndk::EntityHandle entity;
 				Ndk::EntityHandle textEntity;
-				Nz::Quaternionf oldRotation;
-				Nz::Quaternionf newRotation;
-				Nz::Vector3f oldPosition;
-				Nz::Vector3f newPosition;
 				bool isValid = false;
 			};
 
@@ -75,6 +84,8 @@ namespace ewn
 			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
+			static constexpr std::size_t JitterBufferSize = 3;
+
 			StateData& m_stateData;
 			Ndk::EntityHandle m_cursorEntity;
 			Ndk::EntityHandle m_ballTemplateEntity;
@@ -94,11 +105,14 @@ namespace ewn
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;
+			Nz::UInt16 m_lastStateId;
 			Nz::UInt64 m_lastInputTime;
 			std::size_t m_controlledEntity;
+			std::array<ServerSnapshot, JitterBufferSize> m_snapshots;
 			std::vector<ClientInput> m_predictedInputs;
 			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
+			bool m_resetSnapshots;
 			bool m_isCurrentlyRotating;
 			bool m_syncEnabled;
 			float m_interpolationFactor;

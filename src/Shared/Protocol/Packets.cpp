@@ -13,6 +13,7 @@ namespace ewn
 	{
 		void Serialize(Nz::NetPacket& packet, const ArenaState& data)
 		{
+			packet << data.stateId;
 			packet << data.serverTime;
 			packet << data.lastProcessedInputTime;
 
@@ -99,6 +100,7 @@ namespace ewn
 
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data)
 		{
+			packet >> data.stateId;
 			packet >> data.serverTime;
 			packet >> data.lastProcessedInputTime;
 

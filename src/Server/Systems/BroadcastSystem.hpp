@@ -35,6 +35,7 @@ namespace ewn
 			void OnUpdate(float elapsedTime) override;
 
 			Ndk::EntityList m_movingEntities;
+			Nz::UInt16 m_snapshotId;
 			Packets::ArenaState m_arenaStatePacket;
 			ServerApplication* m_app;
 			float m_stateUpdateAccumulator;

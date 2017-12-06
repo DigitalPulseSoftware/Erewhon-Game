@@ -101,7 +101,8 @@ int main()
 
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
 	{
-		fsm.ResetState(std::make_shared<ewn::DisconnectionState>(stateData));
+		fsm.ResetState(std::make_shared<ewn::BackgroundState>(stateData));
+		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData));
 	});
 
 	while (app.Run())
