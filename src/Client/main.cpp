@@ -2,12 +2,14 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
+#include <Nazara/Audio/Audio.hpp>
 #include <Nazara/Core/Directory.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Network/Network.hpp>
 #include <NDK/Canvas.hpp>
 #include <NDK/Components/CameraComponent.hpp>
+#include <NDK/Components/ListenerComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
 #include <NDK/StateMachine.hpp>
@@ -21,7 +23,7 @@
 
 int main()
 {
-	Nz::Initializer<Nz::Network> networkInit;
+	Nz::Initializer<Nz::Audio, Nz::Network> nazaraInit;
 	ewn::ClientApplication app;
 	app.EnableFPSCounter(true);
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
@@ -43,6 +45,7 @@ int main()
 	cameraComponent3D.SetZFar(10'000.f);
 	cameraComponent3D.SetZNear(1.f);
 
+	//camera3D->AddComponent<Ndk::ListenerComponent>();
 	camera3D->AddComponent<Ndk::NodeComponent>();
 
 	// 2D Scene

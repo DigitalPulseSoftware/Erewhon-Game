@@ -5,6 +5,8 @@
 // THIS IS ONLY A TEST FOR SPACESHIP CONTROL, IT'S UGLY
 
 #include <Client/States/GameState.hpp>
+#include <Nazara/Audio/Sound.hpp>
+#include <Nazara/Core/DynLib.hpp>
 #include <Nazara/Core/Primitive.hpp>
 #include <Nazara/Graphics/ColorBackground.hpp>
 #include <Nazara/Graphics/Model.hpp>
@@ -14,15 +16,21 @@
 #include <Nazara/Graphics/ParticleMapper.hpp>
 #include <Nazara/Graphics/ParticleStruct.hpp>
 #include <Nazara/Graphics/SkyboxBackground.hpp>
+#include <Nazara/Renderer/DebugDrawer.hpp>
 #include <Nazara/Utility/Mesh.hpp>
+#include <Nazara/Utility/StaticMesh.hpp>
+#include <NDK/Components/CameraComponent.hpp>
+#include <NDK/Components/CollisionComponent3D.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/ParticleEmitterComponent.hpp>
 #include <NDK/Components/ParticleGroupComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
+#include <NDK/Systems/PhysicsSystem3D.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <random>
 
 namespace ewn
@@ -73,6 +81,90 @@ namespace ewn
 
 		m_earthTemplateEntity->Disable();
 
+		// Projectile (laser)
+		{
+			Nz::TextureSampler diffuseSampler;
+			diffuseSampler.SetAnisotropyLevel(4);
+			diffuseSampler.SetWrapMode(Nz::SamplerWrap_Repeat);
+
+			Nz::MaterialRef material = Nz::Material::New("Translucent3D");
+			material->SetShader("Basic");
+			material->SetDiffuseMap("Assets/weapons/LaserBeam.png");
+			material->SetDiffuseSampler(diffuseSampler);
+			material->SetEmissiveMap("Assets/weapons/LaserBeam.png");
+
+			Nz::SpriteRef laserSprite1 = Nz::Sprite::New();
+			laserSprite1->SetMaterial(material);
+			laserSprite1->SetOrigin(Nz::Vector2f(0.f, 0.5f));
+			laserSprite1->SetSize({ 5.f, 1.f });
+			laserSprite1->SetTextureCoords(Nz::Rectf(0.f, 0.f, 1.f, 1.f));
+
+			Nz::SpriteRef laserSprite2 = Nz::Sprite::New(*laserSprite1);
+
+			m_projectileTemplateEntity = m_stateData.world3D->CreateEntity();
+			auto& gfxComponent = m_projectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
+			
+			gfxComponent.Attach(laserSprite1, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(0.f, 90.f, 0.f)));
+			gfxComponent.Attach(laserSprite2, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(90.f, 90.f, 0.f)));
+
+			m_projectileTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
+			m_projectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
+			//m_projectileTemplateEntity->Disable();
+
+			/*std::vector<Nz::Vector3f> vertices;
+
+			Nz::CapsuleCollider3D capsuleMerde(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f));
+
+			auto ForEachPolygon = [](void* const userData, int vertexCount, const dFloat* const faceArray, int faceId)
+			{
+				std::vector<Nz::Vector3f>& linesTruc = *(static_cast<decltype(&vertices)>(userData));
+
+				auto Convert = [](Nz::Vector3f pos) -> Nz::Vector3f
+				{
+					return pos;
+				};
+
+				for (int i = 0; i < vertexCount - 1; ++i)
+				{
+					linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[i * 3])));
+					linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[(i + 1) * 3])));
+				}
+
+				linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[(vertexCount - 1) * 3])));
+				linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[0])));
+			};
+
+			Nz::PhysWorld3D& physWorld = m_stateData.world3D->GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
+
+			Nz::Matrix4f identity = Nz::Matrix4f::Identity();
+			forEachPolygonInCollision(capsuleMerde.GetHandle(&physWorld), identity, ForEachPolygon, &vertices);
+
+
+			Nz::VertexBufferRef vb = Nz::VertexBuffer::New(Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ), vertices.size(), Nz::DataStorage_Hardware, 0U);
+			vb->Fill(vertices.data(), 0, vertices.size());
+
+			Nz::MeshRef debugMesh = Nz::Mesh::New();
+			debugMesh->CreateStatic();
+			debugMesh->SetMaterialCount(1);
+
+			Nz::StaticMeshRef staticMesh = Nz::StaticMesh::New(debugMesh);
+			staticMesh->Create(vb);
+			staticMesh->SetPrimitiveMode(Nz::PrimitiveMode_LineList);
+			staticMesh->SetMaterialIndex(0);
+			staticMesh->GenerateAABB();
+
+			debugMesh->AddSubMesh(staticMesh);
+
+			Nz::MaterialRef debugMat = Nz::Material::New();
+			debugMat->SetShader("Basic");
+
+			Nz::ModelRef debugModel = Nz::Model::New();
+			debugModel->SetMesh(debugMesh);
+			debugModel->SetMaterial(0, debugMat);
+
+			gfxComponent.Attach(debugModel);*/
+		}
+
 		// Spaceship
 		params.mesh.matrix.MakeTransform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(0.01f));
 		params.mesh.texCoordScale.Set(1.f, -1.f);
@@ -81,6 +173,7 @@ namespace ewn
 		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
 
 		m_spaceshipTemplateEntity = m_stateData.world3D->CreateEntity();
+		m_spaceshipTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(5.f));
 		m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
 		m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
 		m_spaceshipTemplateEntity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
@@ -159,6 +252,14 @@ namespace ewn
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
 		m_spaceshipSpeed.MakeZero();
+
+		Nz::SoundBufferParams soundParams;
+		soundParams.forceMono = true;
+
+		if (!m_shootSound.LoadFromFile("Assets/sounds/laserTurretlow.ogg", soundParams))
+			std::cerr << "Failed to load sound" << std::endl;
+
+		m_shootSound.EnableSpatialization(false);
 
 		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
 		Nz::Mouse::SetPosition(windowSize.x / 2, windowSize.y / 2, *m_stateData.window);
@@ -313,15 +414,17 @@ namespace ewn
 				spaceshipData.textEntity->Kill();
 		}
 
+		m_ballTemplateEntity->Kill();
 		m_cursorEntity->Kill();
 		m_earthTemplateEntity->Kill();
+		m_projectileTemplateEntity->Kill();
 		m_spaceshipTemplateEntity->Kill();
 	}
 
 	bool GameState::Update(Ndk::StateMachine& /*fsm*/, float elapsedTime)
 	{
-		//auto& earthNode = m_earthEntity->GetComponent<Ndk::NodeComponent>();
-		//earthNode.Rotate(Nz::EulerAnglesf(0.f, 2.f * elapsedTime, 0.f));
+		/*auto& earthNode = m_projectileTemplateEntity->GetComponent<Ndk::NodeComponent>();
+		earthNode.Rotate(Nz::EulerAnglesf(0.f, 5.f * elapsedTime, 0.f));*/
 
 		// Update and send input
 		float inputElapsedTime = m_inputClock.GetSeconds();
@@ -354,10 +457,13 @@ namespace ewn
 			spaceshipNode.SetRotation(currentRotation);
 
 			// Update text position
-			auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
-			auto& textNode = entityData.textEntity->GetComponent<Ndk::NodeComponent>();
-			textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
-			textNode.SetRotation(cameraNode.GetRotation());
+			if (entityData.textEntity)
+			{
+				auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
+				auto& textNode = entityData.textEntity->GetComponent<Ndk::NodeComponent>();
+				textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
+				textNode.SetRotation(cameraNode.GetRotation());
+			}
 		}
 
 		m_cameraRotation.x = Nz::Approach(m_cameraRotation.x, m_spaceshipRotation.x / 10.f, 10.f * elapsedTime);
@@ -401,7 +507,9 @@ namespace ewn
 		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
 			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
-			oldData.textEntity->Enable();
+
+			if (oldData.textEntity)
+				oldData.textEntity->Enable();
 		}
 
 		if (IsServerEntityValid(entityId))
@@ -409,7 +517,8 @@ namespace ewn
 			ServerEntity& data = GetServerEntity(entityId);
 
 			// Don't show our own name
-			data.textEntity->Disable();
+			if (data.textEntity)
+				data.textEntity->Disable();
 
 			m_cameraNode.SetParent(data.entity->GetComponent<Ndk::NodeComponent>());
 
@@ -521,10 +630,7 @@ namespace ewn
 		else if (createPacket.entityType == "ball")
 			data.entity = m_ballTemplateEntity->Clone();
 		else if (createPacket.entityType == "projectile")
-		{
-			data.entity = m_ballTemplateEntity->Clone();
-			data.entity->GetComponent<Ndk::NodeComponent>().SetScale(1.f / 5.f);
-		}
+			data.entity = m_projectileTemplateEntity->Clone();
 		else
 			return; //< TODO: Fallback
 
@@ -532,17 +638,20 @@ namespace ewn
 		entityNode.SetPosition(createPacket.position);
 		entityNode.SetRotation(createPacket.rotation);
 
-		Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
-
 		// Create entity name entity
-		Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
-		textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-		textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
-		textSprite->SetScale(0.01f);
+		if (!createPacket.name.IsEmpty())
+		{
+			Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
-		data.textEntity = m_stateData.world3D->CreateEntity();
-		data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
-		data.textEntity->AddComponent<Ndk::NodeComponent>();
+			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
+			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
+			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
+			textSprite->SetScale(0.01f);
+
+			data.textEntity = m_stateData.world3D->CreateEntity();
+			data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
+			data.textEntity->AddComponent<Ndk::NodeComponent>();
+		}
 
 		if (createPacket.id == m_controlledEntity)
 			ControlEntity(createPacket.id);
@@ -556,7 +665,8 @@ namespace ewn
 			data.debugGhostEntity->Kill();
 
 		data.entity->Kill();
-		data.textEntity->Kill();
+		if (data.textEntity)
+			data.textEntity->Kill();
 		data.isValid = false;
 
 		if (m_controlledEntity == deletePacket.id)
@@ -593,6 +703,8 @@ namespace ewn
 		}
 		else if (event.code == Nz::Keyboard::Space)
 		{
+			m_shootSound.Play();
+
 			m_stateData.server->SendPacket(Packets::PlayerShoot());
 		}
 	}

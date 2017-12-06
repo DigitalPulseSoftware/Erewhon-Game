@@ -8,6 +8,7 @@
 #define EREWHON_CLIENT_STATES_GAMESTATE_HPP
 
 #include <Client/States/StateData.hpp>
+#include <Nazara/Audio/Sound.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
 #include <Nazara/Network/UdpSocket.hpp>
@@ -78,14 +79,16 @@ namespace ewn
 			StateData& m_stateData;
 			Ndk::EntityHandle m_cursorEntity;
 			Ndk::EntityHandle m_ballTemplateEntity;
-			Ndk::EntityHandle m_earthTemplateEntity;
 			Ndk::EntityHandle m_debugTemplateEntity;
+			Ndk::EntityHandle m_earthTemplateEntity;
+			Ndk::EntityHandle m_projectileTemplateEntity;
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
 			Nz::Clock m_inputClock;
 			Nz::Node m_cameraNode;
 			Nz::Node m_spaceshipMovementNode;
+			Nz::Sound m_shootSound;
 			Nz::SpriteRef m_cursorOrientationSprite;
 			Nz::Vector2i m_rotationCursorOrigin;
 			Nz::Vector2i m_rotationCursorPosition;

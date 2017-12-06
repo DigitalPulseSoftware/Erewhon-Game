@@ -67,8 +67,8 @@ namespace ewn
 	{
 		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
-		const Ndk::EntityHandle& projectile = m_arena->CreateProjectile(this, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 20.f);
-		projectile->GetComponent<Ndk::PhysicsComponent3D>().AddForce(spaceshipNode.GetForward() * 200'000.f);
+		const Ndk::EntityHandle& projectile = m_arena->CreateProjectile(this, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 20.f, spaceshipNode.GetRotation());
+		projectile->GetComponent<Ndk::PhysicsComponent3D>().AddForce(spaceshipNode.GetForward() * 50'000.f);
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)

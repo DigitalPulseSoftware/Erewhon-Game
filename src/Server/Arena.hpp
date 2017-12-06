@@ -31,14 +31,14 @@ namespace ewn
 			~Arena() = default;
 
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
-			const Ndk::EntityHandle& CreateProjectile(Player* owner, const Nz::Vector3f& position);
+			const Ndk::EntityHandle& CreateProjectile(Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 
 			void DispatchChatMessage(Player* player, const Nz::String& message);
 
 			void Update(float elapsedTime);
 
 		private:
-			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, const Nz::Vector3f& position);
+			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
 

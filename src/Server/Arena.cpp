@@ -34,8 +34,8 @@ namespace ewn
 		m_world.AddSystem<SpaceshipSystem>();
 
 		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", Nz::Vector3f::Forward() * 50.f);
-		CreateEntity("ball", "The (big) ball", Nz::Vector3f::Up() * 50.f);
+		m_attractionPoint = CreateEntity("earth", "The (small) Earth", Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
+		CreateEntity("ball", "The (big) ball", Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
 
 		if constexpr (sendServerGhosts)
 		{
@@ -48,16 +48,16 @@ namespace ewn
 	{
 		assert(m_players.find(player) != m_players.end());
 
-		const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", player->GetName(), Nz::Vector3f::Zero());
+		const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", player->GetName(), Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
 
 		m_players[player] = spaceship;
 
 		return spaceship;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Nz::Vector3f& position)
+	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		return CreateEntity("projectile", "Projectile de " + owner->GetName(), position);
+		return CreateEntity("projectile", {}, position, rotation);
 	}
 
 	void Arena::DispatchChatMessage(Player* player, const Nz::String& message)
@@ -99,7 +99,7 @@ namespace ewn
 		m_stateBroadcastAccumulator += elapsedTime;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateEntity(std::string type, std::string name, const Nz::Vector3f& position)
+	const Ndk::EntityHandle& Arena::CreateEntity(std::string type, std::string name, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
 		const Ndk::EntityHandle& newEntity = m_world.CreateEntity();
 
@@ -113,9 +113,12 @@ namespace ewn
 			physComponent.SetAngularDamping(Nz::Vector3f(0.3f));
 			physComponent.SetLinearDamping(0.25f);
 
-			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<PlayerControlledComponent>();
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
+
+			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
+			node.SetPosition(position);
+			node.SetRotation(rotation);
 		}
 		else if (type == "earth")
 		{
@@ -128,24 +131,32 @@ namespace ewn
 			constexpr float radius = 18.251904f / 2.f;
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
+
+			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
+			node.SetPosition(position);
+			node.SetRotation(rotation);
 
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.SetMass(10.f);
 			physComponent.SetPosition(position);
+			physComponent.SetRotation(rotation);
 		}
 		else if (type == "projectile")
 		{
-			constexpr float radius = 18.251904f / (2.f * 5.f);
-
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
 
+			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
+			node.SetPosition(position);
+			node.SetRotation(rotation);
+
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.SetMass(10.f);
+			physComponent.SetAngularDamping(Nz::Vector3f::Zero());
+			physComponent.SetLinearDamping(0.f);
+			physComponent.SetMass(1.f);
 			physComponent.SetPosition(position);
+			physComponent.SetRotation(rotation);
 		}
 
 		return newEntity;
