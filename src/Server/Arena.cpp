@@ -190,6 +190,9 @@ namespace ewn
 		{
 			m_stateBroadcastAccumulator -= stateBroadcastInterval;
 
+			static Nz::UInt16 snapshotId = 0;
+			statePacket.stateId = snapshotId++;
+
 			for (auto& pair : m_players)
 			{
 				statePacket.lastProcessedInputTime = pair.first->GetLastInputProcessedTime();

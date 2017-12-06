@@ -8,7 +8,6 @@
 #define EREWHON_CLIENT_STATES_GAMESTATE_HPP
 
 #include <Client/States/StateData.hpp>
-#include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
 #include <Nazara/Network/UdpSocket.hpp>
 #include <Nazara/Utility/Node.hpp>
@@ -43,6 +42,7 @@ namespace ewn
 					Nz::Vector3f linearVelocity;
 				};
 
+				Nz::UInt64 snapshotId;
 				std::vector<StateData> states;
 			};
 
@@ -63,9 +63,11 @@ namespace ewn
 			inline bool IsServerEntityValid(std::size_t id) const;
 
 			void ControlEntity(std::size_t entityId);
+			void PrintMessage(const std::string& message);
 
 			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
 			void OnChatMessage(ServerConnection* server, const Packets::ChatMessage& chatMessage);
+
 			void OnControlEntity(ServerConnection* server, const Packets::ControlEntity& controlPacket);
 
 			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
@@ -94,7 +96,6 @@ namespace ewn
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
-			Nz::Clock m_inputClock;
 			Nz::Node m_cameraNode;
 			Nz::Node m_spaceshipMovementNode;
 			Nz::SpriteRef m_cursorOrientationSprite;
@@ -115,7 +116,9 @@ namespace ewn
 			bool m_resetSnapshots;
 			bool m_isCurrentlyRotating;
 			bool m_syncEnabled;
+			float m_inputAccumulator;
 			float m_interpolationFactor;
+			float m_snapshotUpdateAccumulator;
 	};
 }
 

@@ -1,0 +1,34 @@
+version: '{branch}-rev{build}'
+
+shallow_clone: true
+
+skip_commits:
+  files:
+    - .travis.yml
+    - Doxyfile
+    - LICENSE
+    - readme.md
+    - readme_fr.md
+    - 'writing style.md'
+    - doc/*
+
+image: Visual Studio 2017
+
+environment:
+  matrix:
+  - TOOLSET: vs2017
+
+install:
+  - cd build && "./premake5.exe" %TOOLSET% && cd ..
+
+configuration:
+  - DebugDynamic
+  - ReleaseDynamic
+
+platform:
+  - x64
+
+build:
+  parallel: true
+  project: build/$(TOOLSET)/NazaraEngine.sln
+  verbosity: normal

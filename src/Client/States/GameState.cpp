@@ -78,6 +78,7 @@ namespace ewn
 		m_earthTemplateEntity = m_stateData.world3D->CreateEntity();
 		m_earthTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
 		m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
+		m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
 
 		auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
 		earthNode.SetPosition(Nz::Vector3f::Forward() * 50.f);
@@ -177,6 +178,7 @@ namespace ewn
 		//m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetParent(m_spaceshipMovementNode);
 
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
+		m_inputAccumulator = 0.f;
 		m_isCurrentlyRotating = false;
 		m_lastInputTime = 0;
 		m_lastStateId = 0;
@@ -184,6 +186,7 @@ namespace ewn
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
 		m_spaceshipSpeed.MakeZero();
+		m_snapshotUpdateAccumulator = 0.f;
 		m_syncEnabled = true;
 
 		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
@@ -283,8 +286,6 @@ namespace ewn
 		m_chatLines.resize(maxChatLines);
 		m_interpolationFactor = 0;
 
-		m_inputClock.Restart();
-
 		m_chatBox = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
 		m_chatBox->EnableBackground(false);
 		//m_chatBox->SetBackgroundColor(Nz::Color(70, 8, 15, 20));
@@ -350,15 +351,27 @@ namespace ewn
 		//earthNode.Rotate(Nz::EulerAnglesf(0.f, 2.f * elapsedTime, 0.f));
 
 		// Update and send input
-		float inputElapsedTime = m_inputClock.GetSeconds();
-		if (inputElapsedTime > 1.f / 60.f)
-		{
-			m_inputClock.Restart();
+		m_inputAccumulator += elapsedTime;
+		m_snapshotUpdateAccumulator += elapsedTime;
 
-			UpdateInput(inputElapsedTime);
+		constexpr float inputSendInterval = 1.f / 60.f;
+		if (m_inputAccumulator > inputSendInterval)
+		{
+			m_inputAccumulator -= inputSendInterval;
+			UpdateInput(inputSendInterval);
 		}
 
-		m_interpolationFactor = std::min(m_interpolationFactor + elapsedTime * 10.f, 3.0f);
+		constexpr float snapshotUpdateInterval = 1.f / 10.f;
+		if (m_snapshotUpdateAccumulator > snapshotUpdateInterval)
+		{
+			m_snapshotUpdateAccumulator -= snapshotUpdateInterval;
+
+			std::cout << m_snapshots.front().snapshotId << std::endl;
+		}
+
+
+
+		/*m_interpolationFactor = std::min(m_interpolationFactor + elapsedTime * 10.f, 3.0f);
 
 		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		Nz::Quaternionf camRot = cameraNode.GetRotation();
@@ -380,11 +393,11 @@ namespace ewn
 			spaceshipNode.SetRotation(currentRotation);*/
 
 			// Update text position
-			auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
+			/*auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
 			auto& textNode = entityData.textEntity->GetComponent<Ndk::NodeComponent>();
 			textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
 			textNode.SetRotation(cameraNode.GetRotation());
-		}
+		}*/
 
 		m_cameraRotation.x = Nz::Approach(m_cameraRotation.x, m_spaceshipRotation.x / 10.f, 10.f * elapsedTime);
 		m_cameraRotation.y = Nz::Approach(m_cameraRotation.y, m_spaceshipRotation.y / 10.f, 10.f * elapsedTime);
@@ -453,27 +466,86 @@ namespace ewn
 		if (!m_syncEnabled)
 			return;
 
+		std::size_t firstValidState;
+		std::size_t lastValidState;
 		Nz::UInt16 missedStates = arenaState.stateId - m_lastStateId;
-		if (missedStates > m_snapshots.size() || m_resetSnapshots)
+		if (missedStates >= m_snapshots.size() || m_resetSnapshots)
 		{
+			// Build first snapshot according to current data
+			ServerSnapshot& firstSnapshot = m_snapshots.front();
+			firstSnapshot.snapshotId = arenaState.stateId - m_snapshots.size();
+			firstSnapshot.states.resize(m_serverEntities.size());
+			for (std::size_t i = 0; i < m_serverEntities.size(); ++i)
+			{
+				ServerEntity& serverEntity = GetServerEntity(i);
+				auto& entityPhys = serverEntity.entity->GetComponent<Ndk::PhysicsComponent3D>();
+
+				auto& entityData = firstSnapshot.states[i];
+				entityData.angularVelocity = entityPhys.GetAngularVelocity();
+				entityData.linearVelocity = entityPhys.GetVelocity();
+				entityData.position = entityPhys.GetPosition();
+				entityData.rotation = entityPhys.GetRotation();
+			}
+
 			m_resetSnapshots = false;
+
+			firstValidState = 0;
+			lastValidState = m_snapshots.size() - 1;
 		}
 		else
 		{
-			ServerSnapshot& lastSnapshot = m_snapshots.back();
+			firstValidState = m_snapshots.size() - missedStates - 1;
+			lastValidState = m_snapshots.size() - 1;
 
-			if (!arenaState.entities.empty())
-				lastSnapshot.states.resize(arenaState.entities.back().id + 1);
+			std::rotate(m_snapshots.begin(), m_snapshots.begin() + missedStates, m_snapshots.end());
+		}
 
-			for (const auto& entityData : arenaState.entities)
+		ServerSnapshot& firstSnapshot = m_snapshots[firstValidState];
+		ServerSnapshot& lastSnapshot = m_snapshots[lastValidState];
+		lastSnapshot.snapshotId = arenaState.stateId;
+
+		if (!arenaState.entities.empty())
+			lastSnapshot.states.resize(arenaState.entities.back().id + 1);
+
+		for (const auto& entityData : arenaState.entities)
+		{
+			auto& state = lastSnapshot.states[entityData.id];
+			state.angularVelocity = entityData.angularVelocity;
+			state.linearVelocity = entityData.linearVelocity;
+			state.position = entityData.position;
+			state.rotation = entityData.rotation;
+		}
+
+		// Recreate lost states
+		std::size_t lostStateCount = lastValidState - firstValidState - 1;
+		if (lostStateCount > 0)
+			std::cerr << "Lost " << lostStateCount << " states!" << std::endl;
+
+		assert(lostStateCount < m_snapshots.size());
+		for (std::size_t i = 0; i < lostStateCount; ++i)
+		{
+			// Interpolate data to recreate approximately lost state
+			ServerSnapshot& missedSnapshot = m_snapshots[firstValidState + i];
+
+			float interpolationFactor = float(i + 1) / float(lostStateCount + 1);
+
+			assert(firstSnapshot.states.size() == lastSnapshot.states.size());
+			missedSnapshot.snapshotId = firstSnapshot.snapshotId + i;
+			missedSnapshot.states.resize(lastSnapshot.states.size());
+			for (std::size_t j = 0; j < missedSnapshot.states.size(); ++j)
 			{
-				auto& state = lastSnapshot.states[entityData.id];
-				state.angularVelocity = entityData.angularVelocity;
-				state.linearVelocity  = entityData.linearVelocity;
-				state.position        = entityData.position;
-				state.rotation        = entityData.rotation;
+				const auto& firstData = firstSnapshot.states[j];
+				const auto& lastData = lastSnapshot.states[j];
+
+				auto& interpolatedData = missedSnapshot.states[j];
+				interpolatedData.angularVelocity = Nz::Vector3f::Lerp(firstData.angularVelocity, lastData.angularVelocity, interpolationFactor);
+				interpolatedData.linearVelocity = Nz::Vector3f::Lerp(firstData.linearVelocity, lastData.linearVelocity, interpolationFactor);
+				interpolatedData.position = Nz::Vector3f::Lerp(firstData.position, lastData.position, interpolationFactor);
+				interpolatedData.rotation = Nz::Quaternionf::Slerp(firstData.rotation, lastData.rotation, interpolationFactor);
 			}
 		}
+
+		m_lastStateId = arenaState.stateId;
 
 		// Compute new interpolation factor from estimated server time/packet server time 
 		//Nz::UInt64 estimatedServerTime = m_stateData.app->GetServerTimeCetteMethodeEstAussiDegueu();
@@ -484,7 +556,7 @@ namespace ewn
 		//float lateBy = (estimatedServerTime - std::min(estimatedServerTime, arenaState.serverTime)) / 100.f;
 
 		//m_interpolationFactor = lateBy;
-		m_interpolationFactor = 0.f;
+		/*m_interpolationFactor = 0.f;
 
 		for (const auto& serverData : arenaState.entities)
 		{
@@ -538,20 +610,12 @@ namespace ewn
 				spaceshipPhys.SetRotation(serverData.rotation);
 				spaceshipPhys.SetVelocity(serverData.linearVelocity);
 			}
-		}
+		}*/
 	}
 
 	void GameState::OnChatMessage(ServerConnection*, const Packets::ChatMessage & chatMessage)
 	{
-		std::cout << chatMessage.message << std::endl;
-
-		m_chatLines.emplace_back(chatMessage.message);
-		if (m_chatLines.size() > maxChatLines)
-			m_chatLines.erase(m_chatLines.begin());
-
-		m_chatBox->Clear();
-		for (const Nz::String& message : m_chatLines)
-			m_chatBox->AppendText(message + "\n");
+		PrintMessage(chatMessage.message);
 	}
 
 	void GameState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
@@ -563,8 +627,15 @@ namespace ewn
 	{
 		ServerEntity& data = CreateServerEntity(createPacket.id);
 
-		data.newPosition = data.oldPosition = createPacket.position;
-		data.newRotation = data.oldRotation = createPacket.rotation;
+		for (auto& snapShot : m_snapshots)
+		{
+			if (createPacket.id >= snapShot.states.size())
+				snapShot.states.resize(createPacket.id + 1);
+
+			auto& entityData = snapShot.states[createPacket.id];
+			entityData.position = createPacket.position;
+			entityData.rotation = createPacket.rotation;
+		}
 
 		if (createPacket.entityType == "spaceship")
 			data.entity = m_spaceshipTemplateEntity->Clone();
@@ -650,6 +721,10 @@ namespace ewn
 		else if (event.code == Nz::Keyboard::F1)
 		{
 			m_syncEnabled = !m_syncEnabled;
+			if (m_syncEnabled)
+				PrintMessage("INFO: Sync enabled");
+			else
+				PrintMessage("INFO: Sync disabled");
 		}
 	}
 
@@ -761,5 +836,18 @@ namespace ewn
 		std::cout << "At " << serverTime << ": Move by " << totalMovement << " (final pos: " << clientNode.GetPosition() << ")\n";
 		std::cout << "   " << serverTime << ": Rotate by " << totalRotation << " (final rot: " << clientNode.GetRotation().ToEulerAngles() << ')' << std::endl;
 		*/
+	}
+
+	void GameState::PrintMessage(const std::string& message)
+	{
+		std::cout << message << std::endl;
+
+		m_chatLines.emplace_back(message);
+		if (m_chatLines.size() > maxChatLines)
+			m_chatLines.erase(m_chatLines.begin());
+
+		m_chatBox->Clear();
+		for (const Nz::String& message : m_chatLines)
+			m_chatBox->AppendText(message + "\n");
 	}
 }
