@@ -179,9 +179,12 @@ namespace ewn
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
 		m_isCurrentlyRotating = false;
 		m_lastInputTime = 0;
+		m_lastStateId = 0;
+		m_resetSnapshots = true;
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
 		m_spaceshipSpeed.MakeZero();
+		m_syncEnabled = true;
 
 		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
 		Nz::Mouse::SetPosition(windowSize.x / 2, windowSize.y / 2, *m_stateData.window);
@@ -447,6 +450,31 @@ namespace ewn
 
 	void GameState::OnArenaState(ServerConnection*, const Packets::ArenaState& arenaState)
 	{
+		if (!m_syncEnabled)
+			return;
+
+		Nz::UInt16 missedStates = arenaState.stateId - m_lastStateId;
+		if (missedStates > m_snapshots.size() || m_resetSnapshots)
+		{
+			m_resetSnapshots = false;
+		}
+		else
+		{
+			ServerSnapshot& lastSnapshot = m_snapshots.back();
+
+			if (!arenaState.entities.empty())
+				lastSnapshot.states.resize(arenaState.entities.back().id + 1);
+
+			for (const auto& entityData : arenaState.entities)
+			{
+				auto& state = lastSnapshot.states[entityData.id];
+				state.angularVelocity = entityData.angularVelocity;
+				state.linearVelocity  = entityData.linearVelocity;
+				state.position        = entityData.position;
+				state.rotation        = entityData.rotation;
+			}
+		}
+
 		// Compute new interpolation factor from estimated server time/packet server time 
 		//Nz::UInt64 estimatedServerTime = m_stateData.app->GetServerTimeCetteMethodeEstAussiDegueu();
 		/*std::cout << "Estimated server time:" << estimatedServerTime << std::endl;
@@ -509,11 +537,6 @@ namespace ewn
 				spaceshipPhys.SetPosition(serverData.position);
 				spaceshipPhys.SetRotation(serverData.rotation);
 				spaceshipPhys.SetVelocity(serverData.linearVelocity);
-
-				entityData.oldPosition = spaceshipNode.GetPosition();
-				entityData.oldRotation = spaceshipNode.GetRotation();
-				entityData.newPosition = serverData.position;
-				entityData.newRotation = serverData.rotation;
 			}
 		}
 	}
@@ -623,6 +646,10 @@ namespace ewn
 		else if (event.code == Nz::Keyboard::Space)
 		{
 			m_stateData.server->SendPacket(Packets::PlayerShoot());
+		}
+		else if (event.code == Nz::Keyboard::F1)
+		{
+			m_syncEnabled = !m_syncEnabled;
 		}
 	}
 
