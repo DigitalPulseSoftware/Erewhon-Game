@@ -466,6 +466,8 @@ namespace ewn
 		if (!m_syncEnabled)
 			return;
 
+		std::cout << "Received snapshot #" << arenaState.stateId << std::endl;
+
 		std::size_t firstValidState;
 		std::size_t lastValidState;
 		Nz::UInt16 missedStates = arenaState.stateId - m_lastStateId;
