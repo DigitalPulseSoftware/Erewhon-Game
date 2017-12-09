@@ -26,13 +26,6 @@ Pour packager Nazara Engine, il faudra aller dans ``NazaraEngine/build``, lancer
 ./premake5-linux64 package
 ```
 
-puis copier NazaraEngine/lib/gmake/x64 dans le package
-
-```
-# Dans NazaraEngine/
-cp lib/gmake/x64 package/lib -r
-```
-
 Une fois ceci fait, il faut indiquer aux scripts de compilation d'Utopia où se trouve Nazara Engine.
 
 On copiera le fichier ``build/config.lua.default`` dans ``build/config.lua``, puis on éditera le fichier de façon à obtenir cela :
