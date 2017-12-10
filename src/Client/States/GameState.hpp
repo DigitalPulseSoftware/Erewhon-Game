@@ -7,6 +7,7 @@
 #ifndef EREWHON_CLIENT_STATES_GAMESTATE_HPP
 #define EREWHON_CLIENT_STATES_GAMESTATE_HPP
 
+#include <Client/ServerMatchEntities.hpp>
 #include <Client/States/StateData.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
 #include <Nazara/Network/UdpSocket.hpp>
@@ -14,6 +15,7 @@
 #include <NDK/Entity.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
+#include <optional>
 #include <unordered_map>
 
 namespace ewn
@@ -90,10 +92,6 @@ namespace ewn
 
 			StateData& m_stateData;
 			Ndk::EntityHandle m_cursorEntity;
-			Ndk::EntityHandle m_ballTemplateEntity;
-			Ndk::EntityHandle m_earthTemplateEntity;
-			Ndk::EntityHandle m_debugTemplateEntity;
-			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
 			Nz::Node m_cameraNode;
@@ -110,6 +108,7 @@ namespace ewn
 			Nz::UInt64 m_lastInputTime;
 			std::size_t m_controlledEntity;
 			std::array<ServerSnapshot, JitterBufferSize> m_snapshots;
+			std::optional<ServerMatchEntities> m_matchEntities;
 			std::vector<ClientInput> m_predictedInputs;
 			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;

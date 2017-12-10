@@ -10,28 +10,4 @@ namespace ewn
 	m_stateData(stateData)
 	{
 	}
-
-	inline GameState::ServerEntity& GameState::CreateServerEntity(std::size_t id)
-	{
-		if (id >= m_serverEntities.size())
-			m_serverEntities.resize(id + 1);
-
-		ServerEntity& data = m_serverEntities[id];
-		assert(!data.isValid);
-
-		data.isValid = true;
-
-		return data;
-	}
-
-	inline GameState::ServerEntity& GameState::GetServerEntity(std::size_t id)
-	{
-		assert(IsServerEntityValid(id));
-		return m_serverEntities[id];
-	}
-
-	inline bool GameState::IsServerEntityValid(std::size_t id) const
-	{
-		return id < m_serverEntities.size() && m_serverEntities[id].isValid;
-	}
 }

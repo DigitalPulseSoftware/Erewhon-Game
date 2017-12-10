@@ -75,6 +75,8 @@ namespace ewn
 		DeclarePacket(CreateEntity)
 		{
 			Nz::UInt32 id;
+			Nz::Vector3f angularVelocity;
+			Nz::Vector3f linearVelocity;
 			Nz::Vector3f position;
 			Nz::Quaternionf rotation;
 			Nz::String name;

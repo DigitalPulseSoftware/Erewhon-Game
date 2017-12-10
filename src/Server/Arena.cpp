@@ -193,7 +193,7 @@ namespace ewn
 			static Nz::UInt16 snapshotId = 0;
 			statePacket.stateId = snapshotId++;
 
-			std::cout << "Sent snapshot #" << statePacket.stateId << std::endl;
+			std::cout << "Sent snapshot #" << statePacket.stateId << " at " << m_app->GetAppTime() << std::endl;
 
 			for (auto& pair : m_players)
 			{

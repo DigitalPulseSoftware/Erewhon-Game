@@ -42,6 +42,8 @@ namespace ewn
 		{
 			packet << data.entityType;
 			packet << data.id;
+			packet << data.angularVelocity;
+			packet << data.linearVelocity;
 			packet << data.position;
 			packet << data.rotation;
 			packet << data.name;
@@ -132,6 +134,8 @@ namespace ewn
 		{
 			packet >> data.entityType;
 			packet >> data.id;
+			packet >> data.angularVelocity;
+			packet >> data.linearVelocity;
 			packet >> data.position;
 			packet >> data.rotation;
 			packet >> data.name;
