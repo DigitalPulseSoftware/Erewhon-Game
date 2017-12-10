@@ -109,7 +109,7 @@ namespace ewn
 
 			m_projectileTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			m_projectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			//m_projectileTemplateEntity->Disable();
+			m_projectileTemplateEntity->Disable();
 
 			/*std::vector<Nz::Vector3f> vertices;
 
@@ -249,6 +249,7 @@ namespace ewn
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
 		m_isCurrentlyRotating = false;
 		m_lastInputTime = 0;
+		m_lastShootTime = 0;
 		m_rotationDirection.MakeZero();
 		m_spaceshipRotation.MakeZero();
 		m_spaceshipSpeed.MakeZero();
@@ -328,19 +329,36 @@ namespace ewn
 
 
 		// Movement cursor
-		Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
-		cursorMat->SetDiffuseMap("Assets/cursor/orientation.png");
+		{
+			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
+			cursorMat->SetDiffuseMap("Assets/cursor/orientation.png");
 
-		m_cursorOrientationSprite = Nz::Sprite::New();
-		m_cursorOrientationSprite->SetMaterial(cursorMat);
-		m_cursorOrientationSprite->SetSize({ 32.f, 32.f });
-		m_cursorOrientationSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
+			m_cursorOrientationSprite = Nz::Sprite::New();
+			m_cursorOrientationSprite->SetMaterial(cursorMat);
+			m_cursorOrientationSprite->SetSize({ 32.f, 32.f });
+			m_cursorOrientationSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
 
-		m_cursorEntity = m_stateData.world2D->CreateEntity();
-		m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
-		m_cursorEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ 200.f, 200.f, 0.f });
+			m_cursorEntity = m_stateData.world2D->CreateEntity();
+			m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
+			m_cursorEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ 200.f, 200.f, 0.f });
 
-		m_cursorEntity->Disable();
+			m_cursorEntity->Disable();
+		}
+
+		// Crosshair
+		{
+			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
+			cursorMat->SetDiffuseMap("Assets/weapons/crosshair.png");
+
+			Nz::SpriteRef crosshairSprite = Nz::Sprite::New();
+			crosshairSprite->SetMaterial(cursorMat);
+			crosshairSprite->SetSize({ 32.f, 32.f });
+			crosshairSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
+
+			m_crosshairEntity = m_stateData.world2D->CreateEntity();
+			m_crosshairEntity->AddComponent<Ndk::GraphicsComponent>().Attach(crosshairSprite);
+			m_crosshairEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ windowSize.x / 2.f, windowSize.y / 2.f, 0.f });
+		}
 
 		/*m_stateData.window->SetCursor(Nz::SystemCursor_None);
 		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
@@ -374,7 +392,7 @@ namespace ewn
 		m_onCreateEntitySlot.Connect(m_stateData.server->OnCreateEntity, this, &GameState::OnCreateEntity);
 		m_onDeleteEntitySlot.Connect(m_stateData.server->OnDeleteEntity, this, &GameState::OnDeleteEntity);
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f }); });
+		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, this, &GameState::OnRenderTargetSizeChange);
 
 		m_stateData.server->SendPacket(Packets::JoinArena());
 
@@ -469,7 +487,7 @@ namespace ewn
 		m_cameraRotation.x = Nz::Approach(m_cameraRotation.x, m_spaceshipRotation.x / 10.f, 10.f * elapsedTime);
 		m_cameraRotation.y = Nz::Approach(m_cameraRotation.y, m_spaceshipRotation.y / 10.f, 10.f * elapsedTime);
 		m_cameraRotation.z = Nz::Approach(m_cameraRotation.z, m_spaceshipRotation.z / 10.f, 10.f * elapsedTime);
-		m_cameraNode.SetRotation(Nz::EulerAnglesf(m_cameraRotation.x, m_cameraRotation.y, m_cameraRotation.z));
+		//m_cameraNode.SetRotation(Nz::EulerAnglesf(m_cameraRotation.x, m_cameraRotation.y, m_cameraRotation.z));
 
 		// Debug state socket
 		if constexpr (showServerGhosts)
@@ -703,10 +721,21 @@ namespace ewn
 		}
 		else if (event.code == Nz::Keyboard::Space)
 		{
+			Nz::UInt64 currentTime = m_stateData.app->GetAppTime();
+			if (currentTime - m_lastShootTime < 500)
+				return;
+
+			m_lastShootTime = currentTime;
 			m_shootSound.Play();
 
 			m_stateData.server->SendPacket(Packets::PlayerShoot());
 		}
+	}
+
+	void GameState::OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget)
+	{
+		m_chatBox->SetPosition({ 5.f, renderTarget->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f });
+		m_crosshairEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x / 2.f, renderTarget->GetSize().y / 2.f, 0.f });
 	}
 
 	void GameState::UpdateInput(float elapsedTime)

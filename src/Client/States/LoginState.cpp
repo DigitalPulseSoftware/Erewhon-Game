@@ -83,8 +83,6 @@ namespace ewn
 			m_loginArea->SetText(login);
 			m_passwordArea->SetText(pass);
 			m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
-
-			OnConnectionPressed();
 		}
 	}
 

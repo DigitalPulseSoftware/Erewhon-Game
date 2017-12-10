@@ -3,9 +3,14 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
+#include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/LifeTimeComponent.hpp>
+#include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
+#include <Server/Components/ProjectileComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
+#include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Network/Network.hpp>
@@ -16,9 +21,14 @@ int main()
 	Nz::Initializer<Nz::Network, Ndk::Sdk> nazara; //< Init SDK before application because of custom components/systems
 
 	// Initialize custom components
+	Ndk::InitializeComponent<ewn::HealthComponent>("Health");
+	Ndk::InitializeComponent<ewn::LifeTimeComponent>("LifeTime");
+	Ndk::InitializeComponent<ewn::OwnerComponent>("OwnrComp");
 	Ndk::InitializeComponent<ewn::PlayerControlledComponent>("PlyCtrl");
+	Ndk::InitializeComponent<ewn::ProjectileComponent>("Prjctile");
 	Ndk::InitializeComponent<ewn::SynchronizedComponent>("SyncComp");
 	Ndk::InitializeSystem<ewn::BroadcastSystem>();
+	Ndk::InitializeSystem<ewn::LifeTimeSystem>();
 	Ndk::InitializeSystem<ewn::SpaceshipSystem>();
 
 	ewn::ServerApplication app;

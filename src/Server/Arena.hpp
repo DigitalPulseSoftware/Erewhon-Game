@@ -16,6 +16,11 @@
 #include <unordered_set>
 #include <vector>
 
+namespace Nz
+{
+	class RigidBody3D;
+}
+
 namespace ewn
 {
 	class BroadcastSystem;
@@ -38,9 +43,11 @@ namespace ewn
 			void Update(float elapsedTime);
 
 		private:
-			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
+
+			bool HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 
 			void OnBroadcastEntityCreation(const BroadcastSystem* system, const Packets::CreateEntity& packet);
 			void OnBroadcastEntityDestruction(const BroadcastSystem* system, const Packets::DeleteEntity& packet);
@@ -53,6 +60,7 @@ namespace ewn
 			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;
 			float m_stateBroadcastAccumulator;
+			int m_projectileMaterial;
 	};
 }
 

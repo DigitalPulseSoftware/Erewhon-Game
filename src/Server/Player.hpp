@@ -7,6 +7,8 @@
 #ifndef EREWHON_SERVER_PLAYER_HPP
 #define EREWHON_SERVER_PLAYER_HPP
 
+#include <Nazara/Core/HandledObject.hpp>
+#include <Nazara/Core/ObjectHandle.hpp>
 #include <NDK/EntityOwner.hpp>
 #include <Shared/NetworkReactor.hpp>
 #include <Server/ServerCommandStore.hpp>
@@ -15,7 +17,11 @@ namespace ewn
 {
 	class Arena;
 
-	class Player
+	class Player;
+
+	using PlayerHandle = Nz::ObjectHandle<Player>;
+
+	class Player : public Nz::HandledObject<Player>
 	{
 		friend class ServerCommandStore;
 

@@ -63,6 +63,7 @@ namespace ewn
 			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
 			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
+			void OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget);
 
 			void UpdateInput(float elapsedTime);
 
@@ -77,6 +78,7 @@ namespace ewn
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			StateData& m_stateData;
+			Ndk::EntityHandle m_crosshairEntity;
 			Ndk::EntityHandle m_cursorEntity;
 			Ndk::EntityHandle m_ballTemplateEntity;
 			Ndk::EntityHandle m_debugTemplateEntity;
@@ -98,6 +100,7 @@ namespace ewn
 			Nz::Vector3f m_spaceshipSpeed;
 			Nz::UdpSocket m_debugStateSocket;
 			Nz::UInt64 m_lastInputTime;
+			Nz::UInt64 m_lastShootTime;
 			std::size_t m_controlledEntity;
 			std::vector<ClientInput> m_predictedInputs;
 			std::vector<ServerEntity> m_serverEntities;

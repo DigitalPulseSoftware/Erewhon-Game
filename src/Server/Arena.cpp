@@ -3,15 +3,21 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Arena.hpp>
+#include <Nazara/Physics3D/PhysWorld3D.hpp>
 #include <NDK/Components/CollisionComponent3D.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <NDK/Systems/PhysicsSystem3D.hpp>
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
+#include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/LifeTimeComponent.hpp>
+#include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
+#include <Server/Components/ProjectileComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
+#include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <cassert>
 
@@ -31,11 +37,21 @@ namespace ewn
 		if (sendServerGhosts)
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
+		m_world.AddSystem<LifeTimeSystem>();
 		m_world.AddSystem<SpaceshipSystem>();
 
+		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
+		int defaultMaterial = world.GetMaterial("default");
+		m_projectileMaterial = world.CreateMaterial("laser");
+
+		world.SetMaterialCollisionCallback(defaultMaterial, m_projectileMaterial, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return HandleProjectileCollision(firstBody, secondBody);
+		});
+
 		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
-		CreateEntity("ball", "The (big) ball", Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
+		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
+		CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
 
 		if constexpr (sendServerGhosts)
 		{
@@ -48,7 +64,7 @@ namespace ewn
 	{
 		assert(m_players.find(player) != m_players.end());
 
-		const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", player->GetName(), Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
+		const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", player->GetName(), player, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
 
 		m_players[player] = spaceship;
 
@@ -57,10 +73,10 @@ namespace ewn
 
 	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		return CreateEntity("projectile", {}, position, rotation);
+		return CreateEntity("projectile", {}, owner, position, rotation);
 	}
 
-	void Arena::DispatchChatMessage(Player* player, const Nz::String& message)
+	void Arena::DispatchChatMessage(Player* /*player*/, const Nz::String& message)
 	{
 		Packets::ChatMessage chatPacket;
 		chatPacket.message = message;
@@ -72,7 +88,7 @@ namespace ewn
 	void Arena::Update(float elapsedTime)
 	{
 		m_world.Update(elapsedTime);
-
+	
 		// Attraction
 		/*if (m_attractionPoint)
 		{
@@ -99,19 +115,59 @@ namespace ewn
 		m_stateBroadcastAccumulator += elapsedTime;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateEntity(std::string type, std::string name, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	const Ndk::EntityHandle& Arena::CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
 		const Ndk::EntityHandle& newEntity = m_world.CreateEntity();
 
 		if (type == "spaceship")
 		{
-			Nz::SphereCollider3DRef collider = Nz::SphereCollider3D::New(5.f);
+			Nz::SphereCollider3DRef collider = Nz::SphereCollider3D::New(4.f);
 			auto& collisionComponent = newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.SetMass(42.f);
 			physComponent.SetAngularDamping(Nz::Vector3f(0.3f));
 			physComponent.SetLinearDamping(0.25f);
+
+			auto& healthComponent = newEntity->AddComponent<HealthComponent>(1000);
+			healthComponent.OnDeath.Connect([this](HealthComponent* health, const Ndk::EntityHandle& attacker)
+			{
+				const Ndk::EntityHandle& entity = health->GetEntity();
+
+				// Reset health and position
+				health->Heal(health->GetMaxHealth());
+
+				auto& node = entity->GetComponent<Ndk::PhysicsComponent3D>();
+				node.SetPosition(Nz::Vector3f::Zero());
+
+				if (entity->HasComponent<OwnerComponent>() && attacker->HasComponent<OwnerComponent>())
+				{
+					auto& shipOwner = entity->GetComponent<OwnerComponent>();
+					auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
+
+					Player* shipOwnerPlayer = shipOwner.GetOwner();
+					if (!shipOwnerPlayer)
+						return;
+
+					Player* attackerPlayer = attackerOwner.GetOwner();
+					Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
+
+					DispatchChatMessage(nullptr, shipOwnerPlayer->GetName() + " has been destroyed by " + attackerName);
+				}
+			});
+
+			healthComponent.OnHealthChange.Connect([this](HealthComponent* health)
+			{
+				const Ndk::EntityHandle& entity = health->GetEntity();
+				Player* owner = entity->GetComponent<OwnerComponent>().GetOwner();
+				if (!owner)
+					return;
+
+				Packets::ChatMessage chatPacket;
+				chatPacket.message = "Health at " + std::to_string(health->GetHealthPct()) + "%";
+
+				owner->SendPacket(chatPacket);
+			});
 
 			newEntity->AddComponent<PlayerControlledComponent>();
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
@@ -145,6 +201,8 @@ namespace ewn
 		else if (type == "projectile")
 		{
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
+			newEntity->AddComponent<LifeTimeComponent>(10.f);
+			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((m_app->GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -155,9 +213,13 @@ namespace ewn
 			physComponent.SetAngularDamping(Nz::Vector3f::Zero());
 			physComponent.SetLinearDamping(0.f);
 			physComponent.SetMass(1.f);
+			physComponent.SetMaterial("laser");
 			physComponent.SetPosition(position);
 			physComponent.SetRotation(rotation);
 		}
+
+		if (owner)
+			newEntity->AddComponent<OwnerComponent>(owner);
 
 		return newEntity;
 	}
@@ -180,6 +242,42 @@ namespace ewn
 			player->SendPacket(packet);
 
 		m_players[player] = Ndk::EntityHandle::InvalidHandle;
+	}
+
+	bool Arena::HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+	{
+		Ndk::EntityId laserEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(firstBody.GetUserdata()));
+		Ndk::EntityId hitEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(secondBody.GetUserdata()));
+
+		if (secondBody.GetMaterial() == m_projectileMaterial)
+		{
+			assert(firstBody.GetMaterial() != m_projectileMaterial);
+			std::swap(laserEntityId, hitEntityId);
+		}
+
+		const Ndk::EntityHandle& projectile = m_world.GetEntity(laserEntityId);
+		const Ndk::EntityHandle& hitEntity = m_world.GetEntity(hitEntityId);
+		if (!hitEntity->HasComponent<OwnerComponent>())
+			return false;
+
+		assert(projectile->HasComponent<OwnerComponent>() && projectile->HasComponent<ProjectileComponent>());
+
+		ProjectileComponent& projectileComponent = projectile->GetComponent<ProjectileComponent>();
+		if (projectileComponent.HasBeenHit(hitEntity))
+			return false;
+
+		projectileComponent.MarkAsHit(hitEntity);
+
+		// Deal damage if entity has a health value
+		if (hitEntity->HasComponent<HealthComponent>())
+		{
+			auto& health = hitEntity->GetComponent<HealthComponent>();
+			health.Damage(projectileComponent.GetDamageValue(), projectile);
+		}
+
+		projectile->Kill(); //< Remember entity destruction is not immediate, we can still use it safely
+
+		return false;
 	}
 
 	void Arena::OnBroadcastEntityCreation(const BroadcastSystem* /*system*/, const Packets::CreateEntity& packet)
