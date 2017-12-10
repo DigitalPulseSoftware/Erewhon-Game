@@ -86,7 +86,7 @@ namespace ewn
 			Packets::ArenaState::Entity entityData;
 			entityData.id = entity->GetId();
 			entityData.angularVelocity = entityPhys.GetAngularVelocity();
-			entityData.linearVelocity = entityPhys.GetVelocity();
+			entityData.linearVelocity = entityPhys.GetLinearVelocity();
 			entityData.position = entityPhys.GetPosition();
 			entityData.rotation = entityPhys.GetRotation();
 
