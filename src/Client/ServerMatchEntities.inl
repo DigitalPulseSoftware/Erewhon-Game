@@ -9,34 +9,15 @@ namespace ewn
 	inline ServerMatchEntities::ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world) :
 	m_jitterBuffer(5),
 	m_jitterBufferSize(0),
-	m_world(std::move(world))
+	m_world(std::move(world)),
+	m_correctionAccumulator(0.f),
+	m_snapshotUpdateAccumulator(0.f)
 	{
 		m_onArenaStateSlot.Connect(server->OnArenaState, this, &ServerMatchEntities::OnArenaState);
+		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
+		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
 
 		CreateEntityTemplates();
-	}
-
-	template<typename T>
-	inline bool ServerMatchEntities::HandleSnapshot(T&& callback)
-	{
-		if (m_jitterBufferSize == 0)
-			return false;
-
-		auto& snapshot = m_jitterBuffer.front();
-
-		bool isSnapshotValid = snapshot.isValid;
-		if (isSnapshotValid)
-		{
-			const auto& snapshotView = snapshot;
-
-			callback(snapshotView);
-			snapshot.isValid = false;
-		}
-
-		std::rotate(m_jitterBuffer.begin(), m_jitterBuffer.begin() + 1, m_jitterBuffer.end());
-		m_jitterBufferSize--;
-
-		return isSnapshotValid;
 	}
 
 	inline ServerMatchEntities::ServerEntity& ServerMatchEntities::CreateServerEntity(std::size_t id)
@@ -47,6 +28,7 @@ namespace ewn
 		ServerEntity& data = m_serverEntities[id];
 		assert(!data.isValid);
 
+		data.serverId = id;
 		data.isValid = true;
 
 		return data;

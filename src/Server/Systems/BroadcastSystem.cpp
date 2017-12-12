@@ -36,6 +36,19 @@ namespace ewn
 			createPacket.position = nodeComponent.GetPosition();
 			createPacket.rotation = nodeComponent.GetRotation();
 
+			if (entity->HasComponent<Ndk::PhysicsComponent3D>())
+			{
+				auto& physComponent = entity->GetComponent<Ndk::PhysicsComponent3D>();
+
+				createPacket.angularVelocity = physComponent.GetAngularVelocity();
+				createPacket.linearVelocity = physComponent.GetLinearVelocity();
+			}
+			else
+			{
+				createPacket.angularVelocity = Nz::Vector3f::Zero();
+				createPacket.linearVelocity  = Nz::Vector3f::Zero();
+			}
+
 			packetVector.emplace_back(std::move(createPacket));
 		}
 	}

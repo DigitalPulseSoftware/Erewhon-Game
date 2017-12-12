@@ -60,33 +60,26 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			inline ServerEntity& CreateServerEntity(std::size_t id);
-			inline ServerEntity& GetServerEntity(std::size_t id);
-			inline bool IsServerEntityValid(std::size_t id) const;
-
 			void ControlEntity(std::size_t entityId);
+
 			void PrintMessage(const std::string& message);
 
-			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
 			void OnChatMessage(ServerConnection* server, const Packets::ChatMessage& chatMessage);
-
 			void OnControlEntity(ServerConnection* server, const Packets::ControlEntity& controlPacket);
-
-			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
-			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
+			void OnEntityCreated(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
+			void OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 
 			void UpdateInput(float elapsedTime);
 
 			static void ApplyInput(Nz::Node& node, Nz::UInt64 lastInputTime, const ClientInput& input);
 
-			NazaraSlot(ServerConnection, OnArenaState, m_onArenaStateSlot);
-			NazaraSlot(ServerConnection, OnChatMessage, m_onChatMessageSlot);
-			NazaraSlot(ServerConnection, OnControlEntity, m_onControlEntitySlot);
-			NazaraSlot(ServerConnection, OnCreateEntity, m_onCreateEntitySlot);
-			NazaraSlot(ServerConnection, OnDeleteEntity, m_onDeleteEntitySlot);
-			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
+			NazaraSlot(ServerConnection,    OnChatMessage, m_onChatMessageSlot);
+			NazaraSlot(ServerConnection,    OnControlEntity, m_onControlEntitySlot);
+			NazaraSlot(ServerMatchEntities, OnEntityCreated, m_onEntityCreatedSlot);
+			NazaraSlot(ServerMatchEntities, OnEntityDelete, m_onEntityDeletionSlot);
+			NazaraSlot(Nz::EventHandler,    OnKeyPressed, m_onKeyPressedSlot);
+			NazaraSlot(Nz::RenderTarget,    OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			static constexpr std::size_t JitterBufferSize = 3;
 
@@ -110,7 +103,6 @@ namespace ewn
 			std::array<ServerSnapshot, JitterBufferSize> m_snapshots;
 			std::optional<ServerMatchEntities> m_matchEntities;
 			std::vector<ClientInput> m_predictedInputs;
-			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
 			bool m_resetSnapshots;
 			bool m_isCurrentlyRotating;

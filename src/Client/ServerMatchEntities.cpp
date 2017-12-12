@@ -12,9 +12,74 @@
 
 namespace ewn
 {
+	ServerMatchEntities::~ServerMatchEntities()
+	{
+		for (const auto& spaceshipData : m_serverEntities)
+		{
+			if (spaceshipData.debugGhostEntity)
+				spaceshipData.debugGhostEntity->Kill();
+
+			if (spaceshipData.entity)
+				spaceshipData.entity->Kill();
+
+			if (spaceshipData.textEntity)
+				spaceshipData.textEntity->Kill();
+		}
+	}
+
+	void ServerMatchEntities::Update(float elapsedTime)
+	{
+		constexpr float snapshotUpdateInterval = 1.f / 9.f;
+
+		m_snapshotUpdateAccumulator += elapsedTime;
+		if (m_snapshotUpdateAccumulator > snapshotUpdateInterval)
+		{
+			// Don't treat this timer like others: reset accumulator everytime to prevent multiple ticks applications
+			// This will allow the jitter cursor to stay low (because client will update snapshots at a slightly lower rate)
+			// and physics correction system will handle deviations caused by this
+			m_snapshotUpdateAccumulator = 0;
+
+			HandleNextSnapshot();
+		}
+
+		constexpr float errorCorrectionInterval = 1.f / 60.f;
+		m_correctionAccumulator += elapsedTime;
+
+		while (m_correctionAccumulator >= errorCorrectionInterval)
+		{
+			m_correctionAccumulator -= errorCorrectionInterval;
+
+			for (auto& spaceshipData : m_serverEntities)
+			{
+				if (!spaceshipData.entity)
+					continue;
+
+				auto& entityNode = spaceshipData.entity->GetComponent<Ndk::NodeComponent>();
+				auto& entityPhys = spaceshipData.entity->GetComponent<Ndk::PhysicsComponent3D>();
+
+				spaceshipData.positionError = Nz::Lerp(spaceshipData.positionError, Nz::Vector3f::Zero(), 0.01f);
+
+				// Avoid denormals
+				if (Nz::NumberEquals(spaceshipData.positionError.x, 0.f, 0.001f) &&
+					Nz::NumberEquals(spaceshipData.positionError.y, 0.f, 0.001f) &&
+					Nz::NumberEquals(spaceshipData.positionError.z, 0.f, 0.001f))
+				{
+					spaceshipData.positionError = Nz::Vector3f::Zero();
+				}
+
+				spaceshipData.rotationError = Nz::Quaternionf::Slerp(spaceshipData.rotationError, Nz::Quaternionf::Identity(), 0.1f);
+
+				if (spaceshipData.entity->GetId() == 9)
+					std::cout << "#" << spaceshipData.entity->GetId() << ": " << spaceshipData.positionError << " " << spaceshipData.rotationError << std::endl;
+
+				entityNode.SetPosition(entityPhys.GetPosition() + spaceshipData.positionError);
+				entityNode.SetRotation(entityPhys.GetRotation() * spaceshipData.rotationError);
+			}
+		}
+	}
+
 	void ServerMatchEntities::CreateEntityTemplates()
 	{
-
 		Nz::ModelParameters params;
 		params.mesh.center = true;
 		params.material.shaderName = "Basic";
@@ -33,6 +98,7 @@ namespace ewn
 			m_ballTemplateEntity->AddComponent<Ndk::NodeComponent>();
 
 			auto& physComponent = m_ballTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
 			physComponent.SetMass(10.f);
 
 			m_ballTemplateEntity->Disable();
@@ -55,7 +121,7 @@ namespace ewn
 			m_earthTemplateEntity = m_world->CreateEntity();
 			m_earthTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
 			m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
-			m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>().EnableNodeSynchronization(false);
 
 			auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
 			earthNode.SetPosition(Nz::Vector3f::Forward() * 50.f);
@@ -81,6 +147,7 @@ namespace ewn
 			m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
 			m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
 			auto& spaceshipPhys = m_spaceshipTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			spaceshipPhys.EnableNodeSynchronization(false);
 			spaceshipPhys.SetMass(42.f);
 			spaceshipPhys.SetAngularDamping(Nz::Vector3f(0.3f));
 			spaceshipPhys.SetLinearDamping(0.25f);
@@ -233,6 +300,9 @@ namespace ewn
 	{
 		ServerEntity& data = CreateServerEntity(createPacket.id);
 
+		data.positionError = Nz::Vector3f::Zero();
+		data.rotationError = Nz::Quaternionf::Identity();
+
 		if (createPacket.entityType == "spaceship")
 			data.entity = m_spaceshipTemplateEntity->Clone();
 		else if (createPacket.entityType == "earth")
@@ -263,8 +333,7 @@ namespace ewn
 		data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
 		data.textEntity->AddComponent<Ndk::NodeComponent>();
 
-		//if (createPacket.id == m_controlledEntity)
-		//	ControlEntity(createPacket.id);
+		OnEntityCreated(this, data);
 	}
 
 	void ServerMatchEntities::OnDeleteEntity(ServerConnection*, const Packets::DeleteEntity& deletePacket)
@@ -278,8 +347,37 @@ namespace ewn
 		data.textEntity->Kill();
 		data.isValid = false;
 
-		//if (m_controlledEntity == deletePacket.id)
-		//	m_controlledEntity = std::numeric_limits<std::size_t>::max();
+		OnEntityDelete(this, data);
+	}
+
+	void ServerMatchEntities::ApplySnapshot(const Snapshot& snapshot)
+	{
+		for (const Snapshot::Entity& entityData : snapshot.entities)
+		{
+			ServerEntity& data = GetServerEntity(entityData.id);
+
+			auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
+			auto& entityPhys = data.entity->GetComponent<Ndk::PhysicsComponent3D>();
+
+			// Hard apply physics state
+			entityPhys.SetAngularVelocity(entityData.angularVelocity);
+			entityPhys.SetLinearVelocity(entityData.linearVelocity);
+			entityPhys.SetPosition(entityData.position);
+			entityPhys.SetRotation(entityData.rotation);
+
+			// Compute visual error
+			Nz::Quaternionf visualRotation = entityNode.GetRotation();
+			Nz::Vector3f visualPosition = entityNode.GetPosition();
+
+			data.positionError = visualPosition - entityData.position;
+			data.rotationError = entityData.rotation.GetConjugate() * visualRotation;
+
+			Nz::Quaternionf test = visualRotation * (entityPhys.GetRotation() * data.rotationError).GetInverse();
+			Nz::Vector3f testVec(test.x, test.y, test.z);
+
+			std::cout << "Distance: " << Nz::Vector3f::Distance(entityPhys.GetPosition() + data.positionError, visualPosition) << std::endl;
+			std::cout << "Rotation: " << std::atan2(testVec.GetLength(), test.w) << std::endl;
+		}
 	}
 
 	void ServerMatchEntities::CopyState(std::size_t index, const Packets::ArenaState& arenaState)
@@ -300,6 +398,26 @@ namespace ewn
 
 		snapshot.stateId = arenaState.stateId;
 		snapshot.isValid = true;
+	}
+
+	bool ServerMatchEntities::HandleNextSnapshot()
+	{
+		if (m_jitterBufferSize == 0)
+			return false;
+
+		auto& snapshot = m_jitterBuffer.front();
+
+		bool isSnapshotValid = snapshot.isValid;
+		if (isSnapshotValid)
+		{
+			ApplySnapshot(snapshot);
+			snapshot.isValid = false;
+		}
+
+		std::rotate(m_jitterBuffer.begin(), m_jitterBuffer.begin() + 1, m_jitterBuffer.end());
+		m_jitterBufferSize--;
+
+		return isSnapshotValid;
 	}
 
 	void ServerMatchEntities::MarkStateAsLost(std::size_t first, std::size_t last)

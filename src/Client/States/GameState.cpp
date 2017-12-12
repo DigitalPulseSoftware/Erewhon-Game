@@ -211,15 +211,14 @@ namespace ewn
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
 
-		m_onArenaStateSlot.Connect(m_stateData.server->OnArenaState, this, &GameState::OnArenaState);
 		m_onChatMessageSlot.Connect(m_stateData.server->OnChatMessage, this, &GameState::OnChatMessage);
 		m_onControlEntitySlot.Connect(m_stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
-		m_onCreateEntitySlot.Connect(m_stateData.server->OnCreateEntity, this, &GameState::OnCreateEntity);
-		m_onDeleteEntitySlot.Connect(m_stateData.server->OnDeleteEntity, this, &GameState::OnDeleteEntity);
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f }); });
 
 		m_matchEntities.emplace(m_stateData.server, m_stateData.world3D);
+		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &GameState::OnEntityCreated);
+		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
 
 		m_stateData.server->SendPacket(Packets::JoinArena());
 
@@ -235,11 +234,8 @@ namespace ewn
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
 	{
-		m_onArenaStateSlot.Disconnect();
 		m_onChatMessageSlot.Disconnect();
 		m_onControlEntitySlot.Disconnect();
-		m_onCreateEntitySlot.Disconnect();
-		m_onDeleteEntitySlot.Disconnect();
 		m_onKeyPressedSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 
@@ -248,18 +244,6 @@ namespace ewn
 		m_chatBox->Destroy();
 		if (m_chatEnteringBox)
 			m_chatEnteringBox->Destroy();
-
-		for (const auto& spaceshipData : m_serverEntities)
-		{
-			if (spaceshipData.debugGhostEntity)
-				spaceshipData.debugGhostEntity->Kill();
-
-			if (spaceshipData.entity)
-				spaceshipData.entity->Kill();
-
-			if (spaceshipData.textEntity)
-				spaceshipData.textEntity->Kill();
-		}
 
 		m_cursorEntity->Kill();
 	}
@@ -280,25 +264,8 @@ namespace ewn
 			UpdateInput(inputSendInterval);
 		}
 
-		constexpr float snapshotUpdateInterval = 1.f / 9.f;
-		if (m_snapshotUpdateAccumulator > snapshotUpdateInterval)
-		{
-			// Don't treat this timer like others: reset accumulator everytime to prevent multiple ticks applications
-			// This will allow the jitter cursor to stay low (because client will update snapshots at a slightly lower rate)
-			// and physics correction system will handle deviations caused by this
-			m_snapshotUpdateAccumulator = 0;
-
-			auto ReadSnapshot = [](const ServerMatchEntities::Snapshot& snapshot)
-			{
-				
-			};
-
-			if (!m_matchEntities->HandleSnapshot(ReadSnapshot))
-				std::cout << "GameState: Failed to get next snapshot!" << std::endl;
-			//std::cout << m_snapshots.front().snapshotId << std::endl;
-		}
-
-
+		if (m_syncEnabled)
+			m_matchEntities->Update(elapsedTime);
 
 		/*m_interpolationFactor = std::min(m_interpolationFactor + elapsedTime * 10.f, 3.0f);
 
@@ -366,15 +333,15 @@ namespace ewn
 
 	void GameState::ControlEntity(std::size_t entityId)
 	{
-		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
+		if (m_controlledEntity != entityId && m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
-			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
+			auto& oldData = m_matchEntities->GetServerEntity(m_controlledEntity);
 			oldData.textEntity->Enable();
 		}
 
-		if (IsServerEntityValid(entityId))
+		if (m_matchEntities->IsServerEntityValid(entityId))
 		{
-			ServerEntity& data = GetServerEntity(entityId);
+			auto& data = m_matchEntities->GetServerEntity(entityId);
 
 			// Don't show our own name
 			data.textEntity->Disable();
@@ -398,6 +365,18 @@ namespace ewn
 	void GameState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
 	{
 		ControlEntity(controlPacket.id);
+	}
+
+	void GameState::OnEntityCreated(ServerMatchEntities* /*entities*/, ServerMatchEntities::ServerEntity& entityData)
+	{
+		if (entityData.serverId == m_controlledEntity)
+			ControlEntity(m_controlledEntity);
+	}
+
+	void GameState::OnEntityDelete(ServerMatchEntities * entities, ServerMatchEntities::ServerEntity & entityData)
+	{
+		if (entityData.serverId == m_controlledEntity)
+			ControlEntity(std::numeric_limits<std::size_t>::max());
 	}
 
 	void GameState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
