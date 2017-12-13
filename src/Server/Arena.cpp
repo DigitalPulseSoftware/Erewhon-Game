@@ -17,7 +17,7 @@
 
 namespace ewn
 {
-	static constexpr bool sendServerGhosts = false;
+	static constexpr bool sendServerGhosts = true;
 
 	Arena::Arena(ServerApplication* app) :
 	m_app(app),
@@ -185,7 +185,7 @@ namespace ewn
 
 	void Arena::OnBroadcastStateUpdate(const BroadcastSystem* /*system*/, Packets::ArenaState& statePacket)
 	{
-		constexpr float stateBroadcastInterval = 1.f / 10.f;
+		constexpr float stateBroadcastInterval = 1.f / 30.f;
 		if (m_stateBroadcastAccumulator >= stateBroadcastInterval)
 		{
 			m_stateBroadcastAccumulator -= stateBroadcastInterval;

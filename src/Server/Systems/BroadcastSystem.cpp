@@ -19,7 +19,7 @@ namespace ewn
 	m_app(app)
 	{
 		Requires<Ndk::NodeComponent, SynchronizedComponent>();
-		SetMaximumUpdateRate(10.f);
+		SetMaximumUpdateRate(30.f);
 	}
 
 	void BroadcastSystem::CreateAllEntities(std::vector<Packets::CreateEntity>& packetVector)

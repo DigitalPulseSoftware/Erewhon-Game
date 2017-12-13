@@ -10,7 +10,6 @@
 #include <Client/ServerMatchEntities.hpp>
 #include <Client/States/StateData.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
-#include <Nazara/Network/UdpSocket.hpp>
 #include <Nazara/Utility/Node.hpp>
 #include <NDK/Entity.hpp>
 #include <NDK/State.hpp>
@@ -96,7 +95,6 @@ namespace ewn
 			Nz::Vector3f m_cameraRotation;
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
-			Nz::UdpSocket m_debugStateSocket;
 			Nz::UInt16 m_lastStateId;
 			Nz::UInt64 m_lastInputTime;
 			std::size_t m_controlledEntity;
@@ -106,7 +104,6 @@ namespace ewn
 			std::vector<Nz::String> m_chatLines;
 			bool m_resetSnapshots;
 			bool m_isCurrentlyRotating;
-			bool m_syncEnabled;
 			float m_inputAccumulator;
 			float m_interpolationFactor;
 			float m_snapshotUpdateAccumulator;

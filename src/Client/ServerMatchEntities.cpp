@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/ServerMatchEntities.hpp>
+#include <Nazara/Core/Clock.hpp>
 #include <Nazara/Core/Primitive.hpp>
 #include <Nazara/Graphics/Model.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
@@ -12,6 +13,32 @@
 
 namespace ewn
 {
+	static constexpr bool showServerGhosts = true;
+
+	ServerMatchEntities::ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world) :
+	m_jitterBuffer(5),
+	m_jitterBufferSize(0),
+	m_world(std::move(world)),
+	m_stateHandlingEnabled(true),
+	m_correctionAccumulator(0.f),
+	m_snapshotUpdateAccumulator(0.f)
+	{
+		m_onArenaStateSlot.Connect(server->OnArenaState, this, &ServerMatchEntities::OnArenaState);
+		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
+		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
+
+		CreateEntityTemplates();
+
+		// Listen to debug state
+		if constexpr (showServerGhosts)
+		{
+			m_debugStateSocket.Create(Nz::NetProtocol_IPv4);
+			m_debugStateSocket.Bind(2050);
+
+			m_debugStateSocket.EnableBlocking(false);
+		}
+	}
+
 	ServerMatchEntities::~ServerMatchEntities()
 	{
 		for (const auto& spaceshipData : m_serverEntities)
@@ -29,22 +56,24 @@ namespace ewn
 
 	void ServerMatchEntities::Update(float elapsedTime)
 	{
-		constexpr float snapshotUpdateInterval = 1.f / 9.f;
-
-		m_snapshotUpdateAccumulator += elapsedTime;
-		if (m_snapshotUpdateAccumulator > snapshotUpdateInterval)
+		if (m_stateHandlingEnabled)
 		{
-			// Don't treat this timer like others: reset accumulator everytime to prevent multiple ticks applications
-			// This will allow the jitter cursor to stay low (because client will update snapshots at a slightly lower rate)
-			// and physics correction system will handle deviations caused by this
-			m_snapshotUpdateAccumulator = 0;
+			constexpr float snapshotUpdateInterval = 1.f / 30.f;
 
-			HandleNextSnapshot();
+			m_snapshotUpdateAccumulator += elapsedTime;
+			if (m_snapshotUpdateAccumulator > snapshotUpdateInterval)
+			{
+				// Don't treat this timer like others: reset accumulator everytime to prevent multiple ticks applications
+				// This will allow the jitter cursor to stay low (because client will update snapshots at a slightly lower rate)
+				// and physics correction system will handle deviations caused by this
+				m_snapshotUpdateAccumulator -= snapshotUpdateInterval;
+				HandleNextSnapshot();
+			}
 		}
 
 		constexpr float errorCorrectionInterval = 1.f / 60.f;
-		m_correctionAccumulator += elapsedTime;
 
+		m_correctionAccumulator += elapsedTime;
 		while (m_correctionAccumulator >= errorCorrectionInterval)
 		{
 			m_correctionAccumulator -= errorCorrectionInterval;
@@ -69,11 +98,38 @@ namespace ewn
 
 				spaceshipData.rotationError = Nz::Quaternionf::Slerp(spaceshipData.rotationError, Nz::Quaternionf::Identity(), 0.1f);
 
-				if (spaceshipData.entity->GetId() == 9)
-					std::cout << "#" << spaceshipData.entity->GetId() << ": " << spaceshipData.positionError << " " << spaceshipData.rotationError << std::endl;
+				//if (spaceshipData.entity->GetId() == 9)
+				//	std::cout << "#" << spaceshipData.entity->GetId() << ": " << spaceshipData.positionError << " " << spaceshipData.rotationError << std::endl;
 
 				entityNode.SetPosition(entityPhys.GetPosition() + spaceshipData.positionError);
 				entityNode.SetRotation(entityPhys.GetRotation() * spaceshipData.rotationError);
+			}
+		}
+
+		if constexpr (showServerGhosts)
+		{
+			Nz::NetPacket packet;
+			if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
+			{
+				Packets::ArenaState arenaState;
+				Packets::Unserialize(packet, arenaState);
+
+				for (auto& serverData : arenaState.entities)
+				{
+					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not aware yet
+					if (!IsServerEntityValid(serverData.id))
+						continue;
+
+					ServerEntity& entityData = GetServerEntity(serverData.id);
+
+					// Ensure ghost entity existence
+					if (!entityData.debugGhostEntity)
+						entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
+
+					auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
+					ghostNode.SetPosition(serverData.position);
+					ghostNode.SetRotation(serverData.rotation);
+				}
 			}
 		}
 	}
@@ -100,6 +156,8 @@ namespace ewn
 			auto& physComponent = m_ballTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.EnableNodeSynchronization(false);
 			physComponent.SetMass(10.f);
+			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
 
 			m_ballTemplateEntity->Disable();
 		}
@@ -121,7 +179,12 @@ namespace ewn
 			m_earthTemplateEntity = m_world->CreateEntity();
 			m_earthTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
 			m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
-			m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>().EnableNodeSynchronization(false);
+
+			auto& physComponent = m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
+			//physComponent.SetMass(0.f);
+			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
 
 			auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
 			earthNode.SetPosition(Nz::Vector3f::Forward() * 50.f);
@@ -149,8 +212,8 @@ namespace ewn
 			auto& spaceshipPhys = m_spaceshipTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			spaceshipPhys.EnableNodeSynchronization(false);
 			spaceshipPhys.SetMass(42.f);
-			spaceshipPhys.SetAngularDamping(Nz::Vector3f(0.3f));
-			spaceshipPhys.SetLinearDamping(0.25f);
+			spaceshipPhys.SetAngularDamping(Nz::Vector3f(0.f));
+			spaceshipPhys.SetLinearDamping(0.f);
 
 			m_spaceshipTemplateEntity->Disable();
 		}
@@ -171,8 +234,11 @@ namespace ewn
 
 	void ServerMatchEntities::OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState)
 	{
-		std::cout << "Received " << arenaState.stateId << " at " << server->EstimateServerTime() << std::endl;
+		//std::cout << "Received " << arenaState.stateId << " at " << server->EstimateServerTime() << std::endl;
 
+		CopyState(0, arenaState);
+		m_jitterBufferSize = 1;
+		/*
 		if (m_jitterBufferSize >= m_jitterBuffer.size())
 		{
 			// Jitter buffer cannot grow anymore, drop states
@@ -229,7 +295,7 @@ namespace ewn
 			// Jitter buffer is empty, just insert state
 			CopyState(m_jitterBufferSize, arenaState);
 			m_jitterBufferSize++;
-		}
+		}*/
 
 
 		/*Nz::UInt16 expectedStateId = m_jitterBuffer[m_jitterBufferSize - 1].stateId + 1;
@@ -352,6 +418,9 @@ namespace ewn
 
 	void ServerMatchEntities::ApplySnapshot(const Snapshot& snapshot)
 	{
+		Nz::UInt64 currentTime = Nz::GetElapsedMicroseconds() / 1000;
+
+		std::cout << "Applied snapshot after " << (currentTime - snapshot.receivedTime) << "ms" << std::endl;
 		for (const Snapshot::Entity& entityData : snapshot.entities)
 		{
 			ServerEntity& data = GetServerEntity(entityData.id);
@@ -375,8 +444,11 @@ namespace ewn
 			Nz::Quaternionf test = visualRotation * (entityPhys.GetRotation() * data.rotationError).GetInverse();
 			Nz::Vector3f testVec(test.x, test.y, test.z);
 
-			std::cout << "Distance: " << Nz::Vector3f::Distance(entityPhys.GetPosition() + data.positionError, visualPosition) << std::endl;
-			std::cout << "Rotation: " << std::atan2(testVec.GetLength(), test.w) << std::endl;
+			if (float diff = Nz::Vector3f::Distance(entityPhys.GetPosition() + data.positionError, visualPosition); diff > 0.0001f)
+				std::cout << "Distance: " << Nz::Vector3f::Distance(entityPhys.GetPosition() + data.positionError, visualPosition) << std::endl;
+
+			if (float diff = std::atan2(testVec.GetLength(), test.w); diff > 0.001f)
+				std::cout << "Rotation: " << diff << std::endl;
 		}
 	}
 
@@ -396,6 +468,7 @@ namespace ewn
 			entity.rotation = packetEntity.rotation;
 		}
 
+		snapshot.receivedTime = Nz::GetElapsedMicroseconds() / 1000;
 		snapshot.stateId = arenaState.stateId;
 		snapshot.isValid = true;
 	}

@@ -29,7 +29,6 @@
 
 namespace ewn
 {
-	static constexpr bool showServerGhosts = false;
 	static constexpr std::size_t maxChatLines = 15;
 
 	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
@@ -104,7 +103,6 @@ namespace ewn
 		m_spaceshipRotation.MakeZero();
 		m_spaceshipSpeed.MakeZero();
 		m_snapshotUpdateAccumulator = 0.f;
-		m_syncEnabled = true;
 
 		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
 		Nz::Mouse::SetPosition(windowSize.x / 2, windowSize.y / 2, *m_stateData.window);
@@ -221,15 +219,6 @@ namespace ewn
 		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
 
 		m_stateData.server->SendPacket(Packets::JoinArena());
-
-		// Listen to debug state
-		if constexpr (showServerGhosts)
-		{
-			m_debugStateSocket.Create(Nz::NetProtocol_IPv4);
-			m_debugStateSocket.Bind(2050);
-
-			m_debugStateSocket.EnableBlocking(false);
-		}
 	}
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
@@ -264,8 +253,7 @@ namespace ewn
 			UpdateInput(inputSendInterval);
 		}
 
-		if (m_syncEnabled)
-			m_matchEntities->Update(elapsedTime);
+		m_matchEntities->Update(elapsedTime);
 
 		/*m_interpolationFactor = std::min(m_interpolationFactor + elapsedTime * 10.f, 3.0f);
 
@@ -299,34 +287,6 @@ namespace ewn
 		m_cameraRotation.y = Nz::Approach(m_cameraRotation.y, m_spaceshipRotation.y / 10.f, 10.f * elapsedTime);
 		m_cameraRotation.z = Nz::Approach(m_cameraRotation.z, m_spaceshipRotation.z / 10.f, 10.f * elapsedTime);
 		m_cameraNode.SetRotation(Nz::EulerAnglesf(m_cameraRotation.x, m_cameraRotation.y, m_cameraRotation.z));
-
-		// Debug state socket
-		/*if constexpr (showServerGhosts)
-		{
-			Nz::NetPacket packet;
-			if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
-			{
-				Packets::ArenaState arenaState;
-				Packets::Unserialize(packet, arenaState);
-
-				for (auto& serverData : arenaState.entities)
-				{
-					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not aware yet
-					if (!IsServerEntityValid(serverData.id))
-						continue;
-
-					ServerEntity& entityData = GetServerEntity(serverData.id);
-
-					// Ensure ghost entity existence
-					if (!entityData.debugGhostEntity)
-						entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
-
-					auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
-					ghostNode.SetPosition(serverData.position);
-					ghostNode.SetRotation(serverData.rotation);
-				}
-			}
-		}*/
 
 		return true;
 	}
@@ -413,8 +373,8 @@ namespace ewn
 		}
 		else if (event.code == Nz::Keyboard::F1)
 		{
-			m_syncEnabled = !m_syncEnabled;
-			if (m_syncEnabled)
+			m_matchEntities->EnableSnapshotHandling(!m_matchEntities->IsSnapshotHandlingEnabled());
+			if (m_matchEntities->IsSnapshotHandlingEnabled())
 				PrintMessage("INFO: Sync enabled");
 			else
 				PrintMessage("INFO: Sync disabled");

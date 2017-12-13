@@ -6,21 +6,12 @@
 
 namespace ewn
 {
-	inline ServerMatchEntities::ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world) :
-	m_jitterBuffer(5),
-	m_jitterBufferSize(0),
-	m_world(std::move(world)),
-	m_correctionAccumulator(0.f),
-	m_snapshotUpdateAccumulator(0.f)
+	inline void ewn::ServerMatchEntities::EnableSnapshotHandling(bool enable)
 	{
-		m_onArenaStateSlot.Connect(server->OnArenaState, this, &ServerMatchEntities::OnArenaState);
-		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
-		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
-
-		CreateEntityTemplates();
+		m_stateHandlingEnabled = enable;
 	}
 
-	inline ServerMatchEntities::ServerEntity& ServerMatchEntities::CreateServerEntity(std::size_t id)
+	inline ServerMatchEntities::ServerEntity& ServerMatchEntities::CreateServerEntity(Nz::UInt32 id)
 	{
 		if (id >= m_serverEntities.size())
 			m_serverEntities.resize(id + 1);
@@ -38,6 +29,11 @@ namespace ewn
 	{
 		assert(IsServerEntityValid(id));
 		return m_serverEntities[id];
+	}
+
+	inline bool ServerMatchEntities::IsSnapshotHandlingEnabled() const
+	{
+		return m_stateHandlingEnabled;
 	}
 
 	inline bool ServerMatchEntities::IsServerEntityValid(std::size_t id) const

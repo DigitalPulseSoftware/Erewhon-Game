@@ -8,6 +8,8 @@
 #define EREWHON_CLIENT_SERVERMATCHENTITIES_HPP
 
 #include <Nazara/Core/Signal.hpp>
+#include <Nazara/Graphics/Material.hpp>
+#include <Nazara/Network/UdpSocket.hpp>
 #include <NDK/World.hpp>
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/ServerConnection.hpp>
@@ -20,12 +22,15 @@ namespace ewn
 		public:
 			struct ServerEntity;
 
-			inline ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world);
+			ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world);
 			ServerMatchEntities(const ServerMatchEntities&) = delete;
 			ServerMatchEntities(ServerMatchEntities&&) = delete;
 			~ServerMatchEntities();
 
+			inline void EnableSnapshotHandling(bool enable);
+
 			inline ServerEntity& GetServerEntity(std::size_t id);
+			inline bool IsSnapshotHandlingEnabled() const;
 			inline bool IsServerEntityValid(std::size_t id) const;
 
 			void Update(float elapsedTime);
@@ -51,7 +56,7 @@ namespace ewn
 			struct Snapshot;
 
 			void CreateEntityTemplates();
-			inline ServerEntity& CreateServerEntity(std::size_t id);
+			inline ServerEntity& CreateServerEntity(Nz::UInt32 id);
 
 			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
 			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
@@ -79,6 +84,7 @@ namespace ewn
 				};
 
 				Nz::UInt16 stateId;
+				Nz::UInt64 receivedTime;
 				std::vector<Entity> entities;
 				bool isValid; //< False if server hasn't send it yet (meaning we could have missed it)
 			};
@@ -95,7 +101,9 @@ namespace ewn
 			Ndk::EntityHandle m_debugTemplateEntity;
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::WorldHandle m_world;
+			Nz::UdpSocket m_debugStateSocket;
 			ServerConnection* m_server;
+			bool m_stateHandlingEnabled;
 			float m_correctionAccumulator;
 			float m_snapshotUpdateAccumulator;
 	};
