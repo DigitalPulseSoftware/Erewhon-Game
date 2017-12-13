@@ -86,7 +86,7 @@ namespace ewn
 				auto& entityNode = spaceshipData.entity->GetComponent<Ndk::NodeComponent>();
 				auto& entityPhys = spaceshipData.entity->GetComponent<Ndk::PhysicsComponent3D>();
 
-				spaceshipData.positionError = Nz::Lerp(spaceshipData.positionError, Nz::Vector3f::Zero(), 0.01f);
+				spaceshipData.positionError = Nz::Lerp(spaceshipData.positionError, Nz::Vector3f::Zero(), 0.1f);
 
 				// Avoid denormals
 				if (Nz::NumberEquals(spaceshipData.positionError.x, 0.f, 0.001f) &&
@@ -99,7 +99,7 @@ namespace ewn
 				spaceshipData.rotationError = Nz::Quaternionf::Slerp(spaceshipData.rotationError, Nz::Quaternionf::Identity(), 0.1f);
 
 				//if (spaceshipData.entity->GetId() == 9)
-				//	std::cout << "#" << spaceshipData.entity->GetId() << ": " << spaceshipData.positionError << " " << spaceshipData.rotationError << std::endl;
+				//	std::cout << "#" << spaceshipData.entity->GetId() << ": " << entityPhys.GetLinearVelocity() << " " << entityPhys.GetAngularVelocity() << std::endl;
 
 				entityNode.SetPosition(entityPhys.GetPosition() + spaceshipData.positionError);
 				entityNode.SetRotation(entityPhys.GetRotation() * spaceshipData.rotationError);
@@ -182,7 +182,7 @@ namespace ewn
 
 			auto& physComponent = m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.EnableNodeSynchronization(false);
-			//physComponent.SetMass(0.f);
+			physComponent.SetMass(0.f);
 			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
 			physComponent.SetLinearDamping(0.f);
 
@@ -205,7 +205,7 @@ namespace ewn
 			m_spaceshipTemplateEntity = m_world->CreateEntity();
 
 			Nz::SphereCollider3DRef collider = Nz::SphereCollider3D::New(5.f);
-			auto& collisionComponent = m_spaceshipTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
+			//auto& collisionComponent = m_spaceshipTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 
 			m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
 			m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
@@ -437,6 +437,9 @@ namespace ewn
 			// Compute visual error
 			Nz::Quaternionf visualRotation = entityNode.GetRotation();
 			Nz::Vector3f visualPosition = entityNode.GetPosition();
+
+			//data.positionError = Nz::Vector3f::Zero();
+			//data.rotationError = Nz::Quaternionf::Identity();
 
 			data.positionError = visualPosition - entityData.position;
 			data.rotationError = entityData.rotation.GetConjugate() * visualRotation;
