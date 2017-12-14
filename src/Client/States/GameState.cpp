@@ -302,6 +302,7 @@ namespace ewn
 			m_chatEnteringBox->Destroy();
 		m_cursorEntity->Kill();
 		m_crosshairEntity->Kill();
+		m_healthBarEntity->Kill();
 	}
 
 	bool GameState::Update(Ndk::StateMachine& fsm, float elapsedTime)
