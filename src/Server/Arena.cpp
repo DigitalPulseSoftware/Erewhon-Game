@@ -76,6 +76,9 @@ namespace ewn
 		const Ndk::EntityHandle& projectile = CreateEntity("projectile", {}, owner, position, rotation);
 		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
 
+		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
+		projectilePhys.AddForce(emitter->GetComponent<Ndk::NodeComponent>().GetForward() * 50'000.f);
+
 		return projectile;
 	}
 
@@ -319,8 +322,6 @@ namespace ewn
 
 			static Nz::UInt16 snapshotId = 0;
 			statePacket.stateId = snapshotId++;
-
-			std::cout << "Sent snapshot #" << statePacket.stateId << " at " << m_app->GetAppTime() << std::endl;
 
 			for (auto& pair : m_players)
 			{
