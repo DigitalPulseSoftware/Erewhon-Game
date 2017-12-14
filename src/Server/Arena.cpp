@@ -278,15 +278,18 @@ namespace ewn
 		}
 
 		// Apply physics force
-		auto& hitEntityPhys = hitEntity->GetComponent<Ndk::PhysicsComponent3D>();
-		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
+		if (hitEntity->HasComponent<Ndk::PhysicsComponent3D>())
+		{
+			auto& hitEntityPhys = hitEntity->GetComponent<Ndk::PhysicsComponent3D>();
+			auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
 
-		Nz::Vector3f projectileForce = projectilePhys.GetLinearVelocity();
-		float projectileSpeed;
-		projectileForce.Normalize(&projectileSpeed);
-		projectileForce = projectileForce * (projectileSpeed * projectileSpeed) / 2.f;
+			Nz::Vector3f projectileForce = projectilePhys.GetLinearVelocity();
+			float projectileSpeed;
+			projectileForce.Normalize(&projectileSpeed);
+			projectileForce = projectileForce * (projectileSpeed * projectileSpeed) / 2.f;
 
-		hitEntityPhys.AddForce(projectileForce);
+			hitEntityPhys.AddForce(projectileForce);
+		}
 
 		projectile->Kill(); //< Remember entity destruction is not immediate, we can still use it safely
 
