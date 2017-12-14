@@ -213,7 +213,40 @@ namespace ewn
 
 			m_crosshairEntity = m_stateData.world2D->CreateEntity();
 			m_crosshairEntity->AddComponent<Ndk::GraphicsComponent>().Attach(crosshairSprite);
-			m_crosshairEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ windowSize.x / 2.f, windowSize.y / 2.f, 0.f });
+			m_crosshairEntity->AddComponent<Ndk::NodeComponent>();
+		}
+
+		// Health bar
+		{
+			Nz::MaterialRef healthBarMat = Nz::Material::New();
+			healthBarMat->EnableDepthBuffer(false);
+			healthBarMat->EnableFaceCulling(false);
+
+			Nz::SpriteRef healthBarBackground = Nz::Sprite::New();
+			healthBarBackground->SetColor(Nz::Color::Black);
+			healthBarBackground->SetOrigin({ 2.f, 2.f, 0.f });
+			healthBarBackground->SetMaterial(healthBarMat);
+			healthBarBackground->SetSize({ 256.f + 4.f, 32.f + 4.f });
+
+			Nz::SpriteRef healthBarEmptySprite = Nz::Sprite::New();
+			healthBarEmptySprite->SetSize({ 256.f, 32.f });
+			healthBarEmptySprite->SetMaterial(healthBarMat);
+
+			m_healthBarSprite = Nz::Sprite::New();
+			m_healthBarSprite->SetCornerColor(Nz::RectCorner_LeftTop, Nz::Color::Orange);
+			m_healthBarSprite->SetCornerColor(Nz::RectCorner_RightTop, Nz::Color::Orange);
+			m_healthBarSprite->SetCornerColor(Nz::RectCorner_LeftBottom, Nz::Color::Yellow);
+			m_healthBarSprite->SetCornerColor(Nz::RectCorner_RightBottom, Nz::Color::Yellow);
+			m_healthBarSprite->SetMaterial(healthBarMat);
+			m_healthBarSprite->SetSize({ 256.f, 32.f });
+
+			m_crosshairEntity = m_stateData.world2D->CreateEntity();
+			auto& crosshairGhx = m_crosshairEntity->AddComponent<Ndk::GraphicsComponent>();
+			m_crosshairEntity->AddComponent<Ndk::NodeComponent>();
+
+			crosshairGhx.Attach(healthBarBackground, 0);
+			crosshairGhx.Attach(healthBarEmptySprite, 1);
+			crosshairGhx.Attach(m_healthBarSprite, 2);
 		}
 
 		/*m_stateData.window->SetCursor(Nz::SystemCursor_None);
@@ -236,12 +269,12 @@ namespace ewn
 		m_chatBox->EnableBackground(false);
 		//m_chatBox->SetBackgroundColor(Nz::Color(70, 8, 15, 20));
 		m_chatBox->SetSize({ 320.f, maxChatLines * 30.f });
-		m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 40.f - m_chatBox->GetSize().y - 5.f, 0.f });
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
 
 		m_onChatMessageSlot.Connect(m_stateData.server->OnChatMessage, this, &GameState::OnChatMessage);
 		m_onControlEntitySlot.Connect(m_stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
+		m_onIntegrityUpdateSlot.Connect(m_stateData.server->OnIntegrityUpdate, this, &GameState::OnIntegrityUpdate);
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, this, &GameState::OnRenderTargetSizeChange);
 
@@ -250,6 +283,8 @@ namespace ewn
 		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
 
 		m_stateData.server->SendPacket(Packets::JoinArena());
+
+		OnRenderTargetSizeChange(m_stateData.window);
 	}
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
@@ -257,6 +292,7 @@ namespace ewn
 		m_onChatMessageSlot.Disconnect();
 		m_onControlEntitySlot.Disconnect();
 		m_onKeyPressedSlot.Disconnect();
+		m_onIntegrityUpdateSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 
 		m_matchEntities.reset();
@@ -365,10 +401,17 @@ namespace ewn
 			ControlEntity(m_controlledEntity);
 	}
 
-	void GameState::OnEntityDelete(ServerMatchEntities * entities, ServerMatchEntities::ServerEntity & entityData)
+	void GameState::OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity & entityData)
 	{
 		if (entityData.serverId == m_controlledEntity)
 			ControlEntity(std::numeric_limits<std::size_t>::max());
+	}
+
+	void GameState::OnIntegrityUpdate(ServerConnection* server, const Packets::IntegrityUpdate& integrityUpdate)
+	{
+		float integrityPct = integrityUpdate.integrityValue / 255.f;
+
+		m_healthBarSprite->SetSize({ integrityPct * 256.f, 32.f });
 	}
 
 	void GameState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
@@ -424,6 +467,7 @@ namespace ewn
 	{
 		m_chatBox->SetPosition({ 5.f, renderTarget->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f });
 		m_crosshairEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x / 2.f, renderTarget->GetSize().y / 2.f, 0.f });
+		m_crosshairEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x - 300.f, renderTarget->GetSize().y - 70.f, 0.f });
 	}
 
 	void GameState::UpdateInput(float elapsedTime)

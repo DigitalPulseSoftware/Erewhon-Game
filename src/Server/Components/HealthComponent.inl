@@ -20,6 +20,8 @@ namespace ewn
 
 	inline void HealthComponent::Damage(Nz::UInt16 damage, const Ndk::EntityHandle& attacker)
 	{
+		OnHealthChange(this);
+
 		if (damage >= m_currentHealth)
 		{
 			m_currentHealth = 0;
@@ -27,8 +29,6 @@ namespace ewn
 		}
 		else
 			m_currentHealth -= damage;
-
-		OnHealthChange(this);
 	}
 
 	inline Nz::UInt16 HealthComponent::GetHealth() const
@@ -36,9 +36,9 @@ namespace ewn
 		return m_currentHealth;
 	}
 
-	inline Nz::UInt8 HealthComponent::GetHealthPct() const
+	inline float HealthComponent::GetHealthPct() const
 	{
-		return Nz::UInt8((100 * m_currentHealth) / m_maxHealth);
+		return 100.f * m_currentHealth / m_maxHealth;
 	}
 
 	inline Nz::UInt16 HealthComponent::GetMaxHealth() const

@@ -54,6 +54,11 @@ namespace ewn
 			packet << data.id;
 		}
 
+		void Serialize(Nz::NetPacket& packet, const IntegrityUpdate& data)
+		{
+			packet << data.integrityValue;
+		}
+
 		void Serialize(Nz::NetPacket& packet, const JoinArena& data)
 		{
 		}
@@ -144,6 +149,11 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, DeleteEntity& data)
 		{
 			packet >> data.id;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, IntegrityUpdate& data)
+		{
+			packet >> data.integrityValue;
 		}
 
 		void Unserialize(Nz::NetPacket& packet, JoinArena& data)

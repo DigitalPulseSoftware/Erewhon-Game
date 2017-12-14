@@ -47,6 +47,7 @@ namespace ewn
 			void OnControlEntity(ServerConnection* server, const Packets::ControlEntity& controlPacket);
 			void OnEntityCreated(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
 			void OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
+			void OnIntegrityUpdate(ServerConnection* server, const Packets::IntegrityUpdate& integrityUpdate);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget);
 
@@ -56,6 +57,7 @@ namespace ewn
 
 			NazaraSlot(ServerConnection,    OnChatMessage, m_onChatMessageSlot);
 			NazaraSlot(ServerConnection,    OnControlEntity, m_onControlEntitySlot);
+			NazaraSlot(ServerConnection,    OnIntegrityUpdate, m_onIntegrityUpdateSlot);
 			NazaraSlot(ServerMatchEntities, OnEntityCreated, m_onEntityCreatedSlot);
 			NazaraSlot(ServerMatchEntities, OnEntityDelete, m_onEntityDeletionSlot);
 			NazaraSlot(Nz::EventHandler,    OnKeyPressed, m_onKeyPressedSlot);
@@ -64,12 +66,14 @@ namespace ewn
 			StateData& m_stateData;
 			Ndk::EntityHandle m_crosshairEntity;
 			Ndk::EntityHandle m_cursorEntity;
+			Ndk::EntityHandle m_healthBarEntity;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
 			Nz::Node m_cameraNode;
 			Nz::Node m_spaceshipMovementNode;
 			Nz::Sound m_shootSound;
 			Nz::SpriteRef m_cursorOrientationSprite;
+			Nz::SpriteRef m_healthBarSprite;
 			Nz::Vector2i m_rotationCursorOrigin;
 			Nz::Vector2i m_rotationCursorPosition;
 			Nz::Vector2f m_rotationDirection;

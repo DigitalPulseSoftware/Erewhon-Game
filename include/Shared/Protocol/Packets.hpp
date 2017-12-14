@@ -25,6 +25,7 @@ namespace ewn
 		ControlEntity,
 		CreateEntity,
 		DeleteEntity,
+		IntegrityUpdate,
 		JoinArena,
 		Login,
 		LoginFailure,
@@ -88,6 +89,11 @@ namespace ewn
 			Nz::UInt32 id;
 		};
 
+		DeclarePacket(IntegrityUpdate)
+		{
+			Nz::UInt8 integrityValue;
+		};
+
 		DeclarePacket(JoinArena)
 		{
 		};
@@ -141,6 +147,7 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const ControlEntity& data);
 		void Serialize(Nz::NetPacket& packet, const CreateEntity& data);
 		void Serialize(Nz::NetPacket& packet, const DeleteEntity& data);
+		void Serialize(Nz::NetPacket& packet, const IntegrityUpdate& data);
 		void Serialize(Nz::NetPacket& packet, const JoinArena& data);
 		void Serialize(Nz::NetPacket& packet, const Login& data);
 		void Serialize(Nz::NetPacket& packet, const LoginFailure& data);
@@ -156,6 +163,7 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, ControlEntity& data);
 		void Unserialize(Nz::NetPacket& packet, CreateEntity& data);
 		void Unserialize(Nz::NetPacket& packet, DeleteEntity& data);
+		void Unserialize(Nz::NetPacket& packet, IntegrityUpdate& data);
 		void Unserialize(Nz::NetPacket& packet, JoinArena& data);
 		void Unserialize(Nz::NetPacket& packet, Login& data);
 		void Unserialize(Nz::NetPacket& packet, LoginFailure& data);

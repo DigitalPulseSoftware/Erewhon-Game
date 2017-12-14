@@ -6,14 +6,16 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/Arena.hpp>
+#include <Server/ServerApplication.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 
 namespace ewn
 {
-	Player::Player(std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore) :
-	m_commandStore(commandStore),
+	Player::Player(ServerApplication* app, std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore) :
 	m_arena(nullptr),
+	m_app(app),
 	m_networkReactor(reactor),
+	m_commandStore(commandStore),
 	m_peerId(peerId),
 	m_lastInputTime(0),
 	m_authenticated(false)
@@ -65,10 +67,15 @@ namespace ewn
 
 	void Player::Shoot()
 	{
+		if (m_app->GetAppTime() - m_lastShootTime < 500)
+			return;
+
 		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
 		const Ndk::EntityHandle& projectile = m_arena->CreateProjectile(this, m_spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
 		projectile->GetComponent<Ndk::PhysicsComponent3D>().AddForce(spaceshipNode.GetForward() * 50'000.f);
+
+		m_lastShootTime = m_app->GetAppTime();
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)

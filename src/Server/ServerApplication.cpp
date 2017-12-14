@@ -41,7 +41,7 @@ namespace ewn
 		if (peerId >= m_players.size())
 			m_players.resize(peerId + 1);
 
-		m_players[peerId] = m_playerPool.New<Player>(peerId, *reactor, m_commandStore);
+		m_players[peerId] = m_playerPool.New<Player>(this, peerId, *reactor, m_commandStore);
 		std::cout << "Client #" << peerId << " connected with data " << data << std::endl;
 	}
 

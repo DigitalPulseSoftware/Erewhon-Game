@@ -28,9 +28,10 @@ namespace ewn
 		OutgoingCommand(ControlEntity,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateEntity,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteEntity,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(IntegrityUpdate,  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(TimeSyncResponse, 0, 0);
+		OutgoingCommand(TimeSyncResponse, 0,                           0);
 
 #undef IncomingCommand
 #undef OutgoingCommand

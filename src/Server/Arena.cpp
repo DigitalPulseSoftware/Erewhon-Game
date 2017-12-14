@@ -166,10 +166,12 @@ namespace ewn
 				if (!owner)
 					return;
 
-				Packets::ChatMessage chatPacket;
-				chatPacket.message = "Health at " + std::to_string(health->GetHealthPct()) + "%";
+				Nz::UInt8 integrityPct = static_cast<Nz::UInt8>(Nz::Clamp(health->GetHealthPct() / 100.f * 255.f, 0.f, 255.f));
 
-				owner->SendPacket(chatPacket);
+				Packets::IntegrityUpdate integrityPacket;
+				integrityPacket.integrityValue = integrityPct;
+
+				owner->SendPacket(integrityPacket);
 			});
 
 			newEntity->AddComponent<PlayerControlledComponent>();

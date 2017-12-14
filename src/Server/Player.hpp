@@ -26,7 +26,7 @@ namespace ewn
 		friend class ServerCommandStore;
 
 		public:
-			Player(std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
+			Player(ServerApplication* app, std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
 			~Player();
 
 			void Authenticate(std::string login);
@@ -48,13 +48,15 @@ namespace ewn
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
 
 		private:
-			const ServerCommandStore& m_commandStore;
 			Arena* m_arena;
+			ServerApplication* m_app;
 			NetworkReactor& m_networkReactor;
+			const ServerCommandStore& m_commandStore;
 			std::size_t m_peerId;
 			std::string m_login;
 			Ndk::EntityOwner m_spaceship;
 			Nz::UInt64 m_lastInputTime;
+			Nz::UInt64 m_lastShootTime;
 			bool m_authenticated;
 	};
 }

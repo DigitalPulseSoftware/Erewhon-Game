@@ -23,6 +23,7 @@ namespace ewn
 		IncomingCommand(ControlEntity);
 		IncomingCommand(CreateEntity);
 		IncomingCommand(DeleteEntity);
+		IncomingCommand(IntegrityUpdate);
 		IncomingCommand(LoginFailure);
 		IncomingCommand(LoginSuccess);
 		IncomingCommand(TimeSyncResponse);

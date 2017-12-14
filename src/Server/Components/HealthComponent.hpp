@@ -21,7 +21,7 @@ namespace ewn
 			inline void Damage(Nz::UInt16 damage, const Ndk::EntityHandle& attacker);
 
 			inline Nz::UInt16 GetHealth() const;
-			inline Nz::UInt8 GetHealthPct() const;
+			inline float GetHealthPct() const;
 			inline Nz::UInt16 GetMaxHealth() const;
 
 			inline void Heal(Nz::UInt16 heal);
