@@ -129,7 +129,7 @@ namespace ewn
 
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.SetMass(42.f);
-			physComponent.SetAngularDamping(Nz::Vector3f(0.3f));
+			physComponent.SetAngularDamping(Nz::Vector3f(0.4f));
 			physComponent.SetLinearDamping(0.25f);
 
 			auto& healthComponent = newEntity->AddComponent<HealthComponent>(1000);
