@@ -214,7 +214,7 @@ namespace ewn
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { m_chatBox->SetPosition({ 5.f, m_stateData.window->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f }); });
 
-		m_matchEntities.emplace(m_stateData.server, m_stateData.world3D);
+		m_matchEntities.emplace(m_stateData.app, m_stateData.server, m_stateData.world3D);
 		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &GameState::OnEntityCreated);
 		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
 

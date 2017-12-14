@@ -13,16 +13,20 @@
 #include <NDK/World.hpp>
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/ServerConnection.hpp>
+#include <nonstd/ring_span.hpp>
+#include <array>
 #include <vector>
 
 namespace ewn
 {
+	class ClientApplication;
+
 	class ServerMatchEntities
 	{
 		public:
 			struct ServerEntity;
 
-			ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world);
+			ServerMatchEntities(ClientApplication* app, ServerConnection* server, Ndk::WorldHandle world);
 			ServerMatchEntities(const ServerMatchEntities&) = delete;
 			ServerMatchEntities(ServerMatchEntities&&) = delete;
 			~ServerMatchEntities();
@@ -64,14 +68,6 @@ namespace ewn
 
 			void ApplySnapshot(const Snapshot& snapshot);
 
-			void CopyState(std::size_t index, const Packets::ArenaState& arenaState);
-
-			bool HandleNextSnapshot();
-
-			void MarkStateAsLost(std::size_t first, std::size_t last);
-
-			void ResetSnapshots(const Packets::ArenaState& arenaState);
-
 			struct Snapshot
 			{
 				struct Entity
@@ -83,25 +79,26 @@ namespace ewn
 					Nz::Quaternionf rotation;
 				};
 
+				Nz::UInt64 applyTime;
 				Nz::UInt16 stateId;
-				Nz::UInt64 receivedTime;
 				std::vector<Entity> entities;
-				bool isValid; //< False if server hasn't send it yet (meaning we could have missed it)
 			};
 
 			NazaraSlot(ServerConnection, OnArenaState,   m_onArenaStateSlot);
 			NazaraSlot(ServerConnection, OnCreateEntity, m_onCreateEntitySlot);
 			NazaraSlot(ServerConnection, OnDeleteEntity, m_onDeleteEntitySlot);
 
-			std::size_t m_jitterBufferSize;
+			std::array<Snapshot, 5> m_jitterBufferData;
+			nonstd::ring_span<Snapshot> m_jitterBuffer;
 			std::vector<ServerEntity> m_serverEntities;
-			std::vector<Snapshot> m_jitterBuffer;
 			Ndk::EntityHandle m_ballTemplateEntity;
 			Ndk::EntityHandle m_earthTemplateEntity;
 			Ndk::EntityHandle m_debugTemplateEntity;
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::WorldHandle m_world;
 			Nz::UdpSocket m_debugStateSocket;
+			Nz::UInt64 m_snapshotDelay;
+			ClientApplication* m_app;
 			ServerConnection* m_server;
 			bool m_stateHandlingEnabled;
 			float m_correctionAccumulator;

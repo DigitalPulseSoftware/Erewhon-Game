@@ -9,20 +9,24 @@
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
 #include <NDK/Components.hpp>
+#include <Client/ClientApplication.hpp>
 #include <iostream>
 
 namespace ewn
 {
 	static constexpr bool showServerGhosts = true;
 
-	ServerMatchEntities::ServerMatchEntities(ServerConnection* server, Ndk::WorldHandle world) :
-	m_jitterBuffer(5),
-	m_jitterBufferSize(0),
+	ServerMatchEntities::ServerMatchEntities(ClientApplication* app, ServerConnection* server, Ndk::WorldHandle world) :
+	m_jitterBuffer(m_jitterBufferData.begin(), m_jitterBufferData.end()),
 	m_world(std::move(world)),
+	m_app(app),
+	m_server(server),
 	m_stateHandlingEnabled(true),
 	m_correctionAccumulator(0.f),
 	m_snapshotUpdateAccumulator(0.f)
 	{
+		m_snapshotDelay = m_jitterBuffer.size() * 1000 / 30 /* + ping? */;
+
 		m_onArenaStateSlot.Connect(server->OnArenaState, this, &ServerMatchEntities::OnArenaState);
 		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
 		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
@@ -58,16 +62,11 @@ namespace ewn
 	{
 		if (m_stateHandlingEnabled)
 		{
-			constexpr float snapshotUpdateInterval = 1.f / 30.f;
-
-			m_snapshotUpdateAccumulator += elapsedTime;
-			if (m_snapshotUpdateAccumulator > snapshotUpdateInterval)
+			Nz::UInt64 serverTime = m_server->EstimateServerTime();
+			if (!m_jitterBuffer.empty() && serverTime >= m_jitterBuffer.front().applyTime)
 			{
-				// Don't treat this timer like others: reset accumulator everytime to prevent multiple ticks applications
-				// This will allow the jitter cursor to stay low (because client will update snapshots at a slightly lower rate)
-				// and physics correction system will handle deviations caused by this
-				m_snapshotUpdateAccumulator -= snapshotUpdateInterval;
-				HandleNextSnapshot();
+				ApplySnapshot(m_jitterBuffer.front());
+				m_jitterBuffer.pop_back();
 			}
 		}
 
@@ -234,132 +233,25 @@ namespace ewn
 
 	void ServerMatchEntities::OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState)
 	{
-		//std::cout << "Received " << arenaState.stateId << " at " << server->EstimateServerTime() << std::endl;
-
-		CopyState(0, arenaState);
-		m_jitterBufferSize = 1;
-		/*
-		if (m_jitterBufferSize >= m_jitterBuffer.size())
+		// For now, allocate a new snapshot, we will recycle them in a further iteration (to prevent memory allocation)
+		Snapshot snapshot;
+		snapshot.entities.resize(arenaState.entities.size());
+		for (std::size_t i = 0; i < snapshot.entities.size(); ++i)
 		{
-			// Jitter buffer cannot grow anymore, drop states
-			Nz::UInt16 expectedStateId = m_jitterBuffer[m_jitterBufferSize - 1].stateId + 1;
-			std::size_t missedStates = arenaState.stateId - expectedStateId;
-			if (missedStates > 0)
-				std::cout << "Missed " << missedStates << " states!" << std::endl;
+			Snapshot::Entity& entity = snapshot.entities[i];
+			const Packets::ArenaState::Entity& packetEntity = arenaState.entities[i];
 
-			if (missedStates < m_jitterBuffer.size() - 1)
-			{
-				std::rotate(m_jitterBuffer.begin(), m_jitterBuffer.begin() + missedStates + 1, m_jitterBuffer.begin() + m_jitterBufferSize);
-
-				CopyState(m_jitterBuffer.size() - 1, arenaState);
-
-				MarkStateAsLost(m_jitterBuffer.size() - missedStates - 1, m_jitterBuffer.size() - 1);
-			}
-			else
-				// Lost too many states, reset jitter buffer
-				ResetSnapshots(arenaState);
-		}
-		else if (m_jitterBufferSize > 0)
-		{
-			// Grow jitter buffer
-
-			Nz::UInt16 expectedStateId = m_jitterBuffer[m_jitterBufferSize - 1].stateId + 1;
-			std::size_t newStates = arenaState.stateId - expectedStateId + 1;
-			if (newStates > 1)
-				std::cout << "Missed " << newStates - 1 << " states!" << std::endl;
-
-			if (newStates < m_jitterBuffer.size())
-			{
-				std::size_t spaceLeft = m_jitterBuffer.size() - m_jitterBufferSize;
-				assert(spaceLeft > 0);
-
-				if (spaceLeft < newStates)
-				{
-					std::size_t difference = newStates - spaceLeft;
-					std::rotate(m_jitterBuffer.begin(), m_jitterBuffer.begin() + difference, m_jitterBuffer.begin() + m_jitterBufferSize);
-					m_jitterBufferSize -= difference;
-				}
-
-				std::size_t newSize = m_jitterBufferSize + newStates;
-
-				MarkStateAsLost(m_jitterBufferSize, newSize - 1);
-				CopyState(newSize - 1, arenaState);
-
-				m_jitterBufferSize = newSize;
-			}
-			else
-				ResetSnapshots(arenaState);
-		}
-		else
-		{
-			// Jitter buffer is empty, just insert state
-			CopyState(m_jitterBufferSize, arenaState);
-			m_jitterBufferSize++;
-		}*/
-
-
-		/*Nz::UInt16 expectedStateId = m_jitterBuffer[m_jitterBufferSize - 1].stateId + 1;
-		if (arenaState.stateId >= expectedStateId)
-		{
-			std::size_t missedStates = arenaState.stateId - expectedStateId;
-			if (missedStates > 0)
-				std::cout << "Missed " << missedStates << " states!" << std::endl;
-
-			if (missedStates < m_jitterBuffer.size() - 1)
-			{
-				std::rotate(m_jitterBuffer.begin(), m_jitterBuffer.begin() + missedStates + 1, m_jitterBuffer.end());
-
-				m_jitterBuffer.back().stateId = arenaState.stateId;
-
-				// Recreate missed states
-				MarkStateAsLost(m_jitterBuffer.size() - missedStates - 2, m_jitterBuffer.size() - 1);
-
-				if (m_jitterCursorBegin > missedStates)
-					m_jitterCursorBegin -= missedStates + 1;
-				else
-					m_jitterCursorBegin = 0;
-			}
-			else
-				ResetSnapshots(arenaState);
-		}
-		else
-		{
-			std::cout << "Out-of-order packet!" << std::endl;
-			return; // For now, drop out-of-order packets
-		}*/
-
-		bool valid = true;
-		std::size_t firstValidId = m_jitterBufferSize;
-		for (Nz::UInt16 i = 0; i < m_jitterBufferSize; ++i)
-		{
-			const auto& snapshot = m_jitterBuffer[i];
-			if (!snapshot.isValid)
-				continue;
-
-			if (firstValidId == m_jitterBufferSize)
-				firstValidId = i;
-
-			if (snapshot.stateId != m_jitterBuffer[firstValidId].stateId + (i - firstValidId))
-			{
-				valid = false;
-				break;
-			}
+			entity.id = packetEntity.id;
+			entity.angularVelocity = packetEntity.angularVelocity;
+			entity.linearVelocity = packetEntity.linearVelocity;
+			entity.position = packetEntity.position;
+			entity.rotation = packetEntity.rotation;
 		}
 
-		if (!valid)
-		{
-			std::cout << "Invalid jitter buffer: [";
-			for (Nz::UInt16 i = 0; i < m_jitterBufferSize; ++i)
-			{
-				const auto& snapshot = m_jitterBuffer[i];
-				if (snapshot.isValid)
-					std::cout << snapshot.stateId << ' ';
-				else
-					std::cout << "Lost ";
-			}
+		snapshot.applyTime = arenaState.serverTime + m_snapshotDelay;
+		snapshot.stateId = arenaState.stateId;
 
-			std::cout << ']' << std::endl;
-		}
+		m_jitterBuffer.push_back(std::move(snapshot));
 	}
 
 	void ServerMatchEntities::OnCreateEntity(ServerConnection*, const Packets::CreateEntity& createPacket)
@@ -418,9 +310,7 @@ namespace ewn
 
 	void ServerMatchEntities::ApplySnapshot(const Snapshot& snapshot)
 	{
-		Nz::UInt64 currentTime = Nz::GetElapsedMicroseconds() / 1000;
-
-		std::cout << "Applied snapshot after " << (currentTime - snapshot.receivedTime) << "ms" << std::endl;
+		std::cout << "Applied snapshot #" << snapshot.stateId << " after " << (m_server->EstimateServerTime() - snapshot.applyTime) << "ms" << std::endl;
 		for (const Snapshot::Entity& entityData : snapshot.entities)
 		{
 			ServerEntity& data = GetServerEntity(entityData.id);
@@ -453,59 +343,5 @@ namespace ewn
 			if (float diff = std::atan2(testVec.GetLength(), test.w); diff > 0.001f)
 				std::cout << "Rotation: " << diff << std::endl;
 		}
-	}
-
-	void ServerMatchEntities::CopyState(std::size_t index, const Packets::ArenaState& arenaState)
-	{
-		Snapshot& snapshot = m_jitterBuffer[index];
-		snapshot.entities.resize(arenaState.entities.size());
-		for (std::size_t i = 0; i < snapshot.entities.size(); ++i)
-		{
-			Snapshot::Entity& entity = snapshot.entities[i];
-			const Packets::ArenaState::Entity& packetEntity = arenaState.entities[i];
-
-			entity.id = packetEntity.id;
-			entity.angularVelocity = packetEntity.angularVelocity;
-			entity.linearVelocity = packetEntity.linearVelocity;
-			entity.position = packetEntity.position;
-			entity.rotation = packetEntity.rotation;
-		}
-
-		snapshot.receivedTime = Nz::GetElapsedMicroseconds() / 1000;
-		snapshot.stateId = arenaState.stateId;
-		snapshot.isValid = true;
-	}
-
-	bool ServerMatchEntities::HandleNextSnapshot()
-	{
-		if (m_jitterBufferSize == 0)
-			return false;
-
-		auto& snapshot = m_jitterBuffer.front();
-
-		bool isSnapshotValid = snapshot.isValid;
-		if (isSnapshotValid)
-		{
-			ApplySnapshot(snapshot);
-			snapshot.isValid = false;
-		}
-
-		std::rotate(m_jitterBuffer.begin(), m_jitterBuffer.begin() + 1, m_jitterBuffer.end());
-		m_jitterBufferSize--;
-
-		return isSnapshotValid;
-	}
-
-	void ServerMatchEntities::MarkStateAsLost(std::size_t first, std::size_t last)
-	{
-		for (std::size_t i = first; i < last; ++i)
-			m_jitterBuffer[i].isValid = false;
-	}
-
-	void ServerMatchEntities::ResetSnapshots(const Packets::ArenaState& arenaState)
-	{
-		// Missed too many packets, drop everything and recreate
-		CopyState(0, arenaState);
-		m_jitterBufferSize = 1;
 	}
 }
