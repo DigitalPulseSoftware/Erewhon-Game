@@ -132,8 +132,8 @@ namespace ewn
 			loginFile.Delete();
 
 		Packets::Login loginPacket;
-		loginPacket.login = m_loginArea->GetText();
-		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex();
+		loginPacket.login = m_loginArea->GetText().ToStdString();
+		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex().ToStdString();
 
 		m_stateData.server->SendPacket(loginPacket);
 	}

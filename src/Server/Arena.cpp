@@ -23,7 +23,7 @@
 
 namespace ewn
 {
-	static constexpr bool sendServerGhosts = false;
+	static constexpr bool sendServerGhosts = true;
 
 	Arena::Arena(ServerApplication* app) :
 	m_app(app),
@@ -71,15 +71,18 @@ namespace ewn
 		return spaceship;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		return CreateEntity("projectile", {}, owner, position, rotation);
+		const Ndk::EntityHandle& projectile = CreateEntity("projectile", {}, owner, position, rotation);
+		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
+
+		return projectile;
 	}
 
 	void Arena::DispatchChatMessage(Player* /*player*/, const Nz::String& message)
 	{
 		Packets::ChatMessage chatPacket;
-		chatPacket.message = message;
+		chatPacket.message = message.ToStdString();
 
 		for (auto& pair : m_players)
 			pair.first->SendPacket(chatPacket);
@@ -194,6 +197,7 @@ namespace ewn
 			node.SetRotation(rotation);
 
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.SetLinearDamping(0.05f);
 			physComponent.SetMass(10.f);
 			physComponent.SetPosition(position);
 			physComponent.SetRotation(rotation);
@@ -257,8 +261,6 @@ namespace ewn
 
 		const Ndk::EntityHandle& projectile = m_world.GetEntity(laserEntityId);
 		const Ndk::EntityHandle& hitEntity = m_world.GetEntity(hitEntityId);
-		if (!hitEntity->HasComponent<OwnerComponent>())
-			return false;
 
 		assert(projectile->HasComponent<OwnerComponent>() && projectile->HasComponent<ProjectileComponent>());
 
@@ -274,6 +276,17 @@ namespace ewn
 			auto& health = hitEntity->GetComponent<HealthComponent>();
 			health.Damage(projectileComponent.GetDamageValue(), projectile);
 		}
+
+		// Apply physics force
+		auto& hitEntityPhys = hitEntity->GetComponent<Ndk::PhysicsComponent3D>();
+		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
+
+		Nz::Vector3f projectileForce = projectilePhys.GetLinearVelocity();
+		float projectileSpeed;
+		projectileForce.Normalize(&projectileSpeed);
+		projectileForce = projectileForce * (projectileSpeed * projectileSpeed) / 2.f;
+
+		hitEntityPhys.AddForce(projectileForce);
 
 		projectile->Kill(); //< Remember entity destruction is not immediate, we can still use it safely
 
@@ -294,10 +307,15 @@ namespace ewn
 
 	void Arena::OnBroadcastStateUpdate(const BroadcastSystem* /*system*/, Packets::ArenaState& statePacket)
 	{
-		constexpr float stateBroadcastInterval = 1.f / 10.f;
+		constexpr float stateBroadcastInterval = 1.f / 30.f;
 		if (m_stateBroadcastAccumulator >= stateBroadcastInterval)
 		{
 			m_stateBroadcastAccumulator -= stateBroadcastInterval;
+
+			static Nz::UInt16 snapshotId = 0;
+			statePacket.stateId = snapshotId++;
+
+			std::cout << "Sent snapshot #" << statePacket.stateId << " at " << m_app->GetAppTime() << std::endl;
 
 			for (auto& pair : m_players)
 			{

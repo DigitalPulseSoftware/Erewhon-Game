@@ -29,8 +29,8 @@ int main()
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
 
 	ewn::ServerConnection serverConnection(app);
-	serverConnection.Connect("localhost");
-	//serverConnection.Connect("malcolm.digitalpulsesoftware.net");
+	//serverConnection.Connect("localhost");
+	serverConnection.Connect("malcolm.digitalpulsesoftware.net");
 
 	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>(Nz::VideoMode(1280, 720), "Utopia");
 	window.EnableCloseOnQuit(false);
@@ -104,7 +104,8 @@ int main()
 
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
 	{
-		fsm.ResetState(std::make_shared<ewn::DisconnectionState>(stateData));
+		fsm.ResetState(std::make_shared<ewn::BackgroundState>(stateData));
+		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData));
 	});
 
 	while (app.Run())

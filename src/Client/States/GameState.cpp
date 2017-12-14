@@ -25,8 +25,10 @@
 #include <NDK/Components/ParticleEmitterComponent.hpp>
 #include <NDK/Components/ParticleGroupComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
-#include <NDK/Systems/PhysicsSystem3D.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
+#include <NDK/StateMachine.hpp>
+#include <Client/States/BackgroundState.hpp>
+#include <Client/States/ConnectionLostState.hpp>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -35,7 +37,6 @@
 
 namespace ewn
 {
-	static constexpr bool showServerGhosts = false;
 	static constexpr std::size_t maxChatLines = 15;
 
 	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
@@ -44,152 +45,6 @@ namespace ewn
 			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::SkyboxBackground::New(background));
 		else
 			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
-
-		Nz::ModelParameters params;
-		params.mesh.center = true;
-		params.material.shaderName = "Basic";
-
-		// Ball
-		Nz::ModelRef ballModel = Nz::Model::New();
-		ballModel->LoadFromFile("Assets/ball/ball.obj", params);
-
-		m_ballTemplateEntity = m_stateData.world3D->CreateEntity();
-		m_ballTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ballModel);
-		m_ballTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_ballTemplateEntity->Disable();
-
-		// Earth
-		Nz::MeshRef earthMesh = Nz::Mesh::New();
-		earthMesh->CreateStatic();
-		earthMesh->BuildSubMesh(Nz::Primitive::UVSphere(1.f, 40, 40));
-
-		Nz::MaterialRef earthMaterial = Nz::Material::New();
-		earthMaterial->SetDiffuseMap("Assets/earth/earthmap1k.jpg");
-		earthMaterial->SetShader("Basic");
-
-		Nz::ModelRef earthModel = Nz::Model::New();
-		earthModel->SetMesh(earthMesh);
-		earthModel->SetMaterial(0, earthMaterial);
-
-		m_earthTemplateEntity = m_stateData.world3D->CreateEntity();
-		m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
-
-		auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		earthNode.SetPosition(Nz::Vector3f::Forward() * 50.f);
-		earthNode.SetRotation(Nz::EulerAnglesf(0.f, 180.f, 0.f));
-		earthNode.SetScale(20.f);
-
-		m_earthTemplateEntity->Disable();
-
-		// Projectile (laser)
-		{
-			Nz::TextureSampler diffuseSampler;
-			diffuseSampler.SetAnisotropyLevel(4);
-			diffuseSampler.SetWrapMode(Nz::SamplerWrap_Repeat);
-
-			Nz::MaterialRef material = Nz::Material::New("Translucent3D");
-			material->SetShader("Basic");
-			material->SetDiffuseMap("Assets/weapons/LaserBeam.png");
-			material->SetDiffuseSampler(diffuseSampler);
-			material->SetEmissiveMap("Assets/weapons/LaserBeam.png");
-
-			Nz::SpriteRef laserSprite1 = Nz::Sprite::New();
-			laserSprite1->SetMaterial(material);
-			laserSprite1->SetOrigin(Nz::Vector2f(0.f, 0.5f));
-			laserSprite1->SetSize({ 5.f, 1.f });
-			laserSprite1->SetTextureCoords(Nz::Rectf(0.f, 0.f, 1.f, 1.f));
-
-			Nz::SpriteRef laserSprite2 = Nz::Sprite::New(*laserSprite1);
-
-			m_projectileTemplateEntity = m_stateData.world3D->CreateEntity();
-			auto& gfxComponent = m_projectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
-			
-			gfxComponent.Attach(laserSprite1, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(0.f, 90.f, 0.f)));
-			gfxComponent.Attach(laserSprite2, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(90.f, 90.f, 0.f)));
-
-			m_projectileTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
-			m_projectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			m_projectileTemplateEntity->Disable();
-
-			/*std::vector<Nz::Vector3f> vertices;
-
-			Nz::CapsuleCollider3D capsuleMerde(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f));
-
-			auto ForEachPolygon = [](void* const userData, int vertexCount, const dFloat* const faceArray, int faceId)
-			{
-				std::vector<Nz::Vector3f>& linesTruc = *(static_cast<decltype(&vertices)>(userData));
-
-				auto Convert = [](Nz::Vector3f pos) -> Nz::Vector3f
-				{
-					return pos;
-				};
-
-				for (int i = 0; i < vertexCount - 1; ++i)
-				{
-					linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[i * 3])));
-					linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[(i + 1) * 3])));
-				}
-
-				linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[(vertexCount - 1) * 3])));
-				linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[0])));
-			};
-
-			Nz::PhysWorld3D& physWorld = m_stateData.world3D->GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
-
-			Nz::Matrix4f identity = Nz::Matrix4f::Identity();
-			forEachPolygonInCollision(capsuleMerde.GetHandle(&physWorld), identity, ForEachPolygon, &vertices);
-
-
-			Nz::VertexBufferRef vb = Nz::VertexBuffer::New(Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ), vertices.size(), Nz::DataStorage_Hardware, 0U);
-			vb->Fill(vertices.data(), 0, vertices.size());
-
-			Nz::MeshRef debugMesh = Nz::Mesh::New();
-			debugMesh->CreateStatic();
-			debugMesh->SetMaterialCount(1);
-
-			Nz::StaticMeshRef staticMesh = Nz::StaticMesh::New(debugMesh);
-			staticMesh->Create(vb);
-			staticMesh->SetPrimitiveMode(Nz::PrimitiveMode_LineList);
-			staticMesh->SetMaterialIndex(0);
-			staticMesh->GenerateAABB();
-
-			debugMesh->AddSubMesh(staticMesh);
-
-			Nz::MaterialRef debugMat = Nz::Material::New();
-			debugMat->SetShader("Basic");
-
-			Nz::ModelRef debugModel = Nz::Model::New();
-			debugModel->SetMesh(debugMesh);
-			debugModel->SetMaterial(0, debugMat);
-
-			gfxComponent.Attach(debugModel);*/
-		}
-
-		// Spaceship
-		params.mesh.matrix.MakeTransform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(0.01f));
-		params.mesh.texCoordScale.Set(1.f, -1.f);
-
-		Nz::ModelRef spaceshipModel = Nz::Model::New();
-		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
-
-		m_spaceshipTemplateEntity = m_stateData.world3D->CreateEntity();
-		m_spaceshipTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(5.f));
-		m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
-		m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_spaceshipTemplateEntity->GetComponent<Ndk::NodeComponent>().Move(Nz::Vector3f::Right() * 10.f);
-		m_spaceshipTemplateEntity->Disable();
-
-		Nz::MaterialRef debugMaterial = Nz::Material::New("Translucent3D");
-		debugMaterial->SetDiffuseColor(Nz::Color(255, 255, 255, 50));
-
-		Nz::ModelRef ghostSpaceship = Nz::Model::New(*spaceshipModel);
-		for (std::size_t i = 0; i < ghostSpaceship->GetMaterialCount(); ++i)
-			ghostSpaceship->SetMaterial(i, debugMaterial);
-
-		m_debugTemplateEntity = m_spaceshipTemplateEntity->Clone();
-		m_debugTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ghostSpaceship);
-		m_debugTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_debugTemplateEntity->Disable();
 
 		// Particle effect
 #if 0
@@ -247,6 +102,7 @@ namespace ewn
 		//m_spaceshipEntity->GetComponent<Ndk::NodeComponent>().SetParent(m_spaceshipMovementNode);
 
 		m_controlledEntity = std::numeric_limits<std::size_t>::max();
+		m_inputAccumulator = 0.f;
 		m_isCurrentlyRotating = false;
 		m_lastInputTime = 0;
 		m_lastShootTime = 0;
@@ -374,9 +230,7 @@ namespace ewn
 		m_cameraRotation = Nz::Vector3f::Zero();
 		m_chatEnteringBox = nullptr;
 		m_chatLines.resize(maxChatLines);
-		m_interpolationFactor = 0;
-
-		m_inputClock.Restart();
+		m_isDisconnected = !m_stateData.server->IsConnected();
 
 		m_chatBox = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
 		m_chatBox->EnableBackground(false);
@@ -386,93 +240,68 @@ namespace ewn
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
 
-		m_onArenaStateSlot.Connect(m_stateData.server->OnArenaState, this, &GameState::OnArenaState);
 		m_onChatMessageSlot.Connect(m_stateData.server->OnChatMessage, this, &GameState::OnChatMessage);
 		m_onControlEntitySlot.Connect(m_stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
-		m_onCreateEntitySlot.Connect(m_stateData.server->OnCreateEntity, this, &GameState::OnCreateEntity);
-		m_onDeleteEntitySlot.Connect(m_stateData.server->OnDeleteEntity, this, &GameState::OnDeleteEntity);
 		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, this, &GameState::OnRenderTargetSizeChange);
 
+		m_matchEntities.emplace(m_stateData.app, m_stateData.server, m_stateData.world3D);
+		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &GameState::OnEntityCreated);
+		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
+
 		m_stateData.server->SendPacket(Packets::JoinArena());
-
-		// Listen to debug state
-		if constexpr (showServerGhosts)
-		{
-			m_debugStateSocket.Create(Nz::NetProtocol_IPv4);
-			m_debugStateSocket.Bind(2050);
-
-			m_debugStateSocket.EnableBlocking(false);
-		}
 	}
 
 	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
 	{
-		m_onArenaStateSlot.Disconnect();
 		m_onChatMessageSlot.Disconnect();
 		m_onControlEntitySlot.Disconnect();
-		m_onCreateEntitySlot.Disconnect();
-		m_onDeleteEntitySlot.Disconnect();
 		m_onKeyPressedSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
+
+		m_matchEntities.reset();
 
 		m_chatBox->Destroy();
 		if (m_chatEnteringBox)
 			m_chatEnteringBox->Destroy();
-
-		for (const auto& spaceshipData : m_serverEntities)
-		{
-			if (spaceshipData.debugGhostEntity)
-				spaceshipData.debugGhostEntity->Kill();
-
-			if (spaceshipData.entity)
-				spaceshipData.entity->Kill();
-
-			if (spaceshipData.textEntity)
-				spaceshipData.textEntity->Kill();
-		}
-
-		m_ballTemplateEntity->Kill();
 		m_cursorEntity->Kill();
-		m_earthTemplateEntity->Kill();
-		m_projectileTemplateEntity->Kill();
-		m_spaceshipTemplateEntity->Kill();
+		m_crosshairEntity->Kill();
 	}
 
-	bool GameState::Update(Ndk::StateMachine& /*fsm*/, float elapsedTime)
+	bool GameState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
-		/*auto& earthNode = m_projectileTemplateEntity->GetComponent<Ndk::NodeComponent>();
-		earthNode.Rotate(Nz::EulerAnglesf(0.f, 5.f * elapsedTime, 0.f));*/
-
-		// Update and send input
-		float inputElapsedTime = m_inputClock.GetSeconds();
-		if (inputElapsedTime > 1.f / 60.f)
+		if (!m_stateData.server->IsConnected())
 		{
-			m_inputClock.Restart();
-
-			UpdateInput(inputElapsedTime);
+			fsm.ResetState(std::make_shared<BackgroundState>(m_stateData));
+			fsm.PushState(std::make_shared<ConnectionLostState>(m_stateData));
+			return false;
 		}
 
-		m_interpolationFactor = std::min(m_interpolationFactor + elapsedTime * 10.f, 3.0f);
+		// Update and send input
+		m_inputAccumulator += elapsedTime;
+
+		constexpr float inputSendInterval = 1.f / 60.f;
+		if (m_inputAccumulator > inputSendInterval)
+		{
+			m_inputAccumulator -= inputSendInterval;
+			UpdateInput(inputSendInterval);
+		}
+
+		m_matchEntities->Update(elapsedTime);
+
+		//m_interpolationFactor = std::min(m_interpolationFactor + elapsedTime * 10.f, 3.0f);
 
 		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		Nz::Quaternionf camRot = cameraNode.GetRotation();
 
-		for (std::size_t i = 0; i < m_serverEntities.size(); ++i)
+		for (std::size_t i = 0; i < m_matchEntities->GetServerEntityCount(); ++i)
 		{
-			const ServerEntity& entityData = m_serverEntities[i];
-			if (!entityData.isValid)
+			if (!m_matchEntities->IsServerEntityValid(i))
 				continue;
 
-			if (i == m_controlledEntity && false)
-				continue;
-
-			Nz::Vector3f currentPosition = Nz::Lerp(entityData.oldPosition, entityData.newPosition, m_interpolationFactor);
-			Nz::Quaternionf currentRotation = Nz::Quaternionf::Slerp(entityData.oldRotation, entityData.newRotation, m_interpolationFactor);
+			const ServerMatchEntities::ServerEntity& entityData = m_matchEntities->GetServerEntity(i);
 
 			auto& spaceshipNode = entityData.entity->GetComponent<Ndk::NodeComponent>();
-			spaceshipNode.SetPosition(currentPosition);
-			spaceshipNode.SetRotation(currentRotation);
 
 			// Update text position
 			if (entityData.textEntity)
@@ -489,50 +318,21 @@ namespace ewn
 		m_cameraRotation.z = Nz::Approach(m_cameraRotation.z, m_spaceshipRotation.z / 10.f, 10.f * elapsedTime);
 		//m_cameraNode.SetRotation(Nz::EulerAnglesf(m_cameraRotation.x, m_cameraRotation.y, m_cameraRotation.z));
 
-		// Debug state socket
-		if constexpr (showServerGhosts)
-		{
-			Nz::NetPacket packet;
-			if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
-			{
-				Packets::ArenaState arenaState;
-				Packets::Unserialize(packet, arenaState);
-
-				for (auto& serverData : arenaState.entities)
-				{
-					// Since we're using a different channel for debug purpose, we may receive information about a spaceship we're not aware yet
-					if (!IsServerEntityValid(serverData.id))
-						continue;
-
-					ServerEntity& entityData = GetServerEntity(serverData.id);
-
-					// Ensure ghost entity existence
-					if (!entityData.debugGhostEntity)
-						entityData.debugGhostEntity = m_debugTemplateEntity->Clone();
-
-					auto& ghostNode = entityData.debugGhostEntity->GetComponent<Ndk::NodeComponent>();
-					ghostNode.SetPosition(serverData.position);
-					ghostNode.SetRotation(serverData.rotation);
-				}
-			}
-		}
-
 		return true;
 	}
 
 	void GameState::ControlEntity(std::size_t entityId)
 	{
-		if (m_controlledEntity != std::numeric_limits<std::size_t>::max())
+		if (m_controlledEntity != entityId && m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
-			ServerEntity& oldData = GetServerEntity(m_controlledEntity);
-
+			auto& oldData = m_matchEntities->GetServerEntity(m_controlledEntity);
 			if (oldData.textEntity)
 				oldData.textEntity->Enable();
 		}
 
-		if (IsServerEntityValid(entityId))
+		if (m_matchEntities->IsServerEntityValid(entityId))
 		{
-			ServerEntity& data = GetServerEntity(entityId);
+			auto& data = m_matchEntities->GetServerEntity(entityId);
 
 			// Don't show our own name
 			if (data.textEntity)
@@ -549,84 +349,9 @@ namespace ewn
 		m_controlledEntity = entityId;
 	}
 
-	void GameState::OnArenaState(ServerConnection*, const Packets::ArenaState& arenaState)
-	{
-		// Compute new interpolation factor from estimated server time/packet server time 
-		//Nz::UInt64 estimatedServerTime = m_stateData.app->GetServerTimeCetteMethodeEstAussiDegueu();
-		/*std::cout << "Estimated server time:" << estimatedServerTime << std::endl;
-		std::cout << "Received server time:" << arenaState.serverTime << std::endl;
-		std::cout << "Diff server time:" << (estimatedServerTime - std::min(estimatedServerTime, arenaState.serverTime)) << std::endl;*/
-
-		//float lateBy = (estimatedServerTime - std::min(estimatedServerTime, arenaState.serverTime)) / 100.f;
-
-		//m_interpolationFactor = lateBy;
-		m_interpolationFactor = 0.f;
-
-		for (const auto& serverData : arenaState.entities)
-		{
-			ServerEntity& entityData = GetServerEntity(serverData.id);
-
-			auto& spaceshipNode = entityData.entity->GetComponent<Ndk::NodeComponent>();
-
-			if (serverData.id == m_controlledEntity && false)
-			{
-				// Reconciliation
-
-				// First, remove every treated input from the server
-				auto firstClientInput = std::find_if(m_predictedInputs.begin(), m_predictedInputs.end(), [processedTime = arenaState.lastProcessedInputTime](const ClientInput& input)
-				{
-					return input.inputTime > processedTime;
-				});
-				m_predictedInputs.erase(m_predictedInputs.begin(), firstClientInput);
-
-				Nz::Vector3f clientPosition = spaceshipNode.GetPosition();
-				Nz::Quaternionf clientRotation = spaceshipNode.GetRotation();
-
-				// Restore server position
-				spaceshipNode.SetPosition(serverData.position);
-				spaceshipNode.SetRotation(serverData.rotation);
-
-				// Apply unacknowledged inputs
-				Nz::UInt64 lastInputTime = arenaState.lastProcessedInputTime;
-				for (const ClientInput& input : m_predictedInputs)
-				{
-					ApplyInput(spaceshipNode, lastInputTime, input);
-					lastInputTime = input.inputTime;
-				}
-
-				// Smooth position over time (or teleport if reconciliated position is too far away from current position)
-				Nz::Vector3f reconciliatedPosition = spaceshipNode.GetPosition();
-				if (reconciliatedPosition.SquaredDistance(clientPosition) < Nz::IntegralPow(2.f, 2))
-					spaceshipNode.SetPosition(Nz::Vector3f::Lerp(clientPosition, reconciliatedPosition, 0.1f));
-				else
-					std::cout << "Teleport!" << std::endl;
-
-				// Smooth rotation over time
-				Nz::Quaternionf reconciliatedRotation = spaceshipNode.GetRotation();
-
-				spaceshipNode.SetRotation(Nz::Quaternionf::Slerp(clientRotation, reconciliatedRotation, 0.1f));
-			}
-			else
-			{
-				entityData.oldPosition = spaceshipNode.GetPosition();
-				entityData.oldRotation = spaceshipNode.GetRotation();
-				entityData.newPosition = serverData.position;
-				entityData.newRotation = serverData.rotation;
-			}
-		}
-	}
-
 	void GameState::OnChatMessage(ServerConnection*, const Packets::ChatMessage & chatMessage)
 	{
-		std::cout << chatMessage.message << std::endl;
-
-		m_chatLines.emplace_back(chatMessage.message);
-		if (m_chatLines.size() > maxChatLines)
-			m_chatLines.erase(m_chatLines.begin());
-
-		m_chatBox->SetText(Nz::String());
-		for (const Nz::String& message : m_chatLines)
-			m_chatBox->AppendText(message + "\n");
+		PrintMessage(chatMessage.message);
 	}
 
 	void GameState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
@@ -634,61 +359,16 @@ namespace ewn
 		ControlEntity(controlPacket.id);
 	}
 
-	void GameState::OnCreateEntity(ServerConnection*, const Packets::CreateEntity& createPacket)
+	void GameState::OnEntityCreated(ServerMatchEntities* /*entities*/, ServerMatchEntities::ServerEntity& entityData)
 	{
-		ServerEntity& data = CreateServerEntity(createPacket.id);
-
-		data.newPosition = data.oldPosition = createPacket.position;
-		data.newRotation = data.oldRotation = createPacket.rotation;
-
-		if (createPacket.entityType == "spaceship")
-			data.entity = m_spaceshipTemplateEntity->Clone();
-		else if (createPacket.entityType == "earth")
-			data.entity = m_earthTemplateEntity->Clone();
-		else if (createPacket.entityType == "ball")
-			data.entity = m_ballTemplateEntity->Clone();
-		else if (createPacket.entityType == "projectile")
-			data.entity = m_projectileTemplateEntity->Clone();
-		else
-			return; //< TODO: Fallback
-
-		auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
-		entityNode.SetPosition(createPacket.position);
-		entityNode.SetRotation(createPacket.rotation);
-
-		// Create entity name entity
-		if (!createPacket.name.IsEmpty())
-		{
-			Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
-
-			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
-			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
-			textSprite->SetScale(0.01f);
-
-			data.textEntity = m_stateData.world3D->CreateEntity();
-			data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
-			data.textEntity->AddComponent<Ndk::NodeComponent>();
-		}
-
-		if (createPacket.id == m_controlledEntity)
-			ControlEntity(createPacket.id);
+		if (entityData.serverId == m_controlledEntity)
+			ControlEntity(m_controlledEntity);
 	}
 
-	void GameState::OnDeleteEntity(ServerConnection*, const Packets::DeleteEntity& deletePacket)
+	void GameState::OnEntityDelete(ServerMatchEntities * entities, ServerMatchEntities::ServerEntity & entityData)
 	{
-		ServerEntity& data = GetServerEntity(deletePacket.id);
-
-		if (data.debugGhostEntity)
-			data.debugGhostEntity->Kill();
-
-		data.entity->Kill();
-		if (data.textEntity)
-			data.textEntity->Kill();
-		data.isValid = false;
-
-		if (m_controlledEntity == deletePacket.id)
-			m_controlledEntity = std::numeric_limits<std::size_t>::max();
+		if (entityData.serverId == m_controlledEntity)
+			ControlEntity(std::numeric_limits<std::size_t>::max());
 	}
 
 	void GameState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
@@ -702,7 +382,7 @@ namespace ewn
 				if (!text.IsEmpty())
 				{
 					Packets::PlayerChat chat;
-					chat.text = text;
+					chat.text = text.ToStdString();
 					m_stateData.server->SendPacket(chat);
 				}
 
@@ -729,6 +409,14 @@ namespace ewn
 			m_shootSound.Play();
 
 			m_stateData.server->SendPacket(Packets::PlayerShoot());
+		}
+		else if (event.code == Nz::Keyboard::F1)
+		{
+			m_matchEntities->EnableSnapshotHandling(!m_matchEntities->IsSnapshotHandlingEnabled());
+			if (m_matchEntities->IsSnapshotHandlingEnabled())
+				PrintMessage("INFO: Sync enabled");
+			else
+				PrintMessage("INFO: Sync disabled");
 		}
 	}
 
@@ -846,5 +534,18 @@ namespace ewn
 		std::cout << "At " << serverTime << ": Move by " << totalMovement << " (final pos: " << clientNode.GetPosition() << ")\n";
 		std::cout << "   " << serverTime << ": Rotate by " << totalRotation << " (final rot: " << clientNode.GetRotation().ToEulerAngles() << ')' << std::endl;
 		*/
+	}
+
+	void GameState::PrintMessage(const std::string& message)
+	{
+		std::cout << message << std::endl;
+
+		m_chatLines.emplace_back(message);
+		if (m_chatLines.size() > maxChatLines)
+			m_chatLines.erase(m_chatLines.begin());
+
+		m_chatBox->Clear();
+		for (const Nz::String& message : m_chatLines)
+			m_chatBox->AppendText(message + "\n");
 	}
 }

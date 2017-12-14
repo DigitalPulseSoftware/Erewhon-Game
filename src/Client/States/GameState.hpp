@@ -7,15 +7,16 @@
 #ifndef EREWHON_CLIENT_STATES_GAMESTATE_HPP
 #define EREWHON_CLIENT_STATES_GAMESTATE_HPP
 
+#include <Client/ServerMatchEntities.hpp>
 #include <Client/States/StateData.hpp>
 #include <Nazara/Audio/Sound.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
-#include <Nazara/Network/UdpSocket.hpp>
 #include <Nazara/Utility/Node.hpp>
 #include <NDK/Entity.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
+#include <optional>
 #include <unordered_map>
 
 namespace ewn
@@ -34,34 +35,18 @@ namespace ewn
 				Nz::Vector3f rotation;
 			};
 
-			struct ServerEntity
-			{
-				Ndk::EntityHandle debugGhostEntity;
-				Ndk::EntityHandle entity;
-				Ndk::EntityHandle textEntity;
-				Nz::Quaternionf oldRotation;
-				Nz::Quaternionf newRotation;
-				Nz::Vector3f oldPosition;
-				Nz::Vector3f newPosition;
-				bool isValid = false;
-			};
-
 			void Enter(Ndk::StateMachine& fsm) override;
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			inline ServerEntity& CreateServerEntity(std::size_t id);
-			inline ServerEntity& GetServerEntity(std::size_t id);
-			inline bool IsServerEntityValid(std::size_t id) const;
-
 			void ControlEntity(std::size_t entityId);
 
-			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
+			void PrintMessage(const std::string& message);
+
 			void OnChatMessage(ServerConnection* server, const Packets::ChatMessage& chatMessage);
 			void OnControlEntity(ServerConnection* server, const Packets::ControlEntity& controlPacket);
-
-			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
-			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
+			void OnEntityCreated(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
+			void OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget);
 
@@ -69,25 +54,18 @@ namespace ewn
 
 			static void ApplyInput(Nz::Node& node, Nz::UInt64 lastInputTime, const ClientInput& input);
 
-			NazaraSlot(ServerConnection, OnArenaState, m_onArenaStateSlot);
-			NazaraSlot(ServerConnection, OnChatMessage, m_onChatMessageSlot);
-			NazaraSlot(ServerConnection, OnControlEntity, m_onControlEntitySlot);
-			NazaraSlot(ServerConnection, OnCreateEntity, m_onCreateEntitySlot);
-			NazaraSlot(ServerConnection, OnDeleteEntity, m_onDeleteEntitySlot);
-			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
+			NazaraSlot(ServerConnection,    OnChatMessage, m_onChatMessageSlot);
+			NazaraSlot(ServerConnection,    OnControlEntity, m_onControlEntitySlot);
+			NazaraSlot(ServerMatchEntities, OnEntityCreated, m_onEntityCreatedSlot);
+			NazaraSlot(ServerMatchEntities, OnEntityDelete, m_onEntityDeletionSlot);
+			NazaraSlot(Nz::EventHandler,    OnKeyPressed, m_onKeyPressedSlot);
+			NazaraSlot(Nz::RenderTarget,    OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			StateData& m_stateData;
 			Ndk::EntityHandle m_crosshairEntity;
 			Ndk::EntityHandle m_cursorEntity;
-			Ndk::EntityHandle m_ballTemplateEntity;
-			Ndk::EntityHandle m_debugTemplateEntity;
-			Ndk::EntityHandle m_earthTemplateEntity;
-			Ndk::EntityHandle m_projectileTemplateEntity;
-			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
-			Nz::Clock m_inputClock;
 			Nz::Node m_cameraNode;
 			Nz::Node m_spaceshipMovementNode;
 			Nz::Sound m_shootSound;
@@ -98,15 +76,15 @@ namespace ewn
 			Nz::Vector3f m_cameraRotation;
 			Nz::Vector3f m_spaceshipRotation;
 			Nz::Vector3f m_spaceshipSpeed;
-			Nz::UdpSocket m_debugStateSocket;
 			Nz::UInt64 m_lastInputTime;
 			Nz::UInt64 m_lastShootTime;
 			std::size_t m_controlledEntity;
+			std::optional<ServerMatchEntities> m_matchEntities;
 			std::vector<ClientInput> m_predictedInputs;
-			std::vector<ServerEntity> m_serverEntities;
 			std::vector<Nz::String> m_chatLines;
 			bool m_isCurrentlyRotating;
-			float m_interpolationFactor;
+			bool m_isDisconnected;
+			float m_inputAccumulator;
 	};
 }
 

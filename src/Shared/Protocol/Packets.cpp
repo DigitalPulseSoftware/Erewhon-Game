@@ -13,6 +13,7 @@ namespace ewn
 	{
 		void Serialize(Nz::NetPacket& packet, const ArenaState& data)
 		{
+			packet << data.stateId;
 			packet << data.serverTime;
 			packet << data.lastProcessedInputTime;
 
@@ -22,6 +23,8 @@ namespace ewn
 				packet << entity.id;
 				packet << entity.position;
 				packet << entity.rotation;
+				packet << entity.angularVelocity;
+				packet << entity.linearVelocity;
 			}
 		}
 
@@ -39,6 +42,8 @@ namespace ewn
 		{
 			packet << data.entityType;
 			packet << data.id;
+			packet << data.angularVelocity;
+			packet << data.linearVelocity;
 			packet << data.position;
 			packet << data.rotation;
 			packet << data.name;
@@ -97,6 +102,7 @@ namespace ewn
 
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data)
 		{
+			packet >> data.stateId;
 			packet >> data.serverTime;
 			packet >> data.lastProcessedInputTime;
 
@@ -104,11 +110,13 @@ namespace ewn
 			packet >> entityCount;
 
 			data.entities.resize(entityCount);
-			for (auto& spaceship : data.entities)
+			for (auto& entity : data.entities)
 			{
-				packet >> spaceship.id;
-				packet >> spaceship.position;
-				packet >> spaceship.rotation;
+				packet >> entity.id;
+				packet >> entity.position;
+				packet >> entity.rotation;
+				packet >> entity.angularVelocity;
+				packet >> entity.linearVelocity;
 			}
 		}
 
@@ -126,6 +134,8 @@ namespace ewn
 		{
 			packet >> data.entityType;
 			packet >> data.id;
+			packet >> data.angularVelocity;
+			packet >> data.linearVelocity;
 			packet >> data.position;
 			packet >> data.rotation;
 			packet >> data.name;

@@ -21,6 +21,7 @@ namespace ewn
 			BroadcastSystem(ServerApplication* app);
 			~BroadcastSystem() = default;
 
+			void BuildCreateEntity(Ndk::Entity* entity, Packets::CreateEntity& createPacket);
 			void CreateAllEntities(std::vector<Packets::CreateEntity>& packetVector);
 
 			NazaraSignal(BroadcastEntityCreation, const BroadcastSystem*, const Packets::CreateEntity& /*packet*/);
@@ -30,11 +31,12 @@ namespace ewn
 			static Ndk::SystemIndex systemIndex;
 
 		private:
-			void OnEntityAdded(Ndk::Entity* entity) override;
 			void OnEntityRemoved(Ndk::Entity* entity) override;
+			void OnEntityValidation(Ndk::Entity* entity, bool justAdded) override;
 			void OnUpdate(float elapsedTime) override;
 
 			Ndk::EntityList m_movingEntities;
+			Nz::UInt16 m_snapshotId;
 			Packets::ArenaState m_arenaStatePacket;
 			ServerApplication* m_app;
 			float m_stateUpdateAccumulator;

@@ -50,10 +50,13 @@ namespace ewn
 			struct Entity
 			{
 				Nz::UInt32 id;
+				Nz::Vector3f angularVelocity;
+				Nz::Vector3f linearVelocity;
 				Nz::Vector3f position;
 				Nz::Quaternionf rotation;
 			};
 
+			Nz::UInt16 stateId;
 			Nz::UInt64 serverTime;
 			Nz::UInt64 lastProcessedInputTime;
 			std::vector<Entity> entities;
@@ -72,6 +75,8 @@ namespace ewn
 		DeclarePacket(CreateEntity)
 		{
 			Nz::UInt32 id;
+			Nz::Vector3f angularVelocity;
+			Nz::Vector3f linearVelocity;
 			Nz::Vector3f position;
 			Nz::Quaternionf rotation;
 			Nz::String name;
