@@ -77,7 +77,7 @@ namespace ewn
 		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
 
 		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
-		projectilePhys.AddForce(emitter->GetComponent<Ndk::NodeComponent>().GetForward() * 50'000.f);
+		projectilePhys.SetLinearVelocity(emitter->GetComponent<Ndk::NodeComponent>().GetForward() * 250.f);
 
 		return projectile;
 	}
