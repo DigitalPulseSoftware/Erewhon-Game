@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Nazara/Audio/Audio.hpp>
+#include <Nazara/Audio/SoundBuffer.hpp>
 #include <Nazara/Core/Directory.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
@@ -82,6 +83,16 @@ int main()
 
 		Nz::TextureLibrary::Register("Background", std::move(background));
 	}
+
+	// Shoot sound
+	Nz::SoundBufferParams soundParams;
+	soundParams.forceMono = true;
+
+	Nz::SoundBufferRef shootSound = Nz::SoundBuffer::New();
+	if (!shootSound->LoadFromFile("Assets/sounds/laserTurretlow.ogg", soundParams))
+		std::cerr << "Failed to load shoot sound" << std::endl;
+
+	Nz::SoundBufferLibrary::Register("ShootSound", std::move(shootSound));
 
 	// Text material
 	Nz::MaterialRef textMaterial = Nz::Material::New("Translucent2D");
