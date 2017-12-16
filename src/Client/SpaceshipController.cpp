@@ -3,9 +3,11 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/SpaceshipController.hpp>
+#include <Nazara/Core/CallOnExit.hpp>
 #include <NDK/Components/CameraComponent.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
+#include <NDK/LuaAPI.hpp>
 #include <Client/ClientApplication.hpp>
 
 namespace ewn
@@ -17,6 +19,7 @@ namespace ewn
 	m_camera(camera),
 	m_spaceship(spaceship),
 	m_lastShootTime(0),
+	m_executeScript(false),
 	m_isCurrentlyRotating(false),
 	m_inputAccumulator(0.f)
 	{
@@ -29,7 +32,10 @@ namespace ewn
 		Nz::EventHandler& eventHandler = m_window.GetEventHandler();
 
 		// Connect every slot
+		m_onKeyPressedSlot.Connect(eventHandler.OnKeyPressed, this, &SpaceshipController::OnKeyPressed);
+		m_onKeyReleasedSlot.Connect(eventHandler.OnKeyReleased, this, &SpaceshipController::OnKeyReleased);
 		m_onIntegrityUpdateSlot.Connect(m_server->OnIntegrityUpdate, this, &SpaceshipController::OnIntegrityUpdate);
+		m_onLostFocusSlot.Connect(eventHandler.OnLostFocus, this, &SpaceshipController::OnLostFocus);
 		m_onMouseButtonPressedSlot.Connect(eventHandler.OnMouseButtonPressed, this, &SpaceshipController::OnMouseButtonPressed);
 		m_onMouseButtonReleasedSlot.Connect(eventHandler.OnMouseButtonReleased, this, &SpaceshipController::OnMouseButtonReleased);
 		m_onMouseMovedSlot.Connect(eventHandler.OnMouseMoved, this, &SpaceshipController::OnMouseMoved);
@@ -44,6 +50,9 @@ namespace ewn
 		cameraNode.SetParent(m_cameraNode);
 		cameraNode.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
 		cameraNode.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
+
+		// Load client script
+		LoadScript();
 	}
 
 	SpaceshipController::~SpaceshipController()
@@ -79,6 +88,51 @@ namespace ewn
 		m_crosshairEntity->GetComponent<Ndk::NodeComponent>().SetPosition(screenPosition);
 	}
 
+	void SpaceshipController::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
+	{
+		if (event.code == Nz::Keyboard::F5)
+			LoadScript();
+		else
+		{
+			if (m_executeScript)
+			{
+				if (m_controlScript.GetGlobal("OnKeyPressed") == Nz::LuaType_Function)
+				{
+					PushToLua(event);
+
+					if (!m_controlScript.Call(1))
+						std::cerr << "OnKeyPressed failed: " << m_controlScript.GetLastError() << std::endl;
+				}
+			}
+		}
+	}
+
+	void SpaceshipController::OnKeyReleased(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
+	{
+		if (m_executeScript)
+		{
+			if (m_controlScript.GetGlobal("OnKeyReleased") == Nz::LuaType_Function)
+			{
+				PushToLua(event);
+
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnKeyReleased failed: " << m_controlScript.GetLastError() << std::endl;
+			}
+		}
+	}
+
+	void SpaceshipController::OnLostFocus(const Nz::EventHandler* /*eventHandler*/)
+	{
+		if (m_executeScript)
+		{
+			if (m_controlScript.GetGlobal("OnLostFocus") == Nz::LuaType_Function)
+			{
+				if (!m_controlScript.Call(0))
+					std::cerr << "OnLostFocus failed: " << m_controlScript.GetLastError() << std::endl;
+			}
+		}
+	}
+
 	void SpaceshipController::OnIntegrityUpdate(ServerConnection* /*server*/, const Packets::IntegrityUpdate& integrityUpdate)
 	{
 		float integrityPct = integrityUpdate.integrityValue / 255.f;
@@ -88,29 +142,29 @@ namespace ewn
 
 	void SpaceshipController::OnMouseButtonPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseButtonEvent& event)
 	{
-		if (event.button == Nz::Mouse::Left)
-			Shoot();
-		else if (event.button == Nz::Mouse::Right)
+		if (m_executeScript)
 		{
-			m_isCurrentlyRotating = true;
-			m_rotationCursorOrigin = Nz::Mouse::GetPosition(m_window);
-			m_rotationCursorPosition.MakeZero();
+			if (m_controlScript.GetGlobal("OnMouseButtonPressed") == Nz::LuaType_Function)
+			{
+				PushToLua(event);
 
-			m_window.SetCursor(Nz::SystemCursor_None);
-			m_cursorEntity->Enable();
-			m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnMouseButtonPressed failed: " << m_controlScript.GetLastError() << std::endl;
+			}
 		}
 	}
 
 	void SpaceshipController::OnMouseButtonReleased(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseButtonEvent& event)
 	{
-		if (event.button == Nz::Mouse::Right)
+		if (m_executeScript)
 		{
-			m_isCurrentlyRotating = false;
-			m_window.SetCursor(Nz::SystemCursor_Default);
-			Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, m_window);
+			if (m_controlScript.GetGlobal("OnMouseButtonReleased") == Nz::LuaType_Function)
+			{
+				PushToLua(event);
 
-			m_cursorEntity->Disable();
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnMouseButtonReleased failed: " << m_controlScript.GetLastError() << std::endl;
+			}
 		}
 	}
 
@@ -148,19 +202,77 @@ namespace ewn
 		}
 	}
 
-	void SpaceshipController::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
-	{
-		if (event.code == Nz::Keyboard::Space)
-			Shoot();
-	}
-
 	void SpaceshipController::OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget)
 	{
 		m_healthBarEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x - 300.f, renderTarget->GetSize().y - 70.f, 0.f });
 	}
 
+	void SpaceshipController::LoadScript()
+	{
+		m_controlScript = Nz::LuaInstance();
+		m_executeScript = true;
+
+		std::cout << "Loading spaceshipcontroller.lua" << std::endl;
+		if (!m_controlScript.ExecuteFromFile("spaceshipcontroller.lua"))
+		{
+			std::cerr << "Failed to load spaceshipcontroller.lua: " << m_controlScript.GetLastError() << std::endl;
+			m_executeScript = false;
+			return;
+		}
+
+		// Check existence of some functions
+		if (m_controlScript.GetGlobal("UpdateInput") != Nz::LuaType_Function)
+		{
+			std::cerr << "spaceshipcontroller.lua: UpdateInput is not a valid function!" << std::endl;
+			m_executeScript = false;
+		}
+		m_controlScript.Pop();
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			if (state.CheckBoolean(1))
+			{
+				m_isCurrentlyRotating = true;
+				m_rotationCursorOrigin = Nz::Mouse::GetPosition(m_window);
+				m_rotationCursorPosition.MakeZero();
+
+				m_window.SetCursor(Nz::SystemCursor_None);
+				m_cursorEntity->Enable();
+				m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
+			}
+			else
+			{
+				m_rotationCursorPosition.MakeZero();
+				m_isCurrentlyRotating = false;
+				m_window.SetCursor(Nz::SystemCursor_Default);
+				Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, m_window);
+
+				m_cursorEntity->Disable();
+			}
+			return 0;
+		});
+		m_controlScript.SetGlobal("EnableRotation");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			state.PushTable(0, 2);
+				state.PushField("x", m_rotationCursorPosition.x);
+				state.PushField("y", m_rotationCursorPosition.y);
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetRotation");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			Shoot();
+			return 0;
+		});
+		m_controlScript.SetGlobal("Shoot");
+	}
+
 	void SpaceshipController::LoadSprites(Ndk::World& world2D)
-{
+	{
 		// Movement cursor
 		{
 			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
@@ -241,7 +353,55 @@ namespace ewn
 
 	void SpaceshipController::UpdateInput(float elapsedTime)
 	{
-		if (m_window.HasFocus())
+		if (m_executeScript)
+		{
+			m_controlScript.GetGlobal("UpdateInput");
+			m_controlScript.Push(elapsedTime);
+			if (m_controlScript.Call(1, 2))
+			{
+				auto RetrieveVector3 = [&](int index) -> Nz::Vector3f
+				{
+					m_controlScript.CheckType(index, Nz::LuaType_Table);
+
+					float x = m_controlScript.CheckField<float>("x", index);
+					float y = m_controlScript.CheckField<float>("y", index);
+					float z = m_controlScript.CheckField<float>("z", index);
+
+					return { x, y, z };
+				};
+
+
+				// Use some RRID
+				Nz::CallOnExit resetLuaStack([&]()
+				{
+					m_controlScript.Pop(m_controlScript.GetStackTop());
+				});
+				Nz::Vector3f movement;
+				Nz::Vector3f rotation;
+				try
+				{
+					movement = RetrieveVector3(1);
+					rotation = RetrieveVector3(2);
+				}
+				catch (const std::exception&)
+				{
+					std::cerr << "UpdateInput failed: returned values are invalid" << std::endl;
+					return;
+				}
+
+				// Send input to server
+				Packets::PlayerMovement movementPacket;
+				movementPacket.inputTime = m_server->EstimateServerTime();
+				movementPacket.direction = movement;
+				movementPacket.rotation = rotation;
+
+				m_server->SendPacket(movementPacket);
+			}
+			else
+				std::cerr << "UpdateInput failed: " << m_controlScript.GetLastError() << std::endl;
+		}
+
+		/*if (m_window.HasFocus())
 		{
 			constexpr float acceleration = 30.f;
 			constexpr float strafeSpeed = 20.f;
@@ -305,20 +465,57 @@ namespace ewn
 
 		//m_spaceshipMovementNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
 		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
+		*/
+	}
 
-		Nz::UInt64 serverTime = m_server->EstimateServerTime();
+	void SpaceshipController::PushToLua(const Nz::WindowEvent::MouseButtonEvent &event)
+	{
+		m_controlScript.PushTable(0, 3);
+		{
+			const char* buttonName;
+			switch (event.button)
+			{
+				case Nz::Mouse::Left:
+					buttonName = "Left";
+					break;
 
-		// Client-side prediction
-		//ApplyInput(clientNode, m_lastInputTime, m_predictedInputs.back());
+				case Nz::Mouse::Middle:
+					buttonName = "Middle";
+					break;
 
-		m_lastInputTime = serverTime;
+				case Nz::Mouse::Right:
+					buttonName = "Right";
+					break;
 
-		// Send input to server
-		Packets::PlayerMovement movementPacket;
-		movementPacket.inputTime = serverTime;
-		movementPacket.direction = m_spaceshipSpeed;
-		movementPacket.rotation = m_spaceshipRotation;
+				case Nz::Mouse::XButton1:
+					buttonName = "XButton1";
+					break;
 
-		m_server->SendPacket(movementPacket);
+				case Nz::Mouse::XButton2:
+					buttonName = "XButton2";
+					break;
+
+				default:
+					buttonName = "Unknown";
+					break;
+			}
+
+			m_controlScript.PushField("button", std::string(buttonName));
+			m_controlScript.PushField("x", event.x);
+			m_controlScript.PushField("y", event.y);
+		}
+	}
+
+	void SpaceshipController::PushToLua(const Nz::WindowEvent::KeyEvent &event)
+	{
+		m_controlScript.PushTable(0, 6);
+		{
+			m_controlScript.PushField("key", Nz::Keyboard::GetKeyName(event.code));
+			m_controlScript.PushField("alt", event.alt);
+			m_controlScript.PushField("control", event.control);
+			m_controlScript.PushField("repeated", event.repeated);
+			m_controlScript.PushField("shift", event.shift);
+			m_controlScript.PushField("system", event.system);
+		}
 	}
 }

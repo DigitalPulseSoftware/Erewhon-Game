@@ -9,6 +9,7 @@
 
 #include <Nazara/Audio/Sound.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
+#include <Nazara/Lua/LuaInstance.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Utility/Node.hpp>
 #include <NDK/Entity.hpp>
@@ -34,22 +35,33 @@ namespace ewn
 			SpaceshipController& operator=(SpaceshipController&&) = delete;
 
 		private:
+			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
+
+			void PushToLua(const Nz::WindowEvent::KeyEvent &event);
+
+			void OnKeyReleased(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
+			void OnLostFocus(const Nz::EventHandler* eventHandler);
 			void OnIntegrityUpdate(ServerConnection* server, const Packets::IntegrityUpdate& integrityUpdate);
 			void OnMouseButtonPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::MouseButtonEvent& event);
+
+			void PushToLua(const Nz::WindowEvent::MouseButtonEvent &event);
+
 			void OnMouseButtonReleased(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::MouseButtonEvent& event);
 			void OnMouseMoved(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::MouseMoveEvent& event);
-			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget);
 
+			void LoadScript();
 			void LoadSprites(Ndk::World& world2D);
 			void Shoot();
 			void UpdateInput(float elapsedTime);
 
 			NazaraSlot(ServerConnection, OnIntegrityUpdate, m_onIntegrityUpdateSlot);
+			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
+			NazaraSlot(Nz::EventHandler, OnKeyReleased, m_onKeyReleasedSlot);
+			NazaraSlot(Nz::EventHandler, OnLostFocus, m_onLostFocusSlot);
 			NazaraSlot(Nz::EventHandler, OnMouseButtonPressed, m_onMouseButtonPressedSlot);
 			NazaraSlot(Nz::EventHandler, OnMouseButtonReleased, m_onMouseButtonReleasedSlot);
 			NazaraSlot(Nz::EventHandler, OnMouseMoved, m_onMouseMovedSlot);
-			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			ClientApplication* m_app;
@@ -60,18 +72,16 @@ namespace ewn
 			Ndk::EntityOwner m_cursorEntity;
 			Ndk::EntityOwner m_healthBarEntity;
 			Ndk::EntityHandle m_spaceship;
+			Nz::LuaInstance m_controlScript;
 			Nz::Node m_cameraNode;
 			Nz::SpriteRef m_cursorOrientationSprite;
 			Nz::SpriteRef m_healthBarSprite;
 			Nz::Sound m_shootSound;
-			Nz::UInt64 m_lastInputTime;
 			Nz::UInt64 m_lastShootTime;
 			Nz::Vector2i m_rotationCursorOrigin;
 			Nz::Vector2i m_rotationCursorPosition;
-			Nz::Vector2f m_rotationDirection;
 			Nz::Vector3f m_cameraRotation;
-			Nz::Vector3f m_spaceshipRotation;
-			Nz::Vector3f m_spaceshipSpeed;
+			bool m_executeScript;
 			bool m_isCurrentlyRotating;
 			float m_inputAccumulator;
 	};
