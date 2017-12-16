@@ -124,38 +124,28 @@ namespace ewn
 		eventHandler.OnMouseButtonPressed.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::MouseButtonEvent& event)
 		{
 			if (event.button == Nz::Mouse::Left)
-			{
-				if (m_chatEnteringBox || !m_isCurrentlyRotating)
-					return;
-
-				Nz::UInt64 currentTime = m_stateData.app->GetAppTime();
-				if (currentTime - m_lastShootTime < 500)
-					return;
-
-				m_lastShootTime = currentTime;
-				m_shootSound.Play();
-
-				m_stateData.server->SendPacket(Packets::PlayerShoot());
-			}
+				Shoot();
 			else if (event.button == Nz::Mouse::Right)
 			{
-				m_isCurrentlyRotating = !m_isCurrentlyRotating;
-				if (m_isCurrentlyRotating)
-				{
-					m_rotationCursorOrigin = Nz::Mouse::GetPosition(*m_stateData.window);
-					m_rotationCursorPosition.MakeZero();
+				m_isCurrentlyRotating = true;
+				m_rotationCursorOrigin = Nz::Mouse::GetPosition(*m_stateData.window);
+				m_rotationCursorPosition.MakeZero();
 
-					m_stateData.window->SetCursor(Nz::SystemCursor_None);
-					m_cursorEntity->Enable();
-					m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
-				}
-				else
-				{
-					m_stateData.window->SetCursor(Nz::SystemCursor_Default);
-					Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, *m_stateData.window);
+				m_stateData.window->SetCursor(Nz::SystemCursor_None);
+				m_cursorEntity->Enable();
+				m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
+			}
+		});
 
-					m_cursorEntity->Disable();
-				}
+		eventHandler.OnMouseButtonReleased.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::MouseButtonEvent& event)
+		{
+			if (event.button == Nz::Mouse::Right)
+			{
+				m_isCurrentlyRotating = false;
+				m_stateData.window->SetCursor(Nz::SystemCursor_Default);
+				Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, *m_stateData.window);
+
+				m_cursorEntity->Disable();
 			}
 		});
 
@@ -473,20 +463,13 @@ namespace ewn
 			m_chatEnteringBox->SetTextColor(Nz::Color::White);
 			m_chatEnteringBox->SetFocus();
 		}
-		/*else if (event.code == Nz::Keyboard::Space)
+		else if (event.code == Nz::Keyboard::Space)
 		{
 			if (m_chatEnteringBox)
 				return;
 
-			Nz::UInt64 currentTime = m_stateData.app->GetAppTime();
-			if (currentTime - m_lastShootTime < 500)
-				return;
-
-			m_lastShootTime = currentTime;
-			m_shootSound.Play();
-
-			m_stateData.server->SendPacket(Packets::PlayerShoot());
-		}*/
+			Shoot();
+		}
 		else if (event.code == Nz::Keyboard::F1)
 		{
 			m_matchEntities->EnableSnapshotHandling(!m_matchEntities->IsSnapshotHandlingEnabled());
@@ -502,6 +485,18 @@ namespace ewn
 		m_chatBox->SetPosition({ 5.f, renderTarget->GetSize().y - 30 - m_chatBox->GetSize().y, 0.f });
 		m_crosshairEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x / 2.f, renderTarget->GetSize().y / 2.f, 0.f });
 		m_healthBarEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x - 300.f, renderTarget->GetSize().y - 70.f, 0.f });
+	}
+
+	void GameState::Shoot()
+	{
+		Nz::UInt64 currentTime = m_stateData.app->GetAppTime();
+		if (currentTime - m_lastShootTime < 500)
+			return;
+
+		m_lastShootTime = currentTime;
+		m_shootSound.Play();
+
+		m_stateData.server->SendPacket(Packets::PlayerShoot());
 	}
 
 	void GameState::UpdateInput(float elapsedTime)

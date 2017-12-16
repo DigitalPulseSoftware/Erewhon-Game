@@ -51,6 +51,7 @@ namespace ewn
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget);
 
+			void Shoot();
 			void UpdateInput(float elapsedTime);
 
 			static void ApplyInput(Nz::Node& node, Nz::UInt64 lastInputTime, const ClientInput& input);
