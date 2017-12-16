@@ -178,7 +178,7 @@ namespace ewn
 			});
 
 			newEntity->AddComponent<PlayerControlledComponent>();
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
+			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 5);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -188,14 +188,14 @@ namespace ewn
 		{
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
-			newEntity->AddComponent<SynchronizedComponent>(type, name, false);
+			newEntity->AddComponent<SynchronizedComponent>(type, name, false, 0);
 		}
 		else if (type == "ball")
 		{
 			constexpr float radius = 18.251904f / 2.f;
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
+			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 3);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -212,7 +212,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
 			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((m_app->GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true);
+			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);

@@ -15,17 +15,26 @@ namespace ewn
 	class SynchronizedComponent : public Ndk::Component<SynchronizedComponent>
 	{
 		public:
-			inline SynchronizedComponent(std::string type, std::string nameTemp, bool movable);
+			inline SynchronizedComponent(std::string type, std::string nameTemp, bool movable, Nz::UInt16 networkPriority);
+
+			inline void AccumulatePriority();
 
 			inline const std::string& GetName() const;
+			inline Nz::UInt16 GetPriority() const;
+			inline Nz::UInt16 GetPriorityAccumulator() const;
 			inline const std::string& GetType() const;
+
 			inline bool IsMovable() const;
+
+			inline void ResetPriorityAccumulator();
 
 			static Ndk::ComponentIndex componentIndex;
 
 		private:
 			std::string m_name;
 			std::string m_type;
+			Nz::UInt16 m_priority;
+			Nz::UInt16 m_priorityAccumulator;
 			bool m_movable;
 	};
 }
