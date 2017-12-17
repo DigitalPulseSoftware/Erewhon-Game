@@ -20,8 +20,8 @@ namespace ewn
 	m_spaceship(spaceship),
 	m_lastShootTime(0),
 	m_executeScript(false),
-	m_isCurrentlyRotating(false),
-	m_inputAccumulator(0.f)
+	m_inputAccumulator(0.f),
+	m_updateAccumulator(0.f)
 	{
 		m_shootSound.SetBuffer(Nz::SoundBufferLibrary::Get("ShootSound"));
 		m_shootSound.EnableSpatialization(false);
@@ -44,20 +44,12 @@ namespace ewn
 		LoadSprites(world2D);
 		OnRenderTargetSizeChange(&m_window);
 
-		m_cameraNode.SetParent(m_spaceship->GetComponent<Ndk::NodeComponent>());
-
-		Ndk::NodeComponent& cameraNode = m_camera->GetComponent<Ndk::NodeComponent>();
-		cameraNode.SetParent(m_cameraNode);
-		cameraNode.SetPosition(Nz::Vector3f::Backward() * 12.f + Nz::Vector3f::Up() * 5.f);
-		cameraNode.SetRotation(Nz::EulerAnglesf(-10.f, 0.f, 0.f));
-
 		// Load client script
 		LoadScript();
 	}
 
 	SpaceshipController::~SpaceshipController()
 	{
-		m_cameraNode.SetParent(nullptr);
 	}
 
 	void SpaceshipController::Update(float elapsedTime)
@@ -70,6 +62,37 @@ namespace ewn
 		{
 			m_inputAccumulator -= inputSendInterval;
 			UpdateInput(inputSendInterval);
+		}
+
+		m_updateAccumulator += elapsedTime;
+
+		constexpr float updateScriptInterval = 1.f / 60.f;
+		if (m_updateAccumulator > updateScriptInterval)
+		{
+			//m_updateAccumulator -= updateScriptInterval;
+			if (m_executeScript)
+			{
+				if (m_controlScript.GetGlobal("OnUpdate") == Nz::LuaType_Function)
+				{
+					auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+					Nz::Vector3f position = spaceshipNode.GetPosition();
+					Nz::Quaternionf rotation = spaceshipNode.GetRotation();
+
+					m_controlScript.PushTable(0, 3);
+						m_controlScript.PushField("x", position.x);
+						m_controlScript.PushField("y", position.y);
+						m_controlScript.PushField("z", position.z);
+
+					m_controlScript.PushTable(0, 4);
+						m_controlScript.PushField("w", rotation.w);
+						m_controlScript.PushField("x", rotation.x);
+						m_controlScript.PushField("y", rotation.y);
+						m_controlScript.PushField("z", rotation.z);
+
+					if (!m_controlScript.Call(2))
+						std::cerr << "OnUpdate failed: " << m_controlScript.GetLastError() << std::endl;
+				}
+			}
 		}
 
 		// Compute crosshair position (according to projectile path projection)
@@ -138,6 +161,17 @@ namespace ewn
 		float integrityPct = integrityUpdate.integrityValue / 255.f;
 
 		m_healthBarSprite->SetSize({ integrityPct * 256.f, 32.f });
+
+		if (m_executeScript)
+		{
+			if (m_controlScript.GetGlobal("OnIntegrityUpdate") == Nz::LuaType_Function)
+			{
+				m_controlScript.Push(integrityPct);
+
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnIntegrityUpdate failed: " << m_controlScript.GetLastError() << std::endl;
+			}
+		}
 	}
 
 	void SpaceshipController::OnMouseButtonPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseButtonEvent& event)
@@ -170,35 +204,15 @@ namespace ewn
 
 	void SpaceshipController::OnMouseMoved(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseMoveEvent& event)
 	{
-		if (m_isCurrentlyRotating)
+		if (m_executeScript)
 		{
-			constexpr int distMax = 200;
-
-			m_rotationCursorPosition.x += event.deltaX;
-			m_rotationCursorPosition.y += event.deltaY;
-			if (m_rotationCursorPosition.GetSquaredLength() > Nz::IntegralPow(distMax, 2))
+			if (m_controlScript.GetGlobal("OnMouseMoved") == Nz::LuaType_Function)
 			{
-				Nz::Vector2f tempCursor(m_rotationCursorPosition);
-				tempCursor.Normalize();
-				tempCursor *= float(distMax);
-				m_rotationCursorPosition = Nz::Vector2i(tempCursor);
+				PushToLua(event);
+
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnMouseMoved failed: " << m_controlScript.GetLastError() << std::endl;
 			}
-
-			Nz::Vector2ui windowCenter = m_window.GetSize() / 2;
-
-			// Position
-			Ndk::NodeComponent& cursorNode = m_cursorEntity->GetComponent<Ndk::NodeComponent>();
-			cursorNode.SetPosition(float(windowCenter.x + m_rotationCursorPosition.x), float(windowCenter.y + m_rotationCursorPosition.y));
-
-			// Angle
-			float cursorAngle = std::atan2(float(m_rotationCursorPosition.y), float(m_rotationCursorPosition.x));
-			cursorNode.SetRotation(Nz::EulerAnglesf(0.f, 0.f, Nz::RadianToDegree(cursorAngle)));
-
-			// Alpha
-			float cursorAlpha = float(m_rotationCursorPosition.GetSquaredLength()) / Nz::IntegralPow(distMax, 2);
-			m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, static_cast<Nz::UInt8>(std::min(cursorAlpha * 255.f, 255.f))));
-
-			Nz::Mouse::SetPosition(windowCenter.x, windowCenter.y, m_window);
 		}
 	}
 
@@ -232,9 +246,7 @@ namespace ewn
 		{
 			if (state.CheckBoolean(1))
 			{
-				m_isCurrentlyRotating = true;
 				m_rotationCursorOrigin = Nz::Mouse::GetPosition(m_window);
-				m_rotationCursorPosition.MakeZero();
 
 				m_window.SetCursor(Nz::SystemCursor_None);
 				m_cursorEntity->Enable();
@@ -242,8 +254,6 @@ namespace ewn
 			}
 			else
 			{
-				m_rotationCursorPosition.MakeZero();
-				m_isCurrentlyRotating = false;
 				m_window.SetCursor(Nz::SystemCursor_Default);
 				Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, m_window);
 
@@ -251,17 +261,7 @@ namespace ewn
 			}
 			return 0;
 		});
-		m_controlScript.SetGlobal("EnableRotation");
-
-		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
-		{
-			state.PushTable(0, 2);
-				state.PushField("x", m_rotationCursorPosition.x);
-				state.PushField("y", m_rotationCursorPosition.y);
-
-			return 1;
-		});
-		m_controlScript.SetGlobal("GetRotation");
+		m_controlScript.SetGlobal("ShowRotationCursor");
 
 		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
 		{
@@ -269,27 +269,61 @@ namespace ewn
 			return 0;
 		});
 		m_controlScript.SetGlobal("Shoot");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			Nz::Vector2ui windowCenter = m_window.GetSize() / 2;
+			Nz::Mouse::SetPosition(windowCenter.x, windowCenter.y, m_window);
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("RecenterMouse");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			Nz::Vector2f position = state.Check<Nz::Vector2f>(&argIndex);
+			float angle = state.Check<float>(&argIndex);
+			float alpha = state.Check<float>(&argIndex);
+
+			Ndk::NodeComponent& cursorNode = m_cursorEntity->GetComponent<Ndk::NodeComponent>();
+			cursorNode.SetPosition(position);
+			cursorNode.SetRotation(Nz::EulerAnglesf(0.f, 0.f, angle));
+
+			Nz::UInt8 alphaValue = Nz::UInt8(Nz::Clamp(alpha * 255.f, 0.f, 255.f));
+			m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, alphaValue));
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("UpdateRotationCursor");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			Nz::Vector3f position = state.Check<Nz::Vector3f>(&argIndex);
+			Nz::Quaternionf rotation = state.Check<Nz::Quaternionf>(&argIndex);
+
+			auto& cameraNode = m_camera->GetComponent<Ndk::NodeComponent>();
+			cameraNode.SetPosition(position);
+			cameraNode.SetRotation(rotation);
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("UpdateCamera");
+
+
+		if (m_executeScript)
+		{
+			if (m_controlScript.GetGlobal("Init") == Nz::LuaType_Function)
+			{
+				if (!m_controlScript.Call(0))
+					std::cerr << "Init failed: " << m_controlScript.GetLastError() << std::endl;
+			}
+		}
 	}
 
 	void SpaceshipController::LoadSprites(Ndk::World& world2D)
 	{
-		// Movement cursor
-		{
-			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
-			cursorMat->SetDiffuseMap("Assets/cursor/orientation.png");
-
-			m_cursorOrientationSprite = Nz::Sprite::New();
-			m_cursorOrientationSprite->SetMaterial(cursorMat);
-			m_cursorOrientationSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
-			m_cursorOrientationSprite->SetSize({ 32.f, 32.f });
-
-			m_cursorEntity = world2D.CreateEntity();
-			m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
-			m_cursorEntity->AddComponent<Ndk::NodeComponent>().SetPosition({ 200.f, 200.f, 0.f });
-
-			m_cursorEntity->Disable();
-		}
-
 		// Crosshair
 		{
 			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
@@ -298,7 +332,7 @@ namespace ewn
 			Nz::SpriteRef crosshairSprite = Nz::Sprite::New();
 			crosshairSprite->SetMaterial(cursorMat);
 			crosshairSprite->SetSize({ 32.f, 32.f });
-			crosshairSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
+			crosshairSprite->SetOrigin(crosshairSprite->GetSize() / 2.f);
 
 			m_crosshairEntity = world2D.CreateEntity();
 			m_crosshairEntity->AddComponent<Ndk::GraphicsComponent>().Attach(crosshairSprite);
@@ -337,6 +371,25 @@ namespace ewn
 			crosshairGhx.Attach(healthBarEmptySprite, 1);
 			crosshairGhx.Attach(m_healthBarSprite, 2);
 		}
+
+		// Movement cursor
+		{
+			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
+			cursorMat->SetDiffuseMap("Assets/cursor/orientation.png");
+
+			m_cursorOrientationSprite = Nz::Sprite::New();
+			m_cursorOrientationSprite->SetMaterial(cursorMat);
+			m_cursorOrientationSprite->SetSize({ 32.f, 32.f });
+			m_cursorOrientationSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
+
+			m_cursorEntity = world2D.CreateEntity();
+			m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
+			auto& cursorNode = m_cursorEntity->AddComponent<Ndk::NodeComponent>();
+			cursorNode.SetParent(m_crosshairEntity);
+			cursorNode.SetPosition({ 200.f, 200.f, 0.f });
+
+			m_cursorEntity->Disable();
+		}
 	}
 
 	void SpaceshipController::Shoot()
@@ -357,20 +410,8 @@ namespace ewn
 		{
 			m_controlScript.GetGlobal("UpdateInput");
 			m_controlScript.Push(elapsedTime);
-			if (m_controlScript.Call(1, 2))
+			if (m_controlScript.Call(1))
 			{
-				auto RetrieveVector3 = [&](int index) -> Nz::Vector3f
-				{
-					m_controlScript.CheckType(index, Nz::LuaType_Table);
-
-					float x = m_controlScript.CheckField<float>("x", index);
-					float y = m_controlScript.CheckField<float>("y", index);
-					float z = m_controlScript.CheckField<float>("z", index);
-
-					return { x, y, z };
-				};
-
-
 				// Use some RRID
 				Nz::CallOnExit resetLuaStack([&]()
 				{
@@ -380,8 +421,9 @@ namespace ewn
 				Nz::Vector3f rotation;
 				try
 				{
-					movement = RetrieveVector3(1);
-					rotation = RetrieveVector3(2);
+					int index = 1;
+					movement = m_controlScript.Check<Nz::Vector3f>(&index);
+					rotation = m_controlScript.Check<Nz::Vector3f>(&index);
 				}
 				catch (const std::exception&)
 				{
@@ -400,75 +442,171 @@ namespace ewn
 			else
 				std::cerr << "UpdateInput failed: " << m_controlScript.GetLastError() << std::endl;
 		}
-
-		/*if (m_window.HasFocus())
-		{
-			constexpr float acceleration = 30.f;
-			constexpr float strafeSpeed = 20.f;
-			constexpr float jumpSpeed = 20.f;
-			constexpr float rollSpeed = 150.f;
-
-			float forwardSpeedModifier = 0.f;
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::Z))
-				forwardSpeedModifier += acceleration * elapsedTime;
-
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::S))
-				forwardSpeedModifier -= acceleration * elapsedTime;
-
-			float leftSpeedModifier = 0.f;
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::Q))
-				leftSpeedModifier += strafeSpeed * elapsedTime;
-
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::D))
-				leftSpeedModifier -= strafeSpeed * elapsedTime;
-
-			float jumpSpeedModifier = 0.f;
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::LShift))
-				jumpSpeedModifier += jumpSpeed * elapsedTime;
-
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::LControl))
-				jumpSpeedModifier -= jumpSpeed * elapsedTime;
-
-			float rollSpeedModifier = 0.f;
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::A))
-				rollSpeedModifier += rollSpeed * elapsedTime;
-
-			if (Nz::Keyboard::IsKeyPressed(Nz::Keyboard::E))
-				rollSpeedModifier -= rollSpeed * elapsedTime;
-
-			// Rotation
-			if (m_isCurrentlyRotating)
-			{
-				m_rotationDirection = Nz::Vector2f(m_rotationCursorPosition) / 2.f;
-				if (m_rotationDirection.GetSquaredLength() < Nz::IntegralPow(20.f, 2))
-					m_rotationDirection.MakeZero();
-			}
-
-			m_spaceshipSpeed.x = Nz::Clamp(m_spaceshipSpeed.x + forwardSpeedModifier, -20.f, 20.f);
-			m_spaceshipSpeed.y = Nz::Clamp(m_spaceshipSpeed.y + leftSpeedModifier, -15.f, 15.f);
-			m_spaceshipSpeed.z = Nz::Clamp(m_spaceshipSpeed.z + jumpSpeedModifier, -15.f, 15.f);
-			m_spaceshipRotation.z = Nz::Clamp(m_spaceshipRotation.z + rollSpeedModifier, -100.f, 100.f);
-		}
-
-		m_spaceshipSpeed.x = Nz::Approach(m_spaceshipSpeed.x, 0.f, 10.f * elapsedTime);
-		m_spaceshipSpeed.y = Nz::Approach(m_spaceshipSpeed.y, 0.f, 10.f * elapsedTime);
-		m_spaceshipSpeed.z = Nz::Approach(m_spaceshipSpeed.z, 0.f, 10.f * elapsedTime);
-		m_spaceshipRotation.z = Nz::Approach(m_spaceshipRotation.z, 0.f, 50.f * elapsedTime);
-
-		//m_controlledSpaceship->GetComponent<Ndk::NodeComponent>().SetRotation(Nz::EulerAnglesf(-m_spaceshipSpeed.x / 5.f, 0.f, m_spaceshipSpeed.y));
-
-		m_spaceshipRotation.x = Nz::Clamp(-m_rotationDirection.y, -200.f, 200.f);
-		m_spaceshipRotation.y = Nz::Clamp(-m_rotationDirection.x, -200.f, 200.f);
-
-		m_rotationDirection.x = Nz::Approach(m_rotationDirection.x, 0.f, 200.f * elapsedTime);
-		m_rotationDirection.y = Nz::Approach(m_rotationDirection.y, 0.f, 200.f * elapsedTime);
-
-		//m_spaceshipMovementNode.Move(elapsedTime * (m_spaceshipSpeed.x * Nz::Vector3f::Forward() + m_spaceshipSpeed.y * Nz::Vector3f::Left() + m_spaceshipSpeed.z * Nz::Vector3f::Up()));
-		//m_spaceshipMovementNode.Rotate(Nz::EulerAnglesf(m_spaceshipRotation.x * elapsedTime, m_spaceshipRotation.y * elapsedTime, m_spaceshipRotation.z * elapsedTime));
-		*/
 	}
 
-	void SpaceshipController::PushToLua(const Nz::WindowEvent::MouseButtonEvent &event)
+	void SpaceshipController::PushToLua(const Nz::WindowEvent::KeyEvent& event)
+	{
+		m_controlScript.PushTable(0, 6);
+		{
+			std::string keyName;
+#define HandleKey(KeyName) case Nz::Keyboard::##KeyName : keyName = #KeyName ; break;
+			switch (event.code)
+			{
+				HandleKey(Undefined)
+
+				// Lettres
+				HandleKey(A)
+				HandleKey(B)
+				HandleKey(C)
+				HandleKey(D)
+				HandleKey(E)
+				HandleKey(F)
+				HandleKey(G)
+				HandleKey(H)
+				HandleKey(I)
+				HandleKey(J)
+				HandleKey(K)
+				HandleKey(L)
+				HandleKey(M)
+				HandleKey(N)
+				HandleKey(O)
+				HandleKey(P)
+				HandleKey(Q)
+				HandleKey(R)
+				HandleKey(S)
+				HandleKey(T)
+				HandleKey(U)
+				HandleKey(V)
+				HandleKey(W)
+				HandleKey(X)
+				HandleKey(Y)
+				HandleKey(Z)
+
+				// Functional keys
+				HandleKey(F1)
+				HandleKey(F2)
+				HandleKey(F3)
+				HandleKey(F4)
+				HandleKey(F5)
+				HandleKey(F6)
+				HandleKey(F7)
+				HandleKey(F8)
+				HandleKey(F9)
+				HandleKey(F10)
+				HandleKey(F11)
+				HandleKey(F12)
+				HandleKey(F13)
+				HandleKey(F14)
+				HandleKey(F15)
+
+				// Directional keys
+				HandleKey(Down)
+				HandleKey(Left)
+				HandleKey(Right)
+				HandleKey(Up)
+
+				// Numerical pad
+				HandleKey(Add)
+				HandleKey(Decimal)
+				HandleKey(Divide)
+				HandleKey(Multiply)
+				HandleKey(Numpad0)
+				HandleKey(Numpad1)
+				HandleKey(Numpad2)
+				HandleKey(Numpad3)
+				HandleKey(Numpad4)
+				HandleKey(Numpad5)
+				HandleKey(Numpad6)
+				HandleKey(Numpad7)
+				HandleKey(Numpad8)
+				HandleKey(Numpad9)
+				HandleKey(Subtract)
+
+				// Various
+				HandleKey(Backslash)
+				HandleKey(Backspace)
+				HandleKey(Clear)
+				HandleKey(Comma)
+				HandleKey(Dash)
+				HandleKey(Delete)
+				HandleKey(End)
+				HandleKey(Equal)
+				HandleKey(Escape)
+				HandleKey(Home)
+				HandleKey(Insert)
+				HandleKey(LAlt)
+				HandleKey(LBracket)
+				HandleKey(LControl)
+				HandleKey(LShift)
+				HandleKey(LSystem)
+				HandleKey(Num0)
+				HandleKey(Num1)
+				HandleKey(Num2)
+				HandleKey(Num3)
+				HandleKey(Num4)
+				HandleKey(Num5)
+				HandleKey(Num6)
+				HandleKey(Num7)
+				HandleKey(Num8)
+				HandleKey(Num9)
+				HandleKey(PageDown)
+				HandleKey(PageUp)
+				HandleKey(Pause)
+				HandleKey(Period)
+				HandleKey(Print)
+				HandleKey(PrintScreen)
+				HandleKey(Quote)
+				HandleKey(RAlt)
+				HandleKey(RBracket)
+				HandleKey(RControl)
+				HandleKey(Return)
+				HandleKey(RShift)
+				HandleKey(RSystem)
+				HandleKey(Semicolon)
+				HandleKey(Slash)
+				HandleKey(Space)
+				HandleKey(Tab)
+				HandleKey(Tilde)
+
+				// Navigator keys
+				HandleKey(Browser_Back)
+				HandleKey(Browser_Favorites)
+				HandleKey(Browser_Forward)
+				HandleKey(Browser_Home)
+				HandleKey(Browser_Refresh)
+				HandleKey(Browser_Search)
+				HandleKey(Browser_Stop)
+
+				// Lecture control keys
+				HandleKey(Media_Next)
+				HandleKey(Media_Play)
+				HandleKey(Media_Previous)
+				HandleKey(Media_Stop)
+
+				// Volume control keys
+				HandleKey(Volume_Down)
+				HandleKey(Volume_Mute)
+				HandleKey(Volume_Up)
+
+				// Locking keys
+				HandleKey(CapsLock)
+				HandleKey(NumLock)
+				HandleKey(ScrollLock)
+
+				default: keyName = "Unknown"; break;
+			}
+#undef HandleKey
+
+			m_controlScript.PushField("key", keyName);
+			m_controlScript.PushField("alt", event.alt);
+			m_controlScript.PushField("control", event.control);
+			m_controlScript.PushField("repeated", event.repeated);
+			m_controlScript.PushField("shift", event.shift);
+			m_controlScript.PushField("system", event.system);
+		}
+	}
+
+	void SpaceshipController::PushToLua(const Nz::WindowEvent::MouseButtonEvent& event)
 	{
 		m_controlScript.PushTable(0, 3);
 		{
@@ -506,16 +644,12 @@ namespace ewn
 		}
 	}
 
-	void SpaceshipController::PushToLua(const Nz::WindowEvent::KeyEvent &event)
+	void SpaceshipController::PushToLua(const Nz::WindowEvent::MouseMoveEvent& event)
 	{
-		m_controlScript.PushTable(0, 6);
-		{
-			m_controlScript.PushField("key", Nz::Keyboard::GetKeyName(event.code));
-			m_controlScript.PushField("alt", event.alt);
-			m_controlScript.PushField("control", event.control);
-			m_controlScript.PushField("repeated", event.repeated);
-			m_controlScript.PushField("shift", event.shift);
-			m_controlScript.PushField("system", event.system);
-		}
+		m_controlScript.PushTable(0, 4);
+			m_controlScript.PushField("deltaX", event.deltaX);
+			m_controlScript.PushField("deltaY", event.deltaY);
+			m_controlScript.PushField("x", event.x);
+			m_controlScript.PushField("y", event.y);
 	}
 }
