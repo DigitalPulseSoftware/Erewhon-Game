@@ -77,7 +77,7 @@ namespace ewn
 		m_lastShootTime = m_app->GetAppTime();
 	}
 
-	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f direction, Nz::Vector3f rotation)
+	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f movement, Nz::Vector3f rotation)
 	{
 		//TODO: Check input time consistency and possibly kick player
 		if (lastInputTime <= m_lastInputTime)
@@ -88,11 +88,11 @@ namespace ewn
 		if (!m_spaceship)
 			return;
 
-		if (!std::isfinite(direction.x) ||
-			!std::isfinite(direction.y) ||
-			!std::isfinite(direction.z))
+		if (!std::isfinite(movement.x) ||
+			!std::isfinite(movement.y) ||
+			!std::isfinite(movement.z))
 		{
-			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite direction: " << direction << std::endl;
+			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite movement: " << movement << std::endl;
 			return;
 		}
 
@@ -100,20 +100,20 @@ namespace ewn
 			!std::isfinite(rotation.y) ||
 			!std::isfinite(rotation.z))
 		{
-			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite rotation: " << direction << std::endl;
+			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite rotation: " << movement << std::endl;
 			return;
 		}
 
 		// TODO: Set speed limit accordingly to spaceship data
-		direction.x = Nz::Clamp(direction.x, -50.f, 50.f);
-		direction.y = Nz::Clamp(direction.y, -50.f, 50.f);
-		direction.z = Nz::Clamp(direction.z, -50.f, 50.f);
+		movement.x = Nz::Clamp(movement.x, -1.f, 1.f);
+		movement.y = Nz::Clamp(movement.y, -1.f, 1.f);
+		movement.z = Nz::Clamp(movement.z, -1.f, 1.f);
 
-		rotation.x = Nz::Clamp(rotation.x, -200.f, 200.f);
-		rotation.y = Nz::Clamp(rotation.y, -200.f, 200.f);
-		rotation.z = Nz::Clamp(rotation.z, -200.f, 200.f);
+		rotation.x = Nz::Clamp(rotation.x, -1.f, 1.f);
+		rotation.y = Nz::Clamp(rotation.y, -1.f, 1.f);
+		rotation.z = Nz::Clamp(rotation.z, -1.f, 1.f);
 
 		PlayerControlledComponent& controlComponent = m_spaceship->GetComponent<PlayerControlledComponent>();
-		controlComponent.PushInput(lastInputTime, direction, rotation);
+		controlComponent.PushInput(lastInputTime, movement, rotation);
 	}
 }

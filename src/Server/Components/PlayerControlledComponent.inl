@@ -29,14 +29,14 @@ namespace ewn
 		}
 	}
 
-	inline void PlayerControlledComponent::PushInput(Nz::UInt64 inputTime, const Nz::Vector3f& direction, const Nz::Vector3f& rotation)
+	inline void PlayerControlledComponent::PushInput(Nz::UInt64 inputTime, const Nz::Vector3f& movement, const Nz::Vector3f& rotation)
 	{
 		assert(inputTime > m_lastInputTime);
 
 		InputData inputData;
 		inputData.serverTime = inputTime;
-		inputData.direction = direction;
-		inputData.rotation = rotation;
+		inputData.direction = movement * 50.f;
+		inputData.rotation = rotation * 200.f;
 
 		m_inputs.emplace_back(std::move(inputData));
 	}
