@@ -1,41 +1,14 @@
-print("Bonjour Twitch!")
+dofile("spacelib.lua")
 
-function Vec2(x, y)
-	return {
-		["x"] = x or 0,
-		["y"] = y or 0
-	}
-end
-
-function Vec3(x, y, z)
-	return {
-		["x"] = x or 0,
-		["y"] = y or 0,
-		["z"] = z or 0
-	}
-end
-
-function Approach(value, objective, increment)
-	if (value < objective) then
-		return math.min(value + increment, objective)
-	elseif (value > objective) then
-		return math.max(value - increment, objective)
-	else
-		return value
-	end
-end
-
-function Clamp(value, minValue, maxValue)
-	return math.max(math.min(value, maxValue), minValue)
-end
-
-KeyPressed = {}
+local MouseButtonPressed = {}
+local KeyPressed = {}
 function OnLostFocus()
 	KeyPressed = {}
+	MouseButtonPressed = {}
 end
 
 function OnKeyPressed(event)
-	if (event.key == "ESPACE") then
+	if (event.key == "Space") then
 		Shoot()
 	else
 		KeyPressed[event.key] = true
@@ -46,30 +19,61 @@ function OnKeyReleased(event)
 	KeyPressed[event.key] = false
 end
 
+local IsRotationEnabled = false
+local RotationCursorPosition = Vec2.New(0, 0)
 function OnMouseButtonPressed(event)
+	MouseButtonPressed[event.button] = true
 	if (event.button == "Right") then
-		EnableRotation(true)
+		ShowRotationCursor(true)
+		IsRotationEnabled = true
+		RotationCursorPosition = Vec2.New(0, 0)
 	end
 end
 
 function OnMouseButtonReleased(event)
+	MouseButtonPressed[event.button] = false
 	if (event.button == "Right") then
-		EnableRotation(false)
+		ShowRotationCursor(false)
+		IsRotationEnabled = false
+		RotationCursorPosition = Vec2.New(0, 0)
 	end
 end
 
-Acceleration = 30.0
-StrafeSpeed = 20.0
-JumpSpeed = 20.0
-RollSpeed = 300.0
+local DistMax = 200
+
+function OnMouseMoved(event)
+	if (not IsRotationEnabled) then
+		return
+	end
+
+	RotationCursorPosition.x = RotationCursorPosition.x + event.deltaX
+	RotationCursorPosition.y = RotationCursorPosition.y + event.deltaY
+	
+	if (RotationCursorPosition:SquaredLength() > DistMax * DistMax) then
+		RotationCursorPosition:Normalize()
+		RotationCursorPosition = RotationCursorPosition * DistMax
+	end
+
+	local cursorAngle = math.deg(math.atan(RotationCursorPosition.y, RotationCursorPosition.x))
+	local cursorAlpha = RotationCursorPosition:SquaredLength() / (DistMax * DistMax)
+	UpdateRotationCursor(RotationCursorPosition, cursorAngle, cursorAlpha)
+
+	RecenterMouse()
+end
+
+local Acceleration = 1.0  -- 100%
+local StrafeSpeed = 0.66 -- 66%
+local JumpSpeed = 0.66 -- 66%
+local RollSpeed = 0.66 -- 66%
+local RotationSpeedPerPixel = 0.002  -- 0.2%
 
 function UpdateInput(elapsedTime)
-	if (KeyPressed["G"]) then
+	if (KeyPressed["G"] or (MouseButtonPressed["Left"] and IsRotationEnabled)) then
 		Shoot()
 	end
 	
-	local SpaceshipMovement = Vec3()
-	local SpaceshipRotation = Vec3()
+	local SpaceshipMovement = Vec3.New()
+	local SpaceshipRotation = Vec3.New()
 
 	if (KeyPressed["Z"]) then
 		SpaceshipMovement.x = SpaceshipMovement.x + Acceleration
@@ -89,11 +93,11 @@ function UpdateInput(elapsedTime)
 	end
 
 	local jumpSpeedModifier = 0.0
-	if (KeyPressed["MAJ"]) then
+	if (KeyPressed["LShift"]) then
 		SpaceshipMovement.z = SpaceshipMovement.z + JumpSpeed
 	end
 
-	if (KeyPressed["CTRL"]) then
+	if (KeyPressed["LControl"]) then
 		SpaceshipMovement.z = SpaceshipMovement.z - JumpSpeed
 	end
 
@@ -106,18 +110,29 @@ function UpdateInput(elapsedTime)
 		SpaceshipRotation.z = SpaceshipRotation.z - RollSpeed
 	end
 
-	local rotationDirection = GetRotation();
+	local rotationDirection = RotationCursorPosition
 
 	--SpaceshipMovement.x = Clamp(SpaceshipMovement.x + forwardSpeedModifier, -20.0, 20.0);
 	--SpaceshipMovement.y = Clamp(SpaceshipMovement.y + leftSpeedModifier, -15.0, 15.0);
 	--SpaceshipMovement.z = Clamp(SpaceshipMovement.z + jumpSpeedModifier, -15.0, 15.0);
 	--SpaceshipRotation.z = Clamp(SpaceshipRotation.z + rollSpeedModifier, -100.0, 100.0);
-	
-	SpaceshipRotation.x = Clamp(-rotationDirection.y / 2.0, -200.0, 200.0);
-	SpaceshipRotation.y = Clamp(-rotationDirection.x / 2.0, -200.0, 200.0);
+
+	SpaceshipRotation.x = Clamp(-rotationDirection.y * RotationSpeedPerPixel, -1.0, 1.0)
+	SpaceshipRotation.y = Clamp(-rotationDirection.x * RotationSpeedPerPixel, -1.0, 1.0)
 
 	--SpaceshipRotation.x = Approach(SpaceshipRotation.x, 0.0, 200.0 * elapsedTime);
 	--SpaceshipRotation.y = Approach(SpaceshipRotation.y, 0.0, 200.0 * elapsedTime);
 
 	return SpaceshipMovement, SpaceshipRotation
+end
+
+function Init()
+	--UpdateCamera(Vec3.Backward * 12.0 + Vec3.Up * 5, Vec3.New(-10.0, 0.0, 0.0))
+end
+
+function OnUpdate(pos, rot)
+	local position = Vec3.New(pos.x, pos.y, pos.z)
+	local rotation = Quaternion.New(rot.w, rot.x, rot.y, rot.z)
+		
+	UpdateCamera(position + rotation * (Vec3.Backward * 12.0 + Vec3.Up * 5), rotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0))
 end
