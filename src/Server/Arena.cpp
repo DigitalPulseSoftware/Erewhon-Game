@@ -44,7 +44,7 @@ namespace ewn
 		int defaultMaterial = world.GetMaterial("default");
 		m_projectileMaterial = world.CreateMaterial("laser");
 
-		world.SetMaterialCollisionCallback(defaultMaterial, m_projectileMaterial, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		world.SetMaterialCollisionCallback(defaultMaterial, m_projectileMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 		{
 			return HandleProjectileCollision(firstBody, secondBody);
 		});
