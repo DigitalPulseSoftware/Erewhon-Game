@@ -13,6 +13,7 @@
 #include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <Nazara/Core/Initializer.hpp>
+#include <Nazara/Core/Thread.hpp>
 #include <Nazara/Network/Network.hpp>
 #include <NDK/Sdk.hpp>
 
@@ -40,5 +41,6 @@ int main()
 
 	while (app.Run())
 	{
+		Nz::Thread::Sleep(1);
 	}
 }
