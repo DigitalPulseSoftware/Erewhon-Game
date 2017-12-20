@@ -90,7 +90,6 @@ namespace ewn
 			Nz::Vector3f m_cameraRotation;
 			bool m_executeScript;
 			float m_inputAccumulator;
-			float m_updateAccumulator;
 	};
 }
 

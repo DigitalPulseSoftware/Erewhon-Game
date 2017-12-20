@@ -27,8 +27,7 @@ namespace ewn
 	m_spaceship(spaceship),
 	m_lastShootTime(0),
 	m_executeScript(false),
-	m_inputAccumulator(0.f),
-	m_updateAccumulator(0.f)
+	m_inputAccumulator(0.f)
 	{
 		m_shootSound.SetBuffer(Nz::SoundBufferLibrary::Get("ShootSound"));
 		m_shootSound.EnableSpatialization(false);
@@ -71,34 +70,27 @@ namespace ewn
 			UpdateInput(inputSendInterval);
 		}
 
-		m_updateAccumulator += elapsedTime;
-
-		constexpr float updateScriptInterval = 1.f / 60.f;
-		if (m_updateAccumulator > updateScriptInterval)
+		if (m_executeScript)
 		{
-			//m_updateAccumulator -= updateScriptInterval;
-			if (m_executeScript)
+			if (m_controlScript.GetGlobal("OnUpdate") == Nz::LuaType_Function)
 			{
-				if (m_controlScript.GetGlobal("OnUpdate") == Nz::LuaType_Function)
-				{
-					auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
-					Nz::Vector3f position = spaceshipNode.GetPosition();
-					Nz::Quaternionf rotation = spaceshipNode.GetRotation();
+				auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+				Nz::Vector3f position = spaceshipNode.GetPosition();
+				Nz::Quaternionf rotation = spaceshipNode.GetRotation();
 
-					m_controlScript.PushTable(0, 3);
-						m_controlScript.PushField("x", position.x);
-						m_controlScript.PushField("y", position.y);
-						m_controlScript.PushField("z", position.z);
+				m_controlScript.PushTable(0, 3);
+				m_controlScript.PushField("x", position.x);
+				m_controlScript.PushField("y", position.y);
+				m_controlScript.PushField("z", position.z);
 
-					m_controlScript.PushTable(0, 4);
-						m_controlScript.PushField("w", rotation.w);
-						m_controlScript.PushField("x", rotation.x);
-						m_controlScript.PushField("y", rotation.y);
-						m_controlScript.PushField("z", rotation.z);
+				m_controlScript.PushTable(0, 4);
+				m_controlScript.PushField("w", rotation.w);
+				m_controlScript.PushField("x", rotation.x);
+				m_controlScript.PushField("y", rotation.y);
+				m_controlScript.PushField("z", rotation.z);
 
-					if (!m_controlScript.Call(2))
-						std::cerr << "OnUpdate failed: " << m_controlScript.GetLastError() << std::endl;
-				}
+				if (!m_controlScript.Call(2))
+					std::cerr << "OnUpdate failed: " << m_controlScript.GetLastError() << std::endl;
 			}
 		}
 	}
@@ -228,6 +220,7 @@ namespace ewn
 
 	void SpaceshipController::LoadScript()
 	{
+		m_sprites.clear();
 		m_controlScript = Nz::LuaInstance();
 		m_executeScript = true;
 
