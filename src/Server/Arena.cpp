@@ -237,6 +237,8 @@ namespace ewn
 	{
 		assert(m_players.find(player) != m_players.end());
 
+		DispatchChatMessage(player, player->GetName() + " has left");
+
 		m_players.erase(player);
 	}
 
@@ -251,6 +253,8 @@ namespace ewn
 			player->SendPacket(packet);
 
 		m_players[player] = Ndk::EntityHandle::InvalidHandle;
+
+		DispatchChatMessage(player, player->GetName() + " has joined");
 	}
 
 	bool Arena::HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
