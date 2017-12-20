@@ -24,6 +24,14 @@ namespace ewn
 	class ServerMatchEntities
 	{
 		public:
+			enum class Type
+			{
+				Ball,
+				Earth,
+				Projectile,
+				Spaceship
+			};
+
 			struct ServerEntity;
 
 			ServerMatchEntities(ClientApplication* app, ServerConnection* server, Ndk::WorldHandle world);
@@ -52,6 +60,8 @@ namespace ewn
 				Nz::Vector3f positionError;
 				Nz::UInt32 serverId;
 				bool isValid = false;
+				std::string name; //< remove asap, used for temporary client-side radar
+				Type type; //< remove asap, used for temporary client-side radar
 			};
 
 			NazaraSignal(OnEntityCreated, ServerMatchEntities* /*emitter*/, ServerEntity& /*entity*/);

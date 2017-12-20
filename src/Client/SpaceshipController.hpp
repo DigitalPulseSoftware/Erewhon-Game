@@ -19,11 +19,13 @@
 namespace ewn
 {
 	class ClientApplication;
+	class MatchChatbox;
+	class ServerMatchEntities;
 
 	class SpaceshipController
 	{
 		public:
-			SpaceshipController(ClientApplication* app, ServerConnection* server, Nz::RenderWindow& window, Ndk::World& world2D, const Ndk::EntityHandle& camera, const Ndk::EntityHandle& spaceship);
+			SpaceshipController(ClientApplication* app, ServerConnection* server, Nz::RenderWindow& window, Ndk::World& world2D, MatchChatbox& chatbox, ServerMatchEntities& entities, const Ndk::EntityHandle& camera, const Ndk::EntityHandle& spaceship);
 			SpaceshipController(const SpaceshipController&) = delete;
 			SpaceshipController(SpaceshipController&&) = delete;
 			~SpaceshipController();
@@ -34,8 +36,14 @@ namespace ewn
 			SpaceshipController& operator=(SpaceshipController&&) = delete;
 
 		private:
-			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
+			struct Sprite
+			{
+				Ndk::EntityOwner entity;
+				Nz::SpriteRef sprite;
+				bool isValid = false;
+			};
 
+			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnKeyReleased(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnLostFocus(const Nz::EventHandler* eventHandler);
 			void OnIntegrityUpdate(ServerConnection* server, const Packets::IntegrityUpdate& integrityUpdate);
@@ -63,11 +71,14 @@ namespace ewn
 			NazaraSlot(Nz::EventHandler, OnMouseMoved, m_onMouseMovedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
+			std::vector<Sprite> m_sprites;
 			ClientApplication* m_app;
+			MatchChatbox& m_chatbox;
+			ServerMatchEntities& m_entities;
 			ServerConnection* m_server;
+			Ndk::World& m_world2D;
 			Nz::RenderWindow& m_window;
 			Ndk::EntityHandle m_camera;
-			Ndk::EntityOwner m_crosshairEntity;
 			Ndk::EntityOwner m_cursorEntity;
 			Ndk::EntityOwner m_healthBarEntity;
 			Ndk::EntityHandle m_spaceship;
@@ -76,8 +87,6 @@ namespace ewn
 			Nz::SpriteRef m_healthBarSprite;
 			Nz::Sound m_shootSound;
 			Nz::UInt64 m_lastShootTime;
-			Nz::Vector2i m_rotationCursorOrigin;
-			Nz::Vector2i m_rotationCursorPosition;
 			Nz::Vector3f m_cameraRotation;
 			bool m_executeScript;
 			float m_inputAccumulator;

@@ -7,14 +7,21 @@
 #include <NDK/Components/CameraComponent.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
+#include <NDK/Components/PhysicsComponent3D.hpp>
 #include <NDK/LuaAPI.hpp>
 #include <Client/ClientApplication.hpp>
+#include <Client/MatchChatbox.hpp>
+#include <Client/ServerMatchEntities.hpp>
+#include <string>
 
 namespace ewn
 {
-	SpaceshipController::SpaceshipController(ClientApplication* app, ServerConnection* server, Nz::RenderWindow& window, Ndk::World& world2D, const Ndk::EntityHandle& camera, const Ndk::EntityHandle& spaceship) :
+	SpaceshipController::SpaceshipController(ClientApplication* app, ServerConnection* server, Nz::RenderWindow& window, Ndk::World& world2D, MatchChatbox& chatbox, ServerMatchEntities& entities, const Ndk::EntityHandle& camera, const Ndk::EntityHandle& spaceship) :
 	m_app(app),
+	m_chatbox(chatbox),
+	m_entities(entities),
 	m_server(server),
+	m_world2D(world2D),
 	m_window(window),
 	m_camera(camera),
 	m_spaceship(spaceship),
@@ -94,21 +101,6 @@ namespace ewn
 				}
 			}
 		}
-
-		// Compute crosshair position (according to projectile path projection)
-		auto& cameraComponent = m_camera->GetComponent<Ndk::CameraComponent>();
-		auto& entityNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
-
-		Nz::Vector4f worldPosition(entityNode.GetPosition() + entityNode.GetForward() * 150.f, 1.f);
-		worldPosition = cameraComponent.GetViewMatrix() * worldPosition;
-		worldPosition = cameraComponent.GetProjectionMatrix() * worldPosition;
-		worldPosition /= worldPosition.w;
-
-		Nz::Vector3f screenPosition(worldPosition.x * 0.5f + 0.5f, -worldPosition.y * 0.5f + 0.5f, worldPosition.z * 0.5f + 0.5f);
-		screenPosition.x *= m_window.GetSize().x;
-		screenPosition.y *= m_window.GetSize().y;
-
-		m_crosshairEntity->GetComponent<Ndk::NodeComponent>().SetPosition(screenPosition);
 	}
 
 	void SpaceshipController::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
@@ -218,6 +210,19 @@ namespace ewn
 
 	void SpaceshipController::OnRenderTargetSizeChange(const Nz::RenderTarget* renderTarget)
 	{
+		if (m_executeScript)
+		{
+			if (m_controlScript.GetGlobal("OnWindowSizeChanged") == Nz::LuaType_Function)
+			{
+				m_controlScript.PushTable(0, 2);
+					m_controlScript.PushField("width", renderTarget->GetSize().x);
+					m_controlScript.PushField("height", renderTarget->GetSize().y);
+
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnWindowSizeChanged failed: " << m_controlScript.GetLastError() << std::endl;
+			}
+		}
+
 		m_healthBarEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x - 300.f, renderTarget->GetSize().y - 70.f, 0.f });
 	}
 
@@ -245,23 +250,13 @@ namespace ewn
 		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
 		{
 			if (state.CheckBoolean(1))
-			{
-				m_rotationCursorOrigin = Nz::Mouse::GetPosition(m_window);
-
-				m_window.SetCursor(Nz::SystemCursor_None);
-				m_cursorEntity->Enable();
-				m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, 0));
-			}
-			else
-			{
 				m_window.SetCursor(Nz::SystemCursor_Default);
-				Nz::Mouse::SetPosition(m_rotationCursorOrigin.x, m_rotationCursorOrigin.y, m_window);
+			else
+				m_window.SetCursor(Nz::SystemCursor_None);
 
-				m_cursorEntity->Disable();
-			}
 			return 0;
 		});
-		m_controlScript.SetGlobal("ShowRotationCursor");
+		m_controlScript.SetGlobal("ShowCursor");
 
 		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
 		{
@@ -282,20 +277,26 @@ namespace ewn
 		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
 		{
 			int argIndex = 1;
-			Nz::Vector2f position = state.Check<Nz::Vector2f>(&argIndex);
-			float angle = state.Check<float>(&argIndex);
-			float alpha = state.Check<float>(&argIndex);
+			Nz::Vector3f position = state.Check<Nz::Vector3f>(&argIndex);
 
-			Ndk::NodeComponent& cursorNode = m_cursorEntity->GetComponent<Ndk::NodeComponent>();
-			cursorNode.SetPosition(position);
-			cursorNode.SetRotation(Nz::EulerAnglesf(0.f, 0.f, angle));
+			auto& cameraComponent = m_camera->GetComponent<Ndk::CameraComponent>();
 
-			Nz::UInt8 alphaValue = Nz::UInt8(Nz::Clamp(alpha * 255.f, 0.f, 255.f));
-			m_cursorOrientationSprite->SetColor(Nz::Color(255, 255, 255, alphaValue));
+			Nz::Vector4f worldPosition(position, 1.f);
+			worldPosition = cameraComponent.GetViewMatrix() * worldPosition;
+			worldPosition = cameraComponent.GetProjectionMatrix() * worldPosition;
+			worldPosition /= worldPosition.w;
 
-			return 0;
+			Nz::Vector3f screenPosition(worldPosition.x * 0.5f + 0.5f, -worldPosition.y * 0.5f + 0.5f, worldPosition.z * 0.5f + 0.5f);
+			screenPosition.x *= m_window.GetSize().x;
+			screenPosition.y *= m_window.GetSize().y;
+
+			state.PushTable(0, 2);
+				state.PushField("x", screenPosition.x);
+				state.PushField("y", screenPosition.y);
+
+			return 1;
 		});
-		m_controlScript.SetGlobal("UpdateRotationCursor");
+		m_controlScript.SetGlobal("Project");
 
 		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
 		{
@@ -311,6 +312,289 @@ namespace ewn
 		});
 		m_controlScript.SetGlobal("UpdateCamera");
 
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			auto& spaceshipPhys = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+
+			Nz::Vector3f linearVelocity = spaceshipPhys.GetLinearVelocity();
+
+			state.PushTable(0, 3);
+				state.PushField("x", linearVelocity.x);
+				state.PushField("y", linearVelocity.y);
+				state.PushField("z", linearVelocity.z);
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetSpaceshipLinearVelocity");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			auto& spaceshipPhys = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+
+			Nz::Vector3f angularVelocity = spaceshipPhys.GetAngularVelocity();
+
+			state.PushTable(0, 3);
+				state.PushField("x", angularVelocity.x);
+				state.PushField("y", angularVelocity.y);
+				state.PushField("z", angularVelocity.z);
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetSpaceshipAngularVelocity");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			state.Push(m_chatbox.IsTyping());
+			return 1;
+		});
+		m_controlScript.SetGlobal("IsChatboxActive");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			m_chatbox.PrintMessage(state.CheckString(1));
+			return 0;
+		});
+		m_controlScript.SetGlobal("PrintChatbox");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			m_sprites.clear();
+			return 0;
+		});
+		m_controlScript.SetGlobal("ClearSprites");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			Nz::String texture = state.Check<Nz::String>(&argIndex);
+			Nz::Vector2f position = state.Check<Nz::Vector2f>(&argIndex);
+			float rotation = state.Check<float>(&argIndex);
+			Nz::Vector2f size = state.Check<Nz::Vector2f>(&argIndex);
+			int renderOrder = state.Check<int>(&argIndex, 0);
+
+			std::size_t newSpritePos;
+			for (newSpritePos = 0; newSpritePos < m_sprites.size(); ++newSpritePos)
+			{
+				if (!m_sprites[newSpritePos].isValid)
+					break;
+			}
+
+			if (newSpritePos >= m_sprites.size())
+				m_sprites.resize(newSpritePos + 1);
+
+			Sprite& spriteData = m_sprites[newSpritePos];
+			spriteData.isValid = true;
+
+			Nz::MaterialRef spriteMat = Nz::Material::New("Translucent2D");
+			if (!texture.IsEmpty())
+				spriteMat->SetDiffuseMap(texture);
+
+			spriteData.sprite = Nz::Sprite::New();
+			spriteData.sprite->SetMaterial(spriteMat);
+			spriteData.sprite->SetSize(size);
+			spriteData.sprite->SetOrigin(spriteData.sprite->GetSize() / 2.f);
+
+			spriteData.entity = m_world2D.CreateEntity();
+
+			spriteData.entity->AddComponent<Ndk::GraphicsComponent>().Attach(spriteData.sprite, renderOrder);
+
+			auto& spriteNode = spriteData.entity->AddComponent<Ndk::NodeComponent>();
+			spriteNode.SetPosition(position);
+			spriteNode.SetRotation(Nz::EulerAnglesf(0.f, 0.f, rotation));
+
+			state.Push(newSpritePos);
+			return 1;
+		});
+		m_controlScript.SetGlobal("AddSprite");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			std::size_t spriteId = state.Check<std::size_t>(&argIndex);
+			state.ArgCheck(spriteId < m_sprites.size() && m_sprites[spriteId].isValid, 1, "Invalid sprite id");
+
+			assert(spriteId < m_sprites.size());
+			m_sprites[spriteId].entity->Kill();
+			m_sprites[spriteId].sprite.Reset();
+			m_sprites[spriteId].isValid = false;
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("DeleteSprite");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			std::size_t spriteId = state.Check<std::size_t>(&argIndex);
+			state.ArgCheck(spriteId < m_sprites.size() && m_sprites[spriteId].isValid, 1, "Invalid sprite id");
+
+			Nz::Vector2f position = state.Check<Nz::Vector2f>(&argIndex);
+			float rotation = state.Check<float>(&argIndex);
+
+			Sprite& spriteData = m_sprites[spriteId];
+
+			auto& spriteNode = spriteData.entity->AddComponent<Ndk::NodeComponent>();
+			spriteNode.SetPosition(position);
+			spriteNode.SetRotation(Nz::EulerAnglesf(0.f, 0.f, rotation));
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("UpdateSpritePosition");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			std::size_t spriteId = state.Check<std::size_t>(&argIndex);
+			state.ArgCheck(spriteId < m_sprites.size() && m_sprites[spriteId].isValid, 1, "Invalid sprite id");
+
+			Nz::Vector2f size = state.Check<Nz::Vector2f>(&argIndex);
+
+			Sprite& spriteData = m_sprites[spriteId];
+			spriteData.sprite->SetSize(size);
+			spriteData.sprite->SetOrigin(size / 2.f);
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("UpdateSpriteSize");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			std::size_t spriteId = state.Check<std::size_t>(&argIndex);
+			state.ArgCheck(spriteId < m_sprites.size() && m_sprites[spriteId].isValid, 1, "Invalid sprite id");
+
+			Nz::Color color = state.Check<Nz::Color>(&argIndex);
+
+			Sprite& spriteData = m_sprites[spriteId];
+			spriteData.sprite->SetColor(color);
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("UpdateSpriteColor");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			std::size_t spriteId = state.Check<std::size_t>(&argIndex);
+			bool enable = state.Check<bool>(&argIndex);
+			state.ArgCheck(spriteId < m_sprites.size() && m_sprites[spriteId].isValid, 1, "Invalid sprite id");
+
+			Sprite& spriteData = m_sprites[spriteId];
+			spriteData.entity->Enable(enable);
+
+			return 0;
+		});
+		m_controlScript.SetGlobal("ShowSprite");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			int argIndex = 1;
+			bool enable = state.Check<bool>(&argIndex);
+
+			m_healthBarEntity->Enable(enable);
+			return 0;
+		});
+		m_controlScript.SetGlobal("ShowHealthbar");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			m_controlScript.PushTable(0, 2);
+				m_controlScript.PushField("width", m_window.GetSize().x);
+				m_controlScript.PushField("height", m_window.GetSize().y);
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetScreenSize");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			std::size_t entityCount = m_entities.GetServerEntityCount();
+
+			m_controlScript.PushTable(0, entityCount);
+
+			for (std::size_t i = 0; i < entityCount; ++i)
+			{
+				if (!m_entities.IsServerEntityValid(i))
+					continue;
+
+				const auto& entityData = m_entities.GetServerEntity(i);
+
+				const Ndk::EntityHandle& entity = entityData.entity;
+				if (entity == m_spaceship)
+					continue;
+
+				auto& entityNode = entity->GetComponent<Ndk::NodeComponent>();
+				auto& entityPhys = entity->GetComponent<Ndk::PhysicsComponent3D>();
+
+				m_controlScript.PushInteger(entity->GetId());
+				m_controlScript.PushTable(0, 5);
+				{
+					m_controlScript.PushField("name", entityData.name);
+
+					// Kill me
+					switch (entityData.type)
+					{
+						case ServerMatchEntities::Type::Ball:
+							m_controlScript.PushField("type", std::string("ball"));
+							break;
+						case ServerMatchEntities::Type::Earth:
+							m_controlScript.PushField("type", std::string("earth"));
+							break;
+						case ServerMatchEntities::Type::Projectile:
+							m_controlScript.PushField("type", std::string("projectile"));
+							break;
+						case ServerMatchEntities::Type::Spaceship:
+							m_controlScript.PushField("type", std::string("spaceship"));
+							break;
+						default:
+							m_controlScript.PushField("type", std::string("bug"));
+							break;
+					}
+
+					m_controlScript.PushTable(0, 3);
+					{
+						Nz::Vector3f position = entityNode.GetPosition();
+						m_controlScript.PushField("x", position.x);
+						m_controlScript.PushField("y", position.y);
+						m_controlScript.PushField("z", position.z);
+					}
+					m_controlScript.SetField("position");
+
+					m_controlScript.PushTable(0, 3);
+					{
+						Nz::Quaternionf rotation = entityNode.GetRotation();
+						m_controlScript.PushField("w", rotation.x);
+						m_controlScript.PushField("x", rotation.x);
+						m_controlScript.PushField("y", rotation.y);
+						m_controlScript.PushField("z", rotation.z);
+					}
+					m_controlScript.SetField("rotation");
+
+					m_controlScript.PushTable(0, 3);
+					{
+						Nz::Vector3f velocity = entityPhys.GetLinearVelocity();
+						m_controlScript.PushField("x", velocity.x);
+						m_controlScript.PushField("y", velocity.y);
+						m_controlScript.PushField("z", velocity.z);
+					}
+					m_controlScript.SetField("linearVelocity");
+
+					m_controlScript.PushTable(0, 3);
+					{
+						Nz::Vector3f velocity = entityPhys.GetAngularVelocity();
+						m_controlScript.PushField("x", velocity.x);
+						m_controlScript.PushField("y", velocity.y);
+						m_controlScript.PushField("z", velocity.z);
+					}
+					m_controlScript.SetField("angularVelocity");
+				}
+
+				m_controlScript.SetTable();
+			}
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("ScanEntities");
 
 		if (m_executeScript)
 		{
@@ -324,21 +608,6 @@ namespace ewn
 
 	void SpaceshipController::LoadSprites(Ndk::World& world2D)
 	{
-		// Crosshair
-		{
-			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
-			cursorMat->SetDiffuseMap("Assets/weapons/crosshair.png");
-
-			Nz::SpriteRef crosshairSprite = Nz::Sprite::New();
-			crosshairSprite->SetMaterial(cursorMat);
-			crosshairSprite->SetSize({ 32.f, 32.f });
-			crosshairSprite->SetOrigin(crosshairSprite->GetSize() / 2.f);
-
-			m_crosshairEntity = world2D.CreateEntity();
-			m_crosshairEntity->AddComponent<Ndk::GraphicsComponent>().Attach(crosshairSprite);
-			m_crosshairEntity->AddComponent<Ndk::NodeComponent>();
-		}
-
 		// Health bar
 		{
 			Nz::MaterialRef healthBarMat = Nz::Material::New();
@@ -371,25 +640,6 @@ namespace ewn
 			crosshairGhx.Attach(healthBarEmptySprite, 1);
 			crosshairGhx.Attach(m_healthBarSprite, 2);
 		}
-
-		// Movement cursor
-		{
-			Nz::MaterialRef cursorMat = Nz::Material::New("Translucent2D");
-			cursorMat->SetDiffuseMap("Assets/cursor/orientation.png");
-
-			m_cursorOrientationSprite = Nz::Sprite::New();
-			m_cursorOrientationSprite->SetMaterial(cursorMat);
-			m_cursorOrientationSprite->SetSize({ 32.f, 32.f });
-			m_cursorOrientationSprite->SetOrigin(m_cursorOrientationSprite->GetSize() / 2.f);
-
-			m_cursorEntity = world2D.CreateEntity();
-			m_cursorEntity->AddComponent<Ndk::GraphicsComponent>().Attach(m_cursorOrientationSprite);
-			auto& cursorNode = m_cursorEntity->AddComponent<Ndk::NodeComponent>();
-			cursorNode.SetParent(m_crosshairEntity);
-			cursorNode.SetPosition({ 200.f, 200.f, 0.f });
-
-			m_cursorEntity->Disable();
-		}
 	}
 
 	void SpaceshipController::Shoot()
@@ -417,8 +667,10 @@ namespace ewn
 				{
 					m_controlScript.Pop(m_controlScript.GetStackTop());
 				});
+
 				Nz::Vector3f movement;
 				Nz::Vector3f rotation;
+
 				try
 				{
 					int index = 1;
@@ -427,7 +679,8 @@ namespace ewn
 				}
 				catch (const std::exception&)
 				{
-					std::cerr << "UpdateInput failed: returned values are invalid" << std::endl;
+					std::cerr << "UpdateInput failed: returned values are invalid:\n";
+					std::cerr << m_controlScript.DumpStack() << std::endl;
 					return;
 				}
 

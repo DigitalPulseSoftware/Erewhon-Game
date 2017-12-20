@@ -122,7 +122,7 @@ namespace ewn
 			if (data.textEntity)
 				data.textEntity->Disable();
 
-			m_spaceshipController.emplace(m_stateData.app, m_stateData.server, *m_stateData.window, *m_stateData.world2D, m_stateData.camera3D, data.entity);
+			m_spaceshipController.emplace(m_stateData.app, m_stateData.server, *m_stateData.window, *m_stateData.world2D, *m_chatbox, *m_matchEntities, m_stateData.camera3D, data.entity);
 		}
 
 		m_controlledEntity = entityId;

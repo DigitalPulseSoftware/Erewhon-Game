@@ -364,15 +364,29 @@ namespace ewn
 		data.rotationError = Nz::Quaternionf::Identity();
 
 		if (createPacket.entityType == "spaceship")
+		{
 			data.entity = m_spaceshipTemplateEntity->Clone();
+			data.type = Type::Spaceship; //< Remove asap
+		}
 		else if (createPacket.entityType == "earth")
+		{
 			data.entity = m_earthTemplateEntity->Clone();
+			data.type = Type::Earth; //< Remove asap
+		}
 		else if (createPacket.entityType == "ball")
+		{
 			data.entity = m_ballTemplateEntity->Clone();
+			data.type = Type::Ball; //< Remove asap
+		}
 		else if (createPacket.entityType == "projectile")
+		{
 			data.entity = m_projectileTemplateEntity->Clone();
+			data.type = Type::Projectile; //< Remove asap
+		}
 		else
 			return; //< TODO: Fallback
+
+		data.name = createPacket.name.ToStdString();
 
 		auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
 		entityNode.SetPosition(createPacket.position);
