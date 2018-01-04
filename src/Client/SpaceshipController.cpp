@@ -695,7 +695,7 @@ namespace ewn
 		m_controlScript.PushTable(0, 6);
 		{
 			std::string keyName;
-#define HandleKey(KeyName) case Nz::Keyboard::##KeyName : keyName = #KeyName ; break;
+#define HandleKey(KeyName) case Nz::Keyboard:: KeyName : keyName = #KeyName ; break;
 			switch (event.code)
 			{
 				HandleKey(Undefined)
