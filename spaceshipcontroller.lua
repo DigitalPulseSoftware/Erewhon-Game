@@ -27,7 +27,7 @@ API:
    - Returns whether the chatbox is active (currently used for typing) or not
 
   PrintChatbox(string text)
-   - Print something to the chat (which only the current player can see)
+   - Print something to the chat (which only the local player can see)
 
   Project(Vec3 worldPosition) -> table(x, y)
    - Returns the screen position corresponding to a world-space position (can be out of screenspace)
@@ -133,11 +133,11 @@ Events:
 	 - integer width: Window new width
 	 - integer height: Window new height
 
-  UpdateInput(number elapsedTime) -> Vec3, Quaternion
+  UpdateInput(number elapsedTime) -> Vec3, Vec3
     - Called every 60th of a second to gets the ship new inputs
 	Must returns two variables:
 	 - Vec3 acceleration: Ship new acceleration in local space
-	 - Quaternion torque: Ship new torque in local space
+	 - Vec3 torque: Ship new torque in local space
 ]]
 
 -- Constants
