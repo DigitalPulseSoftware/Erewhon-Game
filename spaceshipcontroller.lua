@@ -150,6 +150,8 @@ local StrafeSpeed = 0.66 -- 66%
 
 -- Work vars
 local CrosshairSprite
+local DamageSprite
+local DamageAlpha = 0
 local KeyPressed = {}
 local IsRotationEnabled = false
 local MovementSprite
@@ -162,7 +164,9 @@ function Init()
 	OnWindowSizeChanged(GetScreenSize())
 	
 	CrosshairSprite = AddSprite("Assets/weapons/crosshair.png", Vec2.New(0, 0), 0, Vec2.New(32, 32))
+	DamageSprite = AddSprite("", ScreenSize * 0.5, 0, ScreenSize)
 	MovementSprite = AddSprite("Assets/cursor/orientation.png", Vec2.New(0, 0), 0, Vec2.New(32, 32))
+	ShowSprite(DamageSprite, false)
 	ShowSprite(MovementSprite, false)
 end
 
@@ -185,6 +189,12 @@ end
 function OnLostFocus()
 	KeyPressed = {}
 	MouseButtonPressed = {}
+end
+
+function OnIntegrityUpdate(health)
+	DamageAlpha = 100
+	UpdateSpriteColor(DamageSprite, Color(255, 0, 0, DamageAlpha))
+	ShowSprite(DamageSprite, true)
 end
 
 function OnMouseButtonPressed(event)
@@ -241,6 +251,11 @@ end
 
 function OnWindowSizeChanged(size)
 	ScreenSize = Vec2.New(size.width, size.height)
+
+	if (DamageSprite) then
+		UpdateSpritePosition(DamageSprite, ScreenSize * 0.5, 0)
+		UpdateSpriteSize(DamageSprite, ScreenSize)
+	end
 end
 
 function UpdateInput(elapsedTime)
@@ -292,4 +307,14 @@ function UpdateInput(elapsedTime)
 	SpaceshipRotation.y = Clamp(-rotationDirection.x * RotationSpeedPerPixel, -1.0, 1.0)
 
 	return SpaceshipMovement, SpaceshipRotation
+	-- This should be in OnUpdate function
+	if (DamageAlpha > 0) then
+		DamageAlpha = DamageAlpha - elapsedTime * 200
+		if (DamageAlpha < 0) then
+			ShowSprite(DamageSprite, false)
+		else
+			UpdateSpriteColor(DamageSprite, Color(255, 0, 0, math.floor(DamageAlpha)))
+		end
+	end
+	
 end
