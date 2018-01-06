@@ -36,7 +36,7 @@ function Vec2:__add(rhs)
 	if (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x + rhs.x, self.y + rhs.y)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -44,7 +44,7 @@ function Vec2:__sub(rhs)
 	if (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x - rhs.x, self.y - rhs.y)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -56,7 +56,7 @@ function Vec2.__mul(lhs, rhs)
 	elseif (getmetatable(lhs) == Vec2 and type(rhs) == "number") then
 		return Vec2.New(lhs.x * rhs, lhs.y * rhs)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -66,7 +66,7 @@ function Vec2:__div(rhs)
 	elseif (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x / rhs.x, self.y / rhs.y)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -125,7 +125,7 @@ function Vec3:__add(rhs)
 	if (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -133,7 +133,7 @@ function Vec3:__sub(rhs)
 	if (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -145,7 +145,7 @@ function Vec3.__mul(lhs, rhs)
 	elseif (getmetatable(lhs) == Vec3 and type(rhs) == "number") then
 		return Vec3.New(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -155,7 +155,7 @@ function Vec3:__div(rhs)
 	elseif (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x / rhs.x, self.y / rhs.y, self.z / rhs.z)
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs))
 	end
 end
 
@@ -269,6 +269,21 @@ end
 
 function Quaternion:SquaredMagnitude()
 	return self.w * self.w + self.x * self.x + self.y * self.y + self.z * self.z
+end
+
+function Quaternion:ToEulerAngles()
+	local test = self.x * self.y + self.z * self.w
+	if (test > 0.5) then
+		-- singularity at north pole
+		return Vec3.New(0.0, math.deg(2.0 * math.atan(self.x, self.w)), math.deg(90.0))
+	elseif (test < -0.5) then
+		-- singularity at south pole
+		return Vec3.New(0.0, math.deg(-2.0 * math.atan(self.x, self.w)), math.deg(-90.0))
+	end
+
+	return Vec3.New(math.deg(math.atan(2.0 * self.x * self.w - 2.0 * self.y * self.z, 1.0 - 2.0 * self.x * self.x - 2.0 * self.z * self.z)),
+	                math.deg(math.atan(2.0 * self.y * self.w - 2.0 * self.x * self.z, 1.0 - 2.0 * self.y * self.y - 2.0 * self.z * self.z)),
+					math.deg(math.asin(2.0 * test)))
 end
 
 function Quaternion.FromEulerAngles(pitch, yaw, roll)
