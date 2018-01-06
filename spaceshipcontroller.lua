@@ -152,12 +152,17 @@ local StrafeSpeed = 0.66 -- 66%
 local CrosshairSprite
 local DamageSprite
 local DamageAlpha = 0
+local FreeFlightCamAngles = Vec3.New()
+local FreeFlightCamPos = Vec3.New()
+local FreeFlightCamRot = Quaternion.New()
 local KeyPressed = {}
 local IsRotationEnabled = false
+local IsFreeFlightEnabled = false
 local MovementSprite
 local MouseButtonPressed = {}
 local RotationCursorPosition = Vec2.New(0, 0)
 local ScreenSize
+local SynchronizeCamera = false
 
 
 function Init()
@@ -177,6 +182,14 @@ function OnKeyPressed(event)
 
 	if (event.key == "Space") then
 		Shoot()
+	elseif (event.key == "Tab") then
+		IsFreeFlightEnabled = not IsFreeFlightEnabled
+		if (IsFreeFlightEnabled) then
+			SynchronizeCamera = true
+			PrintChatbox("Freeflight camera enabled")
+		else
+			PrintChatbox("Freeflight camera disabled")
+		end
 	else
 		KeyPressed[event.key] = true
 	end
@@ -242,9 +255,21 @@ end
 function OnUpdate(pos, rot)
 	local position = Vec3.New(pos.x, pos.y, pos.z)
 	local rotation = Quaternion.New(rot.w, rot.x, rot.y, rot.z)
-		
-	UpdateCamera(position + rotation * (Vec3.Backward * 12.0 + Vec3.Up * 5), rotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0))
-	
+
+	if (IsFreeFlightEnabled) then
+		if (SynchronizeCamera) then
+			FreeFlightCamPos = position + rotation * (Vec3.Backward * 12.0 + Vec3.Up * 5)
+			FreeFlightCamRot = rotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0)
+			FreeFlightCamAngles = FreeFlightCamRot:ToEulerAngles()
+			FreeFlightCamAngles.z = 0 -- cancel roll
+			SynchronizeCamera = false
+		end
+
+		UpdateCamera(FreeFlightCamPos, FreeFlightCamRot)
+	else
+		UpdateCamera(position + rotation * (Vec3.Backward * 12.0 + Vec3.Up * 5), rotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0))
+	end
+
 	local targetPos = position + rotation * (Vec3.Forward * 150)
 	UpdateSpritePosition(CrosshairSprite, Project(targetPos), 0)
 end
@@ -306,7 +331,6 @@ function UpdateInput(elapsedTime)
 	SpaceshipRotation.x = Clamp(-rotationDirection.y * RotationSpeedPerPixel, -1.0, 1.0)
 	SpaceshipRotation.y = Clamp(-rotationDirection.x * RotationSpeedPerPixel, -1.0, 1.0)
 
-	return SpaceshipMovement, SpaceshipRotation
 	-- This should be in OnUpdate function
 	if (DamageAlpha > 0) then
 		DamageAlpha = DamageAlpha - elapsedTime * 200
@@ -317,4 +341,12 @@ function UpdateInput(elapsedTime)
 		end
 	end
 	
+	if (IsFreeFlightEnabled) then
+		FreeFlightCamAngles = FreeFlightCamAngles + Vec3.New(SpaceshipRotation.x * 5, SpaceshipRotation.y * 5, 0)
+		FreeFlightCamPos = FreeFlightCamPos + FreeFlightCamRot * Vec3.New(-SpaceshipMovement.y, SpaceshipMovement.z, -SpaceshipMovement.x)
+		FreeFlightCamRot = Quaternion.FromEulerAngles(FreeFlightCamAngles.x, FreeFlightCamAngles.y, FreeFlightCamAngles.z)
+		return Vec3.New(), Vec3.New()
+	else
+		return SpaceshipMovement, SpaceshipRotation
+	end
 end
