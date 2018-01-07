@@ -1,3 +1,17 @@
+function Approach(value, objective, increment)
+	if (value < objective) then
+		return math.min(value + increment, objective)
+	elseif (value > objective) then
+		return math.max(value - increment, objective)
+	else
+		return value
+	end
+end
+
+function Clamp(value, minValue, maxValue)
+	return math.max(math.min(value, maxValue), minValue)
+end
+
 function Color(r, g, b, a)
 	return {
 		["r"] = r,
@@ -209,20 +223,6 @@ Vec3.Left = Vec3.New(-1, 0, 0)
 Vec3.Right = Vec3.New(1, 0, 0)
 Vec3.Up = Vec3.New(0, 1, 0)
 
-
-function Approach(value, objective, increment)
-	if (value < objective) then
-		return math.min(value + increment, objective)
-	elseif (value > objective) then
-		return math.max(value - increment, objective)
-	else
-		return value
-	end
-end
-
-function Clamp(value, minValue, maxValue)
-	return math.max(math.min(value, maxValue), minValue)
-end
 
 Quaternion = {}
 Quaternion.__index = Quaternion
