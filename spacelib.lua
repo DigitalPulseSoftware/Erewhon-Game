@@ -12,13 +12,11 @@ function PrintTable( t, indent, done )
 	indent = indent or 0
 
 	for k,v in pairs(t) do
-		if (type(v) == "table") then
-			if (not done[v]) then
-				done[v] = true
+		if (type(v) == "table" and not done[v]) then
+			done[v] = true
 
-				print(string.rep("  ", indent) .. tostring(k) .. ": ")
-				PrintTable(t, indent + 1, done)
-			end
+			print(string.rep("  ", indent) .. tostring(k) .. ": ")
+			PrintTable(v, indent + 1, done)
 		else
 			print(string.rep("  ", indent) .. tostring(k) .. ": " .. tostring(v))
 		end
