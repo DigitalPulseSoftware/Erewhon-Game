@@ -41,14 +41,14 @@ Vec2 = {}
 Vec2.__index = Vec2
 
 function Vec2:__newindex(fieldName, value)
-	error("Vec2 has no field " .. fieldName)
+	error("Vec2 has no field " .. fieldName, 1)
 end
 
 function Vec2:__add(rhs)
 	if (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x + rhs.x, self.y + rhs.y)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -56,7 +56,7 @@ function Vec2:__sub(rhs)
 	if (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x - rhs.x, self.y - rhs.y)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -68,7 +68,7 @@ function Vec2.__mul(lhs, rhs)
 	elseif (getmetatable(lhs) == Vec2 and type(rhs) == "number") then
 		return Vec2.New(lhs.x * rhs, lhs.y * rhs)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -78,7 +78,7 @@ function Vec2:__div(rhs)
 	elseif (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x / rhs.x, self.y / rhs.y)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -137,7 +137,7 @@ function Vec3:__add(rhs)
 	if (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -145,7 +145,7 @@ function Vec3:__sub(rhs)
 	if (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -157,7 +157,7 @@ function Vec3.__mul(lhs, rhs)
 	elseif (getmetatable(lhs) == Vec3 and type(rhs) == "number") then
 		return Vec3.New(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -167,7 +167,7 @@ function Vec3:__div(rhs)
 	elseif (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x / rhs.x, self.y / rhs.y, self.z / rhs.z)
 	else
-		error("Unknown type: " .. type(rhs))
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
@@ -253,7 +253,7 @@ function Quaternion.__mul(lhs, rhs)
 
 		return rhs + uv + uuv
 	else
-		error("Unknown type")
+		error("Unknown type: " .. type(rhs), 1)
 	end
 end
 
