@@ -180,11 +180,8 @@ function Vec3:CrossProduct(vec)
 	return Vec3.New(self.y * vec.z - self.z * vec.y, self.z * vec.x - self.x * vec.z, self.x * vec.y - self.y * vec.x)
 end
 
-function Vec3:Normalize()
-	local length = self:Length()
-	self.x = self.x / length
-	self.y = self.y / length
-	self.z = self.z / length
+function Vec3:DotProduct(vec)
+	return self.x * vec.x + self.y * vec.y + self.z * vec.z
 end
 
 function Vec3:Distance(rhs)
@@ -193,6 +190,13 @@ end
 
 function Vec3:Length()
 	return math.sqrt(self:SquaredLength())
+end
+
+function Vec3:Normalize()
+	local length = self:Length()
+	self.x = self.x / length
+	self.y = self.y / length
+	self.z = self.z / length
 end
 
 function Vec3:SquaredLength()
