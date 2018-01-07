@@ -257,6 +257,16 @@ function Quaternion.__mul(lhs, rhs)
 	end
 end
 
+function Quaternion:Conjugate()
+	self.x = -self.x
+	self.y = -self.y
+	self.z = -self.z
+end
+
+function Quaternion:GetConjugate()
+	return Quaternion.New(self.w, -self.x, -self.y, -self.z)
+end
+
 function Quaternion:Magnitude()
 	return math.sqrt(self:SquaredMagnitude())
 end
@@ -305,6 +315,19 @@ function Quaternion.FromEulerAngles(pitch, yaw, roll)
 	                      s1 * s2 * c3 + c1 * c2 * s3,
 	                      s1 * c2 * c3 + c1 * s2 * s3,
 	                      c1 * s2 * c3 - s1 * c2 * s3)
+end
+
+function Quaternion.RotationBetween(from, to)
+	assert(getmetatable(from) == Vec3)
+	assert(getmetatable(to) == Vec3)
+
+	-- Based on: http://lolengine.net/blog/2013/09/18/beautiful-maths-quaternion-from-vectors
+	local norm = math.sqrt(from:SquaredLength() * to:SquaredLength())
+	local crossProduct = from:CrossProduct(to)
+	local quat = Quaternion.New(norm + from:DotProduct(to), crossProduct.x, crossProduct.y, crossProduct.z)
+	quat:Normalize()
+
+	return quat
 end
 
 function Quaternion.New(w, x, y, z)
