@@ -5,14 +5,14 @@
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <Nazara/Utility/Node.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
-#include <Server/Components/PlayerControlledComponent.hpp>
+#include <Server/Components/InputComponent.hpp>
 #include <iostream>
 
 namespace ewn
 {
 	SpaceshipSystem::SpaceshipSystem()
 	{
-		Requires<Ndk::PhysicsComponent3D, PlayerControlledComponent>();
+		Requires<Ndk::PhysicsComponent3D, InputComponent>();
 		SetMaximumUpdateRate(60.f);
 	}
 
@@ -21,10 +21,10 @@ namespace ewn
 		for (const Ndk::EntityHandle& spaceship : GetEntities())
 		{
 			auto& spaceshipPhysics = spaceship->GetComponent<Ndk::PhysicsComponent3D>();
-			auto& spaceshipControl = spaceship->GetComponent<PlayerControlledComponent>();
+			auto& spaceshipInput = spaceship->GetComponent<InputComponent>();
 
-			Nz::UInt64 lastInput = spaceshipControl.GetLastInputTime();
-			spaceshipControl.ProcessInputs([&] (Nz::UInt64 time, const Nz::Vector3f& movement, const Nz::Vector3f& rotation)
+			Nz::UInt64 lastInput = spaceshipInput.GetLastInputTime();
+			spaceshipInput.ProcessInputs([&] (Nz::UInt64 time, const Nz::Vector3f& movement, const Nz::Vector3f& rotation)
 			{
 				static constexpr float AngularMultiplier = 3000.f;
 				static constexpr float ForceMultiplier = 15000.f;

@@ -7,7 +7,7 @@
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/Arena.hpp>
 #include <Server/ServerApplication.hpp>
-#include <Server/Components/PlayerControlledComponent.hpp>
+#include <Server/Components/InputComponent.hpp>
 
 namespace ewn
 {
@@ -38,7 +38,7 @@ namespace ewn
 	{
 		if (m_spaceship)
 		{
-			auto& controlComponent = m_spaceship->GetComponent<PlayerControlledComponent>();
+			auto& controlComponent = m_spaceship->GetComponent<InputComponent>();
 			return controlComponent.GetLastInputTime();
 		}
 
@@ -113,7 +113,7 @@ namespace ewn
 		rotation.y = Nz::Clamp(rotation.y, -1.f, 1.f);
 		rotation.z = Nz::Clamp(rotation.z, -1.f, 1.f);
 
-		PlayerControlledComponent& controlComponent = m_spaceship->GetComponent<PlayerControlledComponent>();
+		auto& controlComponent = m_spaceship->GetComponent<InputComponent>();
 		controlComponent.PushInput(lastInputTime, movement, rotation);
 	}
 }

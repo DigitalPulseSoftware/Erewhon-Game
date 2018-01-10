@@ -9,32 +9,21 @@
 
 #include <Nazara/Math/Vector3.hpp>
 #include <NDK/Component.hpp>
+#include <Server/Player.hpp>
 
 namespace ewn
 {
 	class PlayerControlledComponent : public Ndk::Component<PlayerControlledComponent>
 	{
 		public:
-			inline PlayerControlledComponent();
+			inline PlayerControlledComponent(Player* owner);
 
-			inline Nz::UInt64 GetLastInputTime() const;
-
-			template<typename F> void ProcessInputs(F inputFunc);
-
-			inline void PushInput(Nz::UInt64 inputTime, const Nz::Vector3f& direction, const Nz::Vector3f& rotation);
+			inline Player* GetOwner() const;
 
 			static Ndk::ComponentIndex componentIndex;
 
 		private:
-			struct InputData
-			{
-				Nz::UInt64 serverTime;
-				Nz::Vector3f direction;
-				Nz::Vector3f rotation;
-			};
-
-			Nz::UInt64 m_lastInputTime;
-			std::vector<InputData> m_inputs;
+			PlayerHandle m_owner;
 	};
 }
 

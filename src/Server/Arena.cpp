@@ -11,6 +11,7 @@
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
@@ -65,6 +66,7 @@ namespace ewn
 		assert(m_players.find(player) != m_players.end());
 
 		const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", player->GetName(), player, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
+		spaceship->AddComponent<PlayerControlledComponent>(player);
 
 		m_players[player] = spaceship;
 
@@ -146,9 +148,9 @@ namespace ewn
 				auto& node = entity->GetComponent<Ndk::PhysicsComponent3D>();
 				node.SetPosition(Nz::Vector3f::Zero());
 
-				if (entity->HasComponent<OwnerComponent>() && attacker->HasComponent<OwnerComponent>())
+				if (entity->HasComponent<PlayerControlledComponent>() && attacker->HasComponent<OwnerComponent>())
 				{
-					auto& shipOwner = entity->GetComponent<OwnerComponent>();
+					auto& shipOwner = entity->GetComponent<PlayerControlledComponent>();
 					auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
 
 					Player* shipOwnerPlayer = shipOwner.GetOwner();
@@ -158,14 +160,17 @@ namespace ewn
 					Player* attackerPlayer = attackerOwner.GetOwner();
 					Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
 
-					DispatchChatMessage(nullptr, shipOwnerPlayer->GetName() + " has been destroyed by " + attackerName);
+					DispatchChatMessage(nullptr, attackerName + " has destroyed " + shipOwnerPlayer->GetName());
 				}
 			});
 
 			healthComponent.OnHealthChange.Connect([this](HealthComponent* health)
 			{
 				const Ndk::EntityHandle& entity = health->GetEntity();
-				Player* owner = entity->GetComponent<OwnerComponent>().GetOwner();
+				if (!entity->HasComponent<PlayerControlledComponent>())
+					return;
+
+				Player* owner = entity->GetComponent<PlayerControlledComponent>().GetOwner();
 				if (!owner)
 					return;
 
@@ -177,7 +182,7 @@ namespace ewn
 				owner->SendPacket(integrityPacket);
 			});
 
-			newEntity->AddComponent<PlayerControlledComponent>();
+			newEntity->AddComponent<InputComponent>();
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 5);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();

@@ -4,6 +4,7 @@
 
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
@@ -24,6 +25,7 @@ int main()
 	// Initialize custom components
 	Ndk::InitializeComponent<ewn::HealthComponent>("Health");
 	Ndk::InitializeComponent<ewn::LifeTimeComponent>("LifeTime");
+	Ndk::InitializeComponent<ewn::InputComponent>("InptComp");
 	Ndk::InitializeComponent<ewn::OwnerComponent>("OwnrComp");
 	Ndk::InitializeComponent<ewn::PlayerControlledComponent>("PlyCtrl");
 	Ndk::InitializeComponent<ewn::ProjectileComponent>("Prjctile");

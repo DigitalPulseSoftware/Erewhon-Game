@@ -7,7 +7,6 @@
 #ifndef EREWHON_SERVER_SPACESHIPSYSTEM_HPP
 #define EREWHON_SERVER_SPACESHIPSYSTEM_HPP
 
-#include <Nazara/Math/Vector3.hpp>
 #include <NDK/System.hpp>
 
 namespace ewn
@@ -21,9 +20,6 @@ namespace ewn
 
 		private:
 			void OnUpdate(float elapsedTime) override;
-
-			Nz::Vector3f m_direction;
-			Nz::Vector3f m_rotation;
 	};
 }
 

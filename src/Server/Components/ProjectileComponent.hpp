@@ -9,7 +9,6 @@
 
 #include <NDK/Component.hpp>
 #include <NDK/EntityList.hpp>
-#include <Server/Player.hpp>
 
 namespace ewn
 {
