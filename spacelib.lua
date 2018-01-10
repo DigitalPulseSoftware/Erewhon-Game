@@ -37,6 +37,7 @@ function PrintTable( t, indent, done )
 	end
 end
 
+
 Vec2 = {}
 Vec2.__index = Vec2
 
@@ -226,6 +227,39 @@ Vec3.Forward = Vec3.New(0, 0, -1)
 Vec3.Left = Vec3.New(-1, 0, 0)
 Vec3.Right = Vec3.New(1, 0, 0)
 Vec3.Up = Vec3.New(0, 1, 0)
+
+
+Vec3Pid = {}
+Vec3Pid.__index = Vec3Pid
+
+function Vec3Pid:__tostring()
+	return "Vec3Pid(p: " .. self.pFactor .. ", i: " .. self.iFactor .. ", d: " .. self.dFactor .. ", integral: " .. tostring(self.integral) .. ", last error: " .. tostring(self.lastError) .. ")"
+end
+
+function Vec3Pid:Update(currentError, elapsedTime)
+	assert(getmetatable(currentError) == Vec3)
+
+	self.integral = self.integral + (currentError * elapsedTime)
+	local deriv = (currentError - self.lastError) / elapsedTime
+	self.lastError = currentError
+	
+	return currentError * self.pFactor + self.integral * self.iFactor + deriv * self.dFactor
+end
+
+function Vec3Pid.New(pFactor, iFactor, dFactor)
+	assert(pFactor and iFactor and dFactor)
+
+	local o = {}
+	o.pFactor = pFactor
+	o.iFactor = iFactor
+	o.dFactor = dFactor
+	
+	o.integral = Vec3.New()
+	o.lastError = Vec3.New()
+	
+	setmetatable(o, Vec3Pid)
+	return o
+end
 
 
 Quaternion = {}
