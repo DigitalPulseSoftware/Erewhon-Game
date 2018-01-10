@@ -9,9 +9,11 @@
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
+#include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
+#include <Server/Systems/ScriptSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Core/Thread.hpp>
@@ -29,9 +31,11 @@ int main()
 	Ndk::InitializeComponent<ewn::OwnerComponent>("OwnrComp");
 	Ndk::InitializeComponent<ewn::PlayerControlledComponent>("PlyCtrl");
 	Ndk::InitializeComponent<ewn::ProjectileComponent>("Prjctile");
+	Ndk::InitializeComponent<ewn::ScriptComponent>("ScrptCmp");
 	Ndk::InitializeComponent<ewn::SynchronizedComponent>("SyncComp");
 	Ndk::InitializeSystem<ewn::BroadcastSystem>();
 	Ndk::InitializeSystem<ewn::LifeTimeSystem>();
+	Ndk::InitializeSystem<ewn::ScriptSystem>();
 	Ndk::InitializeSystem<ewn::SpaceshipSystem>();
 
 	ewn::ServerApplication app;

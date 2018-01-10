@@ -16,9 +16,11 @@
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
+#include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
+#include <Server/Systems/ScriptSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <cassert>
 
@@ -39,6 +41,7 @@ namespace ewn
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
 		m_world.AddSystem<LifeTimeSystem>();
+		m_world.AddSystem<ScriptSystem>(app);
 		m_world.AddSystem<SpaceshipSystem>();
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
@@ -53,6 +56,9 @@ namespace ewn
 		// Earth entity
 		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
 		CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
+
+		const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", "Bot", nullptr, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
+		spaceship->AddComponent<ScriptComponent>("test_script.lua");
 
 		if constexpr (sendServerGhosts)
 		{
