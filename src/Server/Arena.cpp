@@ -23,7 +23,7 @@
 
 namespace ewn
 {
-	static constexpr bool sendServerGhosts = true;
+	static constexpr bool sendServerGhosts = false;
 
 	Arena::Arena(ServerApplication* app) :
 	m_app(app),
