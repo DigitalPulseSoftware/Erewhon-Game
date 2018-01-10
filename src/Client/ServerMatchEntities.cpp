@@ -401,14 +401,17 @@ namespace ewn
 		Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
 		// Create entity name entity
-		Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
-		textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-		textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
-		textSprite->SetScale(0.01f);
+		if (createPacket.name.IsEmpty())
+		{
+			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
+			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
+			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
+			textSprite->SetScale(0.01f);
 
-		data.textEntity = m_world->CreateEntity();
-		data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
-		data.textEntity->AddComponent<Ndk::NodeComponent>();
+			data.textEntity = m_world->CreateEntity();
+			data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
+			data.textEntity->AddComponent<Ndk::NodeComponent>();
+		}
 
 		OnEntityCreated(this, data);
 	}
@@ -420,8 +423,10 @@ namespace ewn
 		if (data.debugGhostEntity)
 			data.debugGhostEntity->Kill();
 
+		if (data.textEntity)
+			data.textEntity->Kill();
+
 		data.entity->Kill();
-		data.textEntity->Kill();
 		data.isValid = false;
 
 		OnEntityDelete(this, data);
