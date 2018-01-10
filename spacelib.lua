@@ -42,14 +42,14 @@ Vec2 = {}
 Vec2.__index = Vec2
 
 function Vec2:__newindex(fieldName, value)
-	error("Vec2 has no field " .. fieldName, 1)
+	error("Vec2 has no field " .. fieldName, 2)
 end
 
 function Vec2:__add(rhs)
 	if (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x + rhs.x, self.y + rhs.y)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
@@ -57,19 +57,21 @@ function Vec2:__sub(rhs)
 	if (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x - rhs.x, self.y - rhs.y)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
 function Vec2.__mul(lhs, rhs)
-	if (getmetatable(lhs) == getmetatable(rhs) and getmetatable(lhs) == Vec2) then
+	local lhs_meta = getmetatable(lhs)
+	local rhs_meta = getmetatable(rhs)
+	if (lhs_meta == rhs_meta and lhs_meta == Vec2) then
 		return Vec2.New(lhs.x * rhs.x, lhs.y * rhs.y)
-	elseif (type(lhs) == "number" and getmetatable(rhs) == Vec2) then
+	elseif (type(lhs) == "number" and rhs_meta == Vec2) then
 		return Vec2.New(lhs * rhs.x, lhs * rhs.y)
-	elseif (getmetatable(lhs) == Vec2 and type(rhs) == "number") then
+	elseif (lhs_meta == Vec2 and type(rhs) == "number") then
 		return Vec2.New(lhs.x * rhs, lhs.y * rhs)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
@@ -79,7 +81,7 @@ function Vec2:__div(rhs)
 	elseif (getmetatable(rhs) == Vec2) then
 		return Vec2.New(self.x / rhs.x, self.y / rhs.y)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
@@ -138,7 +140,7 @@ function Vec3:__add(rhs)
 	if (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
@@ -146,19 +148,21 @@ function Vec3:__sub(rhs)
 	if (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
 function Vec3.__mul(lhs, rhs)
-	if (getmetatable(lhs) == getmetatable(rhs) and getmetatable(lhs) == Vec3) then
+	local lhs_meta = getmetatable(lhs)
+	local rhs_meta = getmetatable(rhs)
+	if (lhs_meta == rhs_meta and lhs_meta == Vec3) then
 		return Vec3.New(lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z)
-	elseif (type(lhs) == "number" and getmetatable(rhs) == Vec3) then
+	elseif (type(lhs) == "number" and rhs_meta == Vec3) then
 		return Vec3.New(lhs * rhs.x, lhs * rhs.y, lhs * rhs.z)
-	elseif (getmetatable(lhs) == Vec3 and type(rhs) == "number") then
+	elseif (lhs_meta == Vec3 and type(rhs) == "number") then
 		return Vec3.New(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
@@ -168,7 +172,7 @@ function Vec3:__div(rhs)
 	elseif (getmetatable(rhs) == Vec3) then
 		return Vec3.New(self.x / rhs.x, self.y / rhs.y, self.z / rhs.z)
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
@@ -270,7 +274,9 @@ function Quaternion:__tostring()
 end
 
 function Quaternion.__mul(lhs, rhs)
-	if (getmetatable(lhs) == getmetatable(rhs) and getmetatable(lhs) == Quaternion) then
+	local lhs_meta = getmetatable(lhs)
+	local rhs_meta = getmetatable(rhs)
+	if (lhs_meta == rhs_meta and lhs_meta == Quaternion) then
 		local quat = Quaternion.New()
 		quat.w = lhs.w * rhs.w - lhs.x * rhs.x - lhs.y * rhs.y - lhs.z * rhs.z
 		quat.x = lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y
@@ -278,16 +284,16 @@ function Quaternion.__mul(lhs, rhs)
 		quat.z = lhs.w * rhs.z + lhs.z * rhs.w + lhs.x * rhs.y - lhs.y * rhs.x
 		
 		return quat
-	elseif (getmetatable(lhs) == Quaternion and getmetatable(rhs) == Vec3) then
+	elseif (lhs_meta == Quaternion and rhs_meta == Vec3) then
 		local quatVec = Vec3.New(lhs.x, lhs.y, lhs.z)
 		local uv = quatVec:CrossProduct(rhs)
 		local uuv = quatVec:CrossProduct(uv)
-		uv = uv * 2.0 * lhs.w;
+		uv = uv * 2.0 * lhs.w
 		uuv = uuv * 2.0
 
 		return rhs + uv + uuv
 	else
-		error("Unknown type: " .. type(rhs), 1)
+		error("Unknown type: " .. type(rhs), 2)
 	end
 end
 
