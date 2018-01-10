@@ -194,9 +194,12 @@ function OnKeyPressed(event)
 	elseif (event.key == "Tab") then
 		IsFreeFlightEnabled = not IsFreeFlightEnabled
 		if (IsFreeFlightEnabled) then
+			ShowCursor(false)
+			ShowSprite(MovementSprite, false)
 			SynchronizeCamera = true
 			PrintChatbox("Freeflight camera enabled")
 		else
+			ShowCursor(true)
 			PrintChatbox("Freeflight camera disabled")
 		end
 	else
@@ -221,7 +224,7 @@ end
 
 function OnMouseButtonPressed(event)
 	MouseButtonPressed[event.button] = true
-	if (event.button == "Right") then
+	if (event.button == "Right" and not IsFreeFlightEnabled) then
 		ShowCursor(false)
 		IsRotationEnabled = true
 		RotationCursorPosition = Vec2.New(0, 0)
@@ -232,7 +235,7 @@ end
 
 function OnMouseButtonReleased(event)
 	MouseButtonPressed[event.button] = false
-	if (event.button == "Right") then
+	if (event.button == "Right" and not IsFreeFlightEnabled) then
 		ShowCursor(true)
 		IsRotationEnabled = false
 		RotationCursorPosition = Vec2.New(0, 0)
@@ -241,6 +244,17 @@ function OnMouseButtonReleased(event)
 end
 
 function OnMouseMoved(event)
+	if (IsFreeFlightEnabled) then
+		local sensitivity = 0.3
+
+		FreeFlightCamAngles.x = Clamp(FreeFlightCamAngles.x - event.deltaY * sensitivity, -89, 89)
+		FreeFlightCamAngles.y = math.fmod(FreeFlightCamAngles.y - event.deltaX * sensitivity, 360)
+		FreeFlightCamRot = Quaternion.FromEulerAngles(FreeFlightCamAngles.x, FreeFlightCamAngles.y, FreeFlightCamAngles.z)
+
+		RecenterMouse()
+		return
+	end
+
 	if (not IsRotationEnabled) then
 		return
 	end
@@ -261,14 +275,14 @@ function OnMouseMoved(event)
 	RecenterMouse()
 end
 
-function OnUpdate(pos, rot)
-	local position = Vec3.New(pos.x, pos.y, pos.z)
-	local rotation = Quaternion.New(rot.w, rot.x, rot.y, rot.z)
+function OnUpdate(visualPosition, visualRotation, elapsedTime)
+	setmetatable(visualPosition, Vec3)
+	setmetatable(visualRotation, Quaternion)
 
 	if (IsFreeFlightEnabled) then
 		if (SynchronizeCamera) then
-			FreeFlightCamPos = position + rotation * (Vec3.Backward * 12.0 + Vec3.Up * 5)
-			FreeFlightCamRot = rotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0)
+			FreeFlightCamPos = visualPosition + visualRotation * (Vec3.Backward * 12.0 + Vec3.Up * 5)
+			FreeFlightCamRot = visualRotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0)
 			FreeFlightCamAngles = FreeFlightCamRot:ToEulerAngles()
 			FreeFlightCamAngles.z = 0 -- cancel roll
 			SynchronizeCamera = false
@@ -276,10 +290,10 @@ function OnUpdate(pos, rot)
 
 		UpdateCamera(FreeFlightCamPos, FreeFlightCamRot)
 	else
-		UpdateCamera(position + rotation * (Vec3.Backward * 12.0 + Vec3.Up * 5), rotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0))
+		UpdateCamera(visualPosition + visualRotation * (Vec3.Backward * 12.0 + Vec3.Up * 5), visualRotation * Quaternion.FromEulerAngles(-10, 0.0, 0.0))
 	end
 
-	local targetPos = position + rotation * (Vec3.Forward * 150)
+	local targetPos = visualPosition + visualRotation * (Vec3.Forward * 150)
 	UpdateSpritePosition(CrosshairSprite, Project(targetPos), 0)
 end
 
@@ -351,9 +365,7 @@ function UpdateInput(elapsedTime)
 	end
 	
 	if (IsFreeFlightEnabled) then
-		FreeFlightCamAngles = FreeFlightCamAngles + Vec3.New(SpaceshipRotation.x * 5, SpaceshipRotation.y * 5, 0)
 		FreeFlightCamPos = FreeFlightCamPos + FreeFlightCamRot * Vec3.New(-SpaceshipMovement.y, SpaceshipMovement.z, -SpaceshipMovement.x)
-		FreeFlightCamRot = Quaternion.FromEulerAngles(FreeFlightCamAngles.x, FreeFlightCamAngles.y, FreeFlightCamAngles.z)
 		return Vec3.New(), Vec3.New()
 	else
 		-- Make rotation global
