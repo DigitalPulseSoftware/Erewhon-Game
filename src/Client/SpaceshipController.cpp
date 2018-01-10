@@ -79,17 +79,19 @@ namespace ewn
 				Nz::Quaternionf rotation = spaceshipNode.GetRotation();
 
 				m_controlScript.PushTable(0, 3);
-				m_controlScript.PushField("x", position.x);
-				m_controlScript.PushField("y", position.y);
-				m_controlScript.PushField("z", position.z);
+					m_controlScript.PushField("x", position.x);
+					m_controlScript.PushField("y", position.y);
+					m_controlScript.PushField("z", position.z);
 
 				m_controlScript.PushTable(0, 4);
-				m_controlScript.PushField("w", rotation.w);
-				m_controlScript.PushField("x", rotation.x);
-				m_controlScript.PushField("y", rotation.y);
-				m_controlScript.PushField("z", rotation.z);
+					m_controlScript.PushField("w", rotation.w);
+					m_controlScript.PushField("x", rotation.x);
+					m_controlScript.PushField("y", rotation.y);
+					m_controlScript.PushField("z", rotation.z);
 
-				if (!m_controlScript.Call(2))
+				m_controlScript.Push(elapsedTime);
+
+				if (!m_controlScript.Call(3))
 					std::cerr << "OnUpdate failed: " << m_controlScript.GetLastError() << std::endl;
 			}
 		}
@@ -304,6 +306,62 @@ namespace ewn
 			return 0;
 		});
 		m_controlScript.SetGlobal("UpdateCamera");
+		
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			// Yup, this is crap
+			std::size_t entityCount = m_entities.GetServerEntityCount();
+			for (std::size_t i = 0; i < entityCount; ++i)
+			{
+				if (!m_entities.IsServerEntityValid(i))
+					continue;
+
+				const auto& entityData = m_entities.GetServerEntity(i);
+
+				const Ndk::EntityHandle& entity = entityData.entity;
+				if (entity == m_spaceship)
+				{
+					state.PushString(entityData.name);
+					return 1;
+				}
+			}
+
+			state.PushString("<Bug>");
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetSpaceshipName");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			auto& spaceshipPhys = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+
+			Nz::Vector3f position = spaceshipPhys.GetPosition();
+
+			state.PushTable(0, 3);
+				state.PushField("x", position.x);
+				state.PushField("y", position.y);
+				state.PushField("z", position.z);
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetSpaceshipPosition");
+
+		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
+		{
+			auto& spaceshipPhys = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+
+			Nz::Quaternionf rotation = spaceshipPhys.GetRotation();
+
+			state.PushTable(0, 4);
+				state.PushField("w", rotation.w);
+				state.PushField("x", rotation.x);
+				state.PushField("y", rotation.y);
+				state.PushField("z", rotation.z);
+
+			return 1;
+		});
+		m_controlScript.SetGlobal("GetSpaceshipRotation");
+
 
 		m_controlScript.PushFunction([this](Nz::LuaState& state) -> int
 		{

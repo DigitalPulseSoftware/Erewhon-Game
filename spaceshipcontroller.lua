@@ -17,6 +17,15 @@ API:
   GetScreenSize() -> table(width, height)
    - Return the application window size
 
+  GetSpaceshipName() -> string
+   - Returns player controlled spaceship name
+
+  GetSpaceshipPosition() -> table(x, y, z)
+   - Returns player controlled spaceship physical position
+
+  GetSpaceshipRotation() -> table(w, x, y, z)
+   - Returns player controlled spaceship physical rotation
+
   GetSpaceshipAngularVelocity() -> table(x, y, z)
    - Returns player controlled spaceship angular velocity
 
@@ -123,7 +132,7 @@ Events:
 	 - integer deltaX: X part of the mouse relative movement since the last event
 	 - integer deltaY: Y part of the mouse relative movement since the last event
 
-  OnUpdate(table(x, y, z) position, table(w, x, y, z) rotation)
+  OnUpdate(table(x, y, z) position, table(w, x, y, z) rotation, number elapsedTime)
    - Called every frame with the current position and rotation of the player's spaceship.
      Keep this function lightweight to preserve performances
 
