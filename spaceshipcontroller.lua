@@ -146,7 +146,7 @@ Events:
     - Called every 60th of a second to gets the ship new inputs
 	Must returns two variables:
 	 - Vec3 acceleration: Ship new acceleration in local space
-	 - Vec3 torque: Ship new torque in local space
+	 - Vec3 torque: Ship new torque in global space
 ]]
 
 -- Constants
@@ -356,6 +356,11 @@ function UpdateInput(elapsedTime)
 		FreeFlightCamRot = Quaternion.FromEulerAngles(FreeFlightCamAngles.x, FreeFlightCamAngles.y, FreeFlightCamAngles.z)
 		return Vec3.New(), Vec3.New()
 	else
+		-- Make rotation global
+		local orientation = GetSpaceshipRotation()
+		setmetatable(orientation, Quaternion)
+
+		SpaceshipRotation = orientation * SpaceshipRotation
 		return SpaceshipMovement, SpaceshipRotation
 	end
 end

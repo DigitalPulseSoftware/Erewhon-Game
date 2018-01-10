@@ -35,7 +35,7 @@ namespace ewn
 				Nz::Vector3f totalRotation = inputElapsedTime * rotation;
 
 				spaceshipPhysics.AddForce(ForceMultiplier * totalMovement, Nz::CoordSys_Local);
-				spaceshipPhysics.AddTorque(AngularMultiplier * totalRotation, Nz::CoordSys_Local);
+				spaceshipPhysics.AddTorque(AngularMultiplier * totalRotation, Nz::CoordSys_Global);
 
 				/*std::cout << "At " << time << ": Move by " << totalMovement << " (final pos: " << spaceshipNode.GetPosition() << ")\n";
 				std::cout << "   " << time << ": Rotate by " << totalRotation << " (final pos: " << spaceshipNode.GetRotation().ToEulerAngles() << ')' << std::endl;*/
