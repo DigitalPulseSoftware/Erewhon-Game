@@ -21,7 +21,7 @@ namespace ewn
 		{
 			ScriptComponent& script = entity->GetComponent<ScriptComponent>();
 
-			script.Run(m_app);
+			script.Run(m_app, elapsedTime);
 		}
 	}
 

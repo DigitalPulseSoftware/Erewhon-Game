@@ -13,7 +13,7 @@
 
 namespace ewn
 {
-	class SpaceshipModule : public Nz::HandledObject<SpaceshipModule>
+	class SpaceshipModule
 	{
 		public:
 			inline SpaceshipModule(const Ndk::EntityHandle& spaceship);
@@ -25,6 +25,9 @@ namespace ewn
 			inline bool IsEnabled() const;
 
 			virtual void Register(Nz::LuaState& lua) = 0;
+
+		protected:
+			inline const Ndk::EntityHandle& GetSpaceship();
 
 		private:
 			Ndk::EntityHandle m_spaceship;

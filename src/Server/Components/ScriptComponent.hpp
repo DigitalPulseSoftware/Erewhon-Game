@@ -23,7 +23,7 @@ namespace ewn
 			ScriptComponent(std::string scriptName);
 			ScriptComponent(const ScriptComponent& component);
 
-			void Run(ServerApplication* app);
+			void Run(ServerApplication* app, float elapsedTime);
 
 			static Ndk::ComponentIndex componentIndex;
 

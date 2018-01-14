@@ -26,4 +26,9 @@ namespace ewn
 	{
 		return m_enabled;
 	}
+
+	inline const Ndk::EntityHandle& SpaceshipModule::GetSpaceship()
+	{
+		return m_spaceship;
+	}
 }

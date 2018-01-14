@@ -79,6 +79,7 @@ namespace ewn
 	void ScriptComponent::OnAttached()
 	{
 		m_core.emplace(m_entity);
+		m_core->AddModule(std::make_unique<WeaponModule>(m_entity));
 
 		m_instance.PushTable();
 		{
