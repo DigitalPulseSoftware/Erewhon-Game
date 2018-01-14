@@ -8,6 +8,7 @@
 #include <NDK/LuaAPI.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/InputComponent.hpp>
+#include <Server/Modules/WeaponModule.hpp>
 #include <iostream>
 
 namespace ewn
@@ -22,14 +23,15 @@ namespace ewn
 	{
 	}
 
-	void ScriptComponent::Run(ServerApplication* app)
+	void ScriptComponent::Run(ServerApplication* app, float elapsedTime)
 	{
 		if (m_instance.GetGlobal("Spaceship") == Nz::LuaType_Table)
 		{
 			if (m_instance.GetField("OnTick") == Nz::LuaType_Function)
 			{
 				m_instance.PushValue(-2); // Spaceship
-				if (!m_instance.Call(1, 0))
+				m_instance.Push(elapsedTime);
+				if (!m_instance.Call(2, 0))
 					std::cerr << "Spaceship crashed: " << m_instance.GetLastError() << std::endl;
 			}
 			else
@@ -42,7 +44,8 @@ namespace ewn
 			if (m_instance.GetField("OnUpdateInput") == Nz::LuaType_Function)
 			{
 				m_instance.PushValue(-2); // Spaceship
-				if (!m_instance.Call(1, 6))
+				m_instance.Push(elapsedTime);
+				if (!m_instance.Call(2, 6))
 					std::cerr << "Spaceship crashed (OnUpdateInput): " << m_instance.GetLastError() << std::endl;
 
 				// Use some RRID
