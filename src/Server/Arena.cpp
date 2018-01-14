@@ -285,7 +285,7 @@ namespace ewn
 		const Ndk::EntityHandle& projectile = m_world.GetEntity(laserEntityId);
 		const Ndk::EntityHandle& hitEntity = m_world.GetEntity(hitEntityId);
 
-		assert(projectile->HasComponent<OwnerComponent>() && projectile->HasComponent<ProjectileComponent>());
+		assert(projectile->HasComponent<ProjectileComponent>());
 
 		ProjectileComponent& projectileComponent = projectile->GetComponent<ProjectileComponent>();
 		if (projectileComponent.HasBeenHit(hitEntity))
