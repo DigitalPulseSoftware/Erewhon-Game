@@ -10,6 +10,7 @@
 #include <NDK/Systems/PhysicsSystem3D.hpp>
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
+#include <Server/Components/ArenaComponent.hpp>
 #include <Server/Components/HealthComponent.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
@@ -237,6 +238,8 @@ namespace ewn
 			physComponent.SetPosition(position);
 			physComponent.SetRotation(rotation);
 		}
+
+		newEntity->AddComponent<ArenaComponent>(*this);
 
 		if (owner)
 			newEntity->AddComponent<OwnerComponent>(owner);

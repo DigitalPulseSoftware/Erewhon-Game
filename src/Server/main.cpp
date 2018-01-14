@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
+#include <Server/Components/ArenaComponent.hpp>
 #include <Server/Components/HealthComponent.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
@@ -25,6 +26,7 @@ int main()
 	Nz::Initializer<Nz::Network, Ndk::Sdk> nazara; //< Init SDK before application because of custom components/systems
 
 	// Initialize custom components
+	Ndk::InitializeComponent<ewn::ArenaComponent>("Arena");
 	Ndk::InitializeComponent<ewn::HealthComponent>("Health");
 	Ndk::InitializeComponent<ewn::LifeTimeComponent>("LifeTime");
 	Ndk::InitializeComponent<ewn::InputComponent>("InptComp");
