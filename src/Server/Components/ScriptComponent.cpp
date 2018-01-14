@@ -59,7 +59,7 @@ namespace ewn
 
 				try
 				{
-					int index = 2;
+					int index = -6;
 					movement = m_instance.Check<Nz::Vector3f>(&index);
 					rotation = m_instance.Check<Nz::Vector3f>(&index);
 				}
