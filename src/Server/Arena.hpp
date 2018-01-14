@@ -40,6 +40,8 @@ namespace ewn
 
 			void DispatchChatMessage(Player* player, const Nz::String& message);
 
+			void ReloadScripts();
+
 			void Update(float elapsedTime);
 
 		private:
@@ -55,6 +57,7 @@ namespace ewn
 
 			Nz::UdpSocket m_debugSocket;
 			Ndk::EntityHandle m_attractionPoint;
+			Ndk::EntityList m_scriptControlledEntities;
 			Ndk::World m_world;
 			std::unordered_map<Player*, Ndk::EntityHandle> m_players;
 			std::vector<Packets::CreateEntity> m_createEntityCache;

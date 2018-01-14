@@ -62,6 +62,7 @@ namespace ewn
 		{
 			const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", "Bot #" + std::to_string(i), nullptr, Nz::Vector3f::UnitX() * i, Nz::Quaternionf::Identity());
 			spaceship->AddComponent<ScriptComponent>("test_script.lua");
+			m_scriptControlledEntities.Insert(spaceship);
 		}
 
 

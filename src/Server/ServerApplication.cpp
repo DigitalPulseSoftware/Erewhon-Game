@@ -113,6 +113,21 @@ namespace ewn
 		if (data.text.empty())
 			return;
 
+		if (data.text[0] == '/')
+		{
+			if (player->GetName() != "Lynix")
+				return;
+
+			// Handle chat commands
+			if (data.text == "/reload")
+			{
+				m_arena.ReloadScripts();
+			}
+
+			// Don't print command
+			return;
+		}
+
 		static constexpr std::size_t MaxChatLine = 255;
 
 		Nz::String message = player->GetName() + ": " + data.text;
