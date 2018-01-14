@@ -401,7 +401,7 @@ namespace ewn
 		Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
 		// Create entity name entity
-		if (createPacket.name.IsEmpty())
+		if (!createPacket.name.IsEmpty())
 		{
 			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
 			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
