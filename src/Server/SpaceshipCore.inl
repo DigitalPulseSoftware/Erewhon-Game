@@ -10,6 +10,11 @@ namespace ewn
 	m_spaceship(spaceship)
 	{
 	}
+
+	inline void SpaceshipCore::AddModule(std::unique_ptr<SpaceshipModule> modulePtr)
+	{
+		m_modules.emplace_back(std::move(modulePtr));
+	}
 }
 
 namespace Nz

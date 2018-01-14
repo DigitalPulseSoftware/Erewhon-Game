@@ -3,14 +3,40 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/SpaceshipCore.hpp>
+#include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <iostream>
 
 namespace ewn
 {
+	LuaVec3 SpaceshipCore::GetAngularVelocity() const
+	{
+		auto& nodeComponent = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+		return LuaVec3(nodeComponent.GetAngularVelocity());
+	}
+
 	float SpaceshipCore::GetIntegrity() const
 	{
 		auto& healthComponent = m_spaceship->GetComponent<HealthComponent>();
 		return healthComponent.GetHealthPct();
+	}
+
+	LuaVec3 SpaceshipCore::GetLinearVelocity() const
+	{
+		auto& nodeComponent = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+		return LuaVec3(nodeComponent.GetLinearVelocity());
+	}
+
+	LuaVec3 SpaceshipCore::GetPosition() const
+	{
+		auto& nodeComponent = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+		return LuaVec3(nodeComponent.GetPosition());
+	}
+
+	LuaQuaternion SpaceshipCore::GetRotation() const
+	{
+		auto& nodeComponent = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
+		return LuaQuaternion(nodeComponent.GetRotation());
 	}
 
 	void SpaceshipCore::Register(Nz::LuaState& lua)
@@ -19,7 +45,11 @@ namespace ewn
 		{
 			s_binding.emplace("Core");
 
-			s_binding->BindMethod("GetIntegrity", &SpaceshipCore::GetIntegrity);
+			s_binding->BindMethod("GetAngularVelocity", &SpaceshipCore::GetAngularVelocity);
+			s_binding->BindMethod("GetIntegrity",       &SpaceshipCore::GetIntegrity);
+			s_binding->BindMethod("GetLinearVelocity",  &SpaceshipCore::GetLinearVelocity);
+			s_binding->BindMethod("GetPosition",        &SpaceshipCore::GetPosition);
+			s_binding->BindMethod("GetRotation",        &SpaceshipCore::GetRotation);
 		}
 
 		s_binding->Register(lua);
@@ -30,5 +60,5 @@ namespace ewn
 		lua.PushField("Core", this);
 	}
 
-	std::optional<Nz::LuaClass<SpaceshipCore>> SpaceshipCore::s_binding;
+	std::optional<Nz::LuaClass<SpaceshipCoreHandle>> SpaceshipCore::s_binding;
 }

@@ -12,6 +12,7 @@
 #include <Nazara/Lua/LuaClass.hpp>
 #include <NDK/Entity.hpp>
 #include <Server/SpaceshipModule.hpp>
+#include <Server/Scripting/LuaMathTypes.hpp>
 #include <optional>
 #include <vector>
 
@@ -25,9 +26,14 @@ namespace ewn
 	{
 		public:
 			inline SpaceshipCore(const Ndk::EntityHandle& spaceship);
-			~SpaceshipCore() = default;
 
+			inline void AddModule(std::unique_ptr<SpaceshipModule> modulePtr);
+
+			LuaVec3 GetAngularVelocity() const;
 			float GetIntegrity() const;
+			LuaVec3 GetLinearVelocity() const;
+			LuaVec3 GetPosition() const;
+			LuaQuaternion GetRotation() const;
 
 			void Register(Nz::LuaState& lua);
 
@@ -35,7 +41,7 @@ namespace ewn
 			std::vector<std::unique_ptr<SpaceshipModule>> m_modules;
 			Ndk::EntityHandle m_spaceship;
 
-			static std::optional<Nz::LuaClass<SpaceshipCore>> s_binding;
+			static std::optional<Nz::LuaClass<SpaceshipCoreHandle>> s_binding;
 	};
 }
 
