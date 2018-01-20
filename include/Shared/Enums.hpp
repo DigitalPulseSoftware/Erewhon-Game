@@ -4,14 +4,19 @@
 
 #pragma once
 
-#ifndef EREWHON_SHARED_CONFIG_HPP
-#define EREWHON_SHARED_CONFIG_HPP
+#ifndef EREWHON_SHARED_ENUMS_HPP
+#define EREWHON_SHARED_ENUMS_HPP
 
 #include <Nazara/Prerequisites.hpp>
 
 namespace ewn
 {
-	constexpr std::size_t NetworkChannelCount = 1;
+	enum class BotMessageType : Nz::UInt8
+	{
+		Error,
+		Warning,
+		Info
+	};
 }
 
-#endif // EREWHON_SHARED_CONFIG_HPP
+#endif // EREWHON_SHARED_ENUMS_HPP

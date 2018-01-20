@@ -50,7 +50,7 @@ API:
         ["type"] = one of "spaceship", "projectile", "ball" and "earth"
         ["name"] = name of the entity, empty for projectiles
 		["position"] = table(x, y, z)
-		["rotation"] = table(x, y, z)
+		["rotation"] = table(w, x, y, z)
 		["angularVelocity"] = table(x, y, z)
 		["linearVelocity"] = table(x, y, z)
 	  }
@@ -92,7 +92,16 @@ Events:
   Init()
    - Called just after the (re)loading of the Lua script.
      Be warned that everything is lost when a script is reloaded, as every variables from the previous script will be destroyed.
-  
+
+  OnBotError(string error)
+   - Called when player bot crashed, with `error` being the Lua script error
+   
+  OnBotWarning(string warning)
+   - Called when player bot script called warn function, with warning message
+   
+  OnBotMessage(string msg)
+   - Called when player bot script called notice or print function, with message
+ 
   OnKeyPressed(table event)
    - Called when a key is pressed/repeated
     Fields:
@@ -375,4 +384,18 @@ function UpdateInput(elapsedTime)
 		SpaceshipRotation = orientation * SpaceshipRotation
 		return SpaceshipMovement, SpaceshipRotation
 	end
+end
+
+function OnBotError(errMessage)
+	PrintChatbox("Our bot just crashed")
+	print("Bot error message: " .. errMessage)
+end
+
+function OnBotWarning(errMessage)
+	PrintChatbox("Our bot sent us a warning")
+	print("Bot warning: " .. errMessage)
+end
+
+function OnBotMessage(errMessage)
+	print("Bot message: " .. errMessage)
 end

@@ -8,6 +8,7 @@
 #include <Server/Arena.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/InputComponent.hpp>
+#include <Server/Components/ScriptComponent.hpp>
 
 namespace ewn
 {
@@ -32,6 +33,17 @@ namespace ewn
 	{
 		m_login = std::move(login);
 		m_authenticated = true;
+	}
+
+	const Ndk::EntityHandle& Player::GetBotEntity()
+	{
+		if (!m_botEntity)
+		{
+			auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+
+			m_botEntity = m_arena->CreateEntity("spaceship", "Bot (" + m_login + ')', this, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());		}
+
+		return m_botEntity;
 	}
 
 	Nz::UInt64 Player::GetLastInputProcessedTime() const

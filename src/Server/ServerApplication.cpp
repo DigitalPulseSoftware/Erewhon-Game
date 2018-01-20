@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
+#include <Server/Components/ScriptComponent.hpp>
 #include <Server/Player.hpp>
 #include <iostream>
 
@@ -11,6 +12,7 @@ namespace ewn
 	ServerApplication::ServerApplication() :
 	m_playerPool(sizeof(Player)),
 	m_arena(this),
+	m_chatCommandStore(this),
 	m_commandStore(this)
 	{
 	}
@@ -115,31 +117,28 @@ namespace ewn
 
 		if (data.text[0] == '/')
 		{
-			if (player->GetName() != "Lynix")
-				return;
+			std::string_view command = data.text;
+			command.remove_prefix(1);
 
-			// Handle chat commands
-			if (data.text == "/reload")
+			if (m_chatCommandStore.ExecuteCommand(command, player))
+				return; // Don't show command if it succeeded
+		}
+
+		if (Arena* arena = player->GetArena())
+		{
+			static constexpr std::size_t MaxChatLine = 255;
+
+			Nz::String message = player->GetName() + ": " + data.text;
+			if (message.GetSize() > MaxChatLine)
 			{
-				m_arena.ReloadScripts();
+				message.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
+				message += "...";
 			}
 
-			// Don't print command
-			return;
+			std::cout << message << std::endl;
+
+			arena->DispatchChatMessage(message);
 		}
-
-		static constexpr std::size_t MaxChatLine = 255;
-
-		Nz::String message = player->GetName() + ": " + data.text;
-		if (message.GetSize() > MaxChatLine)
-		{
-			message.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
-			message += "...";
-		}
-
-		std::cout << message << std::endl;
-
-		player->GetArena()->DispatchChatMessage(player, message);
 	}
 
 	void ServerApplication::HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data)
@@ -171,5 +170,31 @@ namespace ewn
 		response.serverTime = GetAppTime();
 
 		player->SendPacket(response);
+	}
+
+	void ServerApplication::HandleUploadScript(std::size_t peerId, const Packets::UploadScript& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		const Ndk::EntityHandle& playerBot = player->GetBotEntity();
+		ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
+
+		Nz::String lastError;
+		if (botScript.Execute(data.code, &lastError))
+		{
+			Packets::ChatMessage chatPacket;
+			chatPacket.message = "Server: Script uploaded with success";
+
+			player->SendPacket(chatPacket);
+		}
+		else
+		{
+			Packets::ChatMessage chatPacket;
+			chatPacket.message = "Server: Failed to execute script: " + lastError.ToStdString();
+
+			player->SendPacket(chatPacket);
+		}
 	}
 }

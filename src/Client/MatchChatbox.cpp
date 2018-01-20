@@ -74,10 +74,22 @@ namespace ewn
 
 				if (!text.IsEmpty())
 				{
-					Packets::PlayerChat chat;
-					chat.text = text.ToStdString();
+					std::string chatText = text.ToStdString();
+					if (chatText[0] == '/')
+					{
+						std::string_view command = chatText;
+						command.remove_prefix(1);
 
-					m_server->SendPacket(chat);
+						if (!m_chatCommandStore.ExecuteCommand(command, m_server))
+							PrintMessage(chatText);
+					}
+					else
+					{
+						Packets::PlayerChat chat;
+						chat.text = std::move(chatText);
+
+						m_server->SendPacket(chat);
+					}
 				}
 			}
 			else

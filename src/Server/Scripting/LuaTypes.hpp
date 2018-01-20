@@ -2,12 +2,17 @@
 // This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Server/Components/ScriptComponent.hpp>
+#pragma once
+
+#ifndef EREWHON_SCRIPTING_TYPES_HPP
+#define EREWHON_SCRIPTING_TYPES_HPP
+
+#include <optional>
 
 namespace ewn
 {
-	inline bool ewn::ScriptComponent::HasValidScript() const
-	{
-		return !m_script.IsEmpty();
-	}
 }
+
+#include <Server/Scripting/LuaTypes.inl>
+
+#endif // EREWHON_SCRIPTING_TYPES_HPP

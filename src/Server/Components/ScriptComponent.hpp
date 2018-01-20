@@ -10,6 +10,7 @@
 #include <Nazara/Lua/LuaInstance.hpp>
 #include <NDK/Component.hpp>
 #include <NDK/EntityList.hpp>
+#include <Shared/Enums.hpp>
 #include <Server/SpaceshipCore.hpp>
 #include <optional>
 
@@ -20,10 +21,16 @@ namespace ewn
 	class ScriptComponent : public Ndk::Component<ScriptComponent>
 	{
 		public:
-			ScriptComponent(std::string scriptName);
+			ScriptComponent();
 			ScriptComponent(const ScriptComponent& component);
 
-			void Run(ServerApplication* app, float elapsedTime);
+			bool Execute(Nz::String script, Nz::String* lastError);
+
+			inline bool HasValidScript() const;
+
+			bool Run(ServerApplication* app, float elapsedTime, Nz::String* lastError = nullptr);
+
+			void SendMessage(BotMessageType messageType, Nz::String message);
 
 			static Ndk::ComponentIndex componentIndex;
 
@@ -32,8 +39,9 @@ namespace ewn
 			void OnDetached() override;
 
 			std::optional<SpaceshipCore> m_core;
-			std::string m_scriptName;
+			Nz::UInt64 m_lastMessageTime;
 			Nz::LuaInstance m_instance;
+			Nz::String m_script;
 	};
 }
 

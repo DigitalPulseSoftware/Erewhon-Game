@@ -42,7 +42,7 @@ namespace ewn
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
 		m_world.AddSystem<LifeTimeSystem>();
-		m_world.AddSystem<ScriptSystem>(app);
+		m_world.AddSystem<ScriptSystem>(app, this);
 		m_world.AddSystem<SpaceshipSystem>();
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
@@ -58,12 +58,12 @@ namespace ewn
 		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
 		CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
 
-		for (std::size_t i = 0; i < 10; ++i)
+		/*for (std::size_t i = 0; i < 10; ++i)
 		{
 			const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", "Bot #" + std::to_string(i), nullptr, Nz::Vector3f::UnitX() * i, Nz::Quaternionf::Identity());
 			spaceship->AddComponent<ScriptComponent>("test_script.lua");
 			m_scriptControlledEntities.Insert(spaceship);
-		}
+		}*/
 
 
 		if constexpr (sendServerGhosts)
@@ -96,7 +96,7 @@ namespace ewn
 		return projectile;
 	}
 
-	void Arena::DispatchChatMessage(Player* /*player*/, const Nz::String& message)
+	void Arena::DispatchChatMessage(const Nz::String& message)
 	{
 		Packets::ChatMessage chatPacket;
 		chatPacket.message = message.ToStdString();
@@ -107,10 +107,10 @@ namespace ewn
 
 	void Arena::ReloadScripts()
 	{
-		for (const Ndk::EntityHandle& spaceship : m_scriptControlledEntities)
+		/*for (const Ndk::EntityHandle& spaceship : m_scriptControlledEntities)
 		{
 			spaceship->AddComponent<ScriptComponent>("test_script.lua");
-		}
+		}*/
 	}
 
 	void Arena::Update(float elapsedTime)
@@ -156,6 +156,8 @@ namespace ewn
 			physComponent.SetMass(42.f);
 			physComponent.SetAngularDamping(Nz::Vector3f(0.4f));
 			physComponent.SetLinearDamping(0.25f);
+			physComponent.SetPosition(position);
+			physComponent.SetRotation(rotation);
 
 			auto& healthComponent = newEntity->AddComponent<HealthComponent>(1000);
 			healthComponent.OnDeath.Connect([this](HealthComponent* health, const Ndk::EntityHandle& attacker)
@@ -180,7 +182,7 @@ namespace ewn
 					Player* attackerPlayer = attackerOwner.GetOwner();
 					Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
 
-					DispatchChatMessage(nullptr, attackerName + " has destroyed " + shipOwnerPlayer->GetName());
+					DispatchChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
 				}
 			});
 
@@ -264,7 +266,7 @@ namespace ewn
 	{
 		assert(m_players.find(player) != m_players.end());
 
-		DispatchChatMessage(player, player->GetName() + " has left");
+		DispatchChatMessage(player->GetName() + " has left");
 
 		m_players.erase(player);
 	}
@@ -281,7 +283,7 @@ namespace ewn
 
 		m_players[player] = Ndk::EntityHandle::InvalidHandle;
 
-		DispatchChatMessage(player, player->GetName() + " has joined");
+		DispatchChatMessage(player->GetName() + " has joined");
 	}
 
 	bool Arena::HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)

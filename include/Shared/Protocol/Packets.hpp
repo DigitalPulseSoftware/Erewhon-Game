@@ -7,7 +7,8 @@
 #ifndef EREWHON_SHARED_NETWORK_PACKETS_HPP
 #define EREWHON_SHARED_NETWORK_PACKETS_HPP
 
-#include <Nazara/Prerequesites.hpp>
+#include <Shared/Enums.hpp>
+#include <Nazara/Prerequisites.hpp>
 #include <Nazara/Core/String.hpp>
 #include <Nazara/Math/Quaternion.hpp>
 #include <Nazara/Math/Vector3.hpp>
@@ -21,6 +22,7 @@ namespace ewn
 	enum class PacketType
 	{
 		ArenaState,
+		BotMessage,
 		ChatMessage,
 		ControlEntity,
 		CreateEntity,
@@ -34,7 +36,8 @@ namespace ewn
 		PlayerMovement,
 		PlayerShoot,
 		TimeSyncRequest,
-		TimeSyncResponse
+		TimeSyncResponse,
+		UploadScript
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -61,6 +64,12 @@ namespace ewn
 			Nz::UInt64 serverTime;
 			Nz::UInt64 lastProcessedInputTime;
 			std::vector<Entity> entities;
+		};
+
+		DeclarePacket(BotMessage)
+		{
+			BotMessageType messageType;
+			std::string errorMessage;
 		};
 
 		DeclarePacket(ChatMessage)
@@ -140,9 +149,15 @@ namespace ewn
 			Nz::UInt64 serverTime;
 		};
 
+		DeclarePacket(UploadScript)
+		{
+			std::string code;
+		};
+
 #undef DeclarePacket
 
 		void Serialize(Nz::NetPacket& packet, const ArenaState& data);
+		void Serialize(Nz::NetPacket& packet, const BotMessage& data);
 		void Serialize(Nz::NetPacket& packet, const ChatMessage& data);
 		void Serialize(Nz::NetPacket& packet, const ControlEntity& data);
 		void Serialize(Nz::NetPacket& packet, const CreateEntity& data);
@@ -157,8 +172,10 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const PlayerShoot& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data);
+		void Serialize(Nz::NetPacket& packet, const UploadScript& data);
 
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data);
+		void Unserialize(Nz::NetPacket& packet, BotMessage& data);
 		void Unserialize(Nz::NetPacket& packet, ChatMessage& data);
 		void Unserialize(Nz::NetPacket& packet, ControlEntity& data);
 		void Unserialize(Nz::NetPacket& packet, CreateEntity& data);
@@ -173,6 +190,7 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, PlayerShoot& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data);
+		void Unserialize(Nz::NetPacket& packet, UploadScript& data);
 	}
 }
 

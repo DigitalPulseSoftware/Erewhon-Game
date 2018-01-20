@@ -11,12 +11,13 @@
 
 namespace ewn
 {
+	class Arena;
 	class ServerApplication;
 
 	class ScriptSystem : public Ndk::System<ScriptSystem>
 	{
 		public:
-			ScriptSystem(ServerApplication* app);
+			ScriptSystem(ServerApplication* app, Arena* arena);
 			~ScriptSystem() = default;
 
 			static Ndk::SystemIndex systemIndex;
@@ -24,6 +25,7 @@ namespace ewn
 		private:
 			void OnUpdate(float elapsedTime) override;
 
+			Arena* m_arena;
 			ServerApplication* m_app;
 	};
 }

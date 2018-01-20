@@ -34,6 +34,7 @@ namespace ewn
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
+			const Ndk::EntityHandle& GetBotEntity();
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetName() const;
 
@@ -54,6 +55,7 @@ namespace ewn
 			const ServerCommandStore& m_commandStore;
 			std::size_t m_peerId;
 			std::string m_login;
+			Ndk::EntityOwner m_botEntity;
 			Ndk::EntityOwner m_spaceship;
 			Nz::UInt64 m_lastInputTime;
 			Nz::UInt64 m_lastShootTime;

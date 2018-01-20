@@ -17,18 +17,24 @@ namespace ewn
 	{
 		public:
 			using Quaternion::Quaternion;
+
+			using Quaternion::operator=;
 	};
 
 	class LuaVec2 : public Nz::Vector2f
 	{
 		public:
 			using Vector2::Vector2;
+
+			using Vector2::operator=;
 	};
 
 	class LuaVec3 : public Nz::Vector3f
 	{
 		public:
 			using Vector3::Vector3;
+
+			using Vector3::operator=;
 	};
 }
 

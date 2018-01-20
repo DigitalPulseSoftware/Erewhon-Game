@@ -21,6 +21,7 @@ namespace ewn
 		IncomingCommand(PlayerMovement,  std::bind(&ServerApplication::HandlePlayerMovement, app, _1, _2));
 		IncomingCommand(PlayerShoot,     std::bind(&ServerApplication::HandlePlayerShoot, app, _1, _2));
 		IncomingCommand(TimeSyncRequest, std::bind(&ServerApplication::HandleTimeSyncRequest, app, _1, _2));
+		IncomingCommand(UploadScript,    std::bind(&ServerApplication::HandleUploadScript, app, _1, _2));
 
 		// Outgoing commands
 		OutgoingCommand(ArenaState,       0,                           0);
@@ -29,6 +30,7 @@ namespace ewn
 		OutgoingCommand(CreateEntity,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteEntity,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(IntegrityUpdate,  Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(BotMessage,   Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncResponse, 0,                           0);

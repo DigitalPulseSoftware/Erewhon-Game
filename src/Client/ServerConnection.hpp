@@ -47,6 +47,7 @@ namespace ewn
 
 			// Packet reception signals
 			NazaraSignal(OnArenaState,       ServerConnection* /*server*/, const Packets::ArenaState&       /*data*/);
+			NazaraSignal(OnBotMessage,       ServerConnection* /*server*/, const Packets::BotMessage&       /*data*/);
 			NazaraSignal(OnChatMessage,      ServerConnection* /*server*/, const Packets::ChatMessage&      /*data*/);
 			NazaraSignal(OnControlEntity,    ServerConnection* /*server*/, const Packets::ControlEntity&    /*data*/);
 			NazaraSignal(OnCreateEntity,     ServerConnection* /*server*/, const Packets::CreateEntity&     /*data*/);

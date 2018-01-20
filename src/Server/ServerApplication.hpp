@@ -10,6 +10,7 @@
 #include <Shared/BaseApplication.hpp>
 #include <Nazara/Core/MemoryPool.hpp>
 #include <Server/Arena.hpp>
+#include <Server/ChatCommandStore.hpp>
 #include <Server/ServerCommandStore.hpp>
 #include <vector>
 
@@ -31,6 +32,7 @@ namespace ewn
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
 			void HandlePlayerShoot(std::size_t peerId, const Packets::PlayerShoot& data);
 			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
+			void HandleUploadScript(std::size_t peerId, const Packets::UploadScript& data);
 
 		private:
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
@@ -40,6 +42,7 @@ namespace ewn
 			std::vector<Player*> m_players;
 			Nz::MemoryPool m_playerPool;
 			Arena m_arena;
+			ChatCommandStore m_chatCommandStore;
 			ServerCommandStore m_commandStore;
 	};
 }

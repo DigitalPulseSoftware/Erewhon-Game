@@ -13,6 +13,7 @@
 #include <NDK/EntityOwner.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <Client/ChatCommandStore.hpp>
 #include <Client/ServerConnection.hpp>
 
 namespace ewn
@@ -41,10 +42,11 @@ namespace ewn
 			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
+			std::vector<Nz::String> m_chatLines;
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
 			ServerConnection* m_server;
-			std::vector<Nz::String> m_chatLines;
+			ChatCommandStore m_chatCommandStore;
 	};
 }
 

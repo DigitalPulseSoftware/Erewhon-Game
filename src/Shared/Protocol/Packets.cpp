@@ -28,7 +28,13 @@ namespace ewn
 			}
 		}
 
-		void Serialize(Nz::NetPacket & packet, const ChatMessage & data)
+		void Serialize(Nz::NetPacket& packet, const BotMessage& data)
+		{
+			packet << Nz::UInt8(data.messageType);
+			packet << data.errorMessage;
+		}
+
+		void Serialize(Nz::NetPacket& packet, const ChatMessage& data)
 		{
 			packet << data.message;
 		}
@@ -105,6 +111,11 @@ namespace ewn
 			packet << data.serverTime;
 		}
 
+		void Serialize(Nz::NetPacket& packet, const UploadScript& data)
+		{
+			packet << data.code;
+		}
+
 		void Unserialize(Nz::NetPacket& packet, ArenaState& data)
 		{
 			packet >> data.stateId;
@@ -123,6 +134,15 @@ namespace ewn
 				packet >> entity.angularVelocity;
 				packet >> entity.linearVelocity;
 			}
+		}
+
+		void Unserialize(Nz::NetPacket& packet, BotMessage& data)
+		{
+			Nz::UInt8 messageType;
+			packet >> messageType;
+			data.messageType = static_cast<BotMessageType>(messageType);
+
+			packet >> data.errorMessage;
 		}
 
 		void Unserialize(Nz::NetPacket& packet, ChatMessage& data)
@@ -200,6 +220,11 @@ namespace ewn
 		{
 			packet >> data.requestId;
 			packet >> data.serverTime;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, UploadScript& data)
+		{
+			packet >> data.code;
 		}
 	}
 }

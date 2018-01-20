@@ -43,6 +43,7 @@ namespace ewn
 				bool isValid = false;
 			};
 
+			void OnBotMessage(ServerConnection* server, const Packets::BotMessage& botError);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnKeyReleased(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 			void OnLostFocus(const Nz::EventHandler* eventHandler);
@@ -63,6 +64,7 @@ namespace ewn
 			void UpdateInput(float elapsedTime);
 
 			NazaraSlot(ServerConnection, OnIntegrityUpdate, m_onIntegrityUpdateSlot);
+			NazaraSlot(ServerConnection, OnBotMessage, m_onBotMessage);
 			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
 			NazaraSlot(Nz::EventHandler, OnKeyReleased, m_onKeyReleasedSlot);
 			NazaraSlot(Nz::EventHandler, OnLostFocus, m_onLostFocusSlot);

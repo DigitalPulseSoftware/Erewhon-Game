@@ -45,6 +45,7 @@ namespace ewn
 		m_onMouseButtonPressedSlot.Connect(eventHandler.OnMouseButtonPressed, this, &SpaceshipController::OnMouseButtonPressed);
 		m_onMouseButtonReleasedSlot.Connect(eventHandler.OnMouseButtonReleased, this, &SpaceshipController::OnMouseButtonReleased);
 		m_onMouseMovedSlot.Connect(eventHandler.OnMouseMoved, this, &SpaceshipController::OnMouseMoved);
+		m_onBotMessage.Connect(m_server->OnBotMessage, this, &SpaceshipController::OnBotMessage);
 		m_onTargetChangeSizeSlot.Connect(m_window.OnRenderTargetSizeChange, this, &SpaceshipController::OnRenderTargetSizeChange);
 
 		LoadSprites(world2D);
@@ -94,6 +95,44 @@ namespace ewn
 				if (!m_controlScript.Call(3))
 					std::cerr << "OnUpdate failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
+		}
+	}
+
+	void SpaceshipController::OnBotMessage(ServerConnection* server, const Packets::BotMessage& botError)
+	{
+		if (m_executeScript)
+		{
+			const char* luaFunction;
+			switch (botError.messageType)
+			{
+				case BotMessageType::Error:
+					luaFunction = "OnBotError";
+					break;
+
+				case BotMessageType::Warning:
+					luaFunction = "OnBotWarning";
+					break;
+
+				case BotMessageType::Info:
+					luaFunction = "OnBotMessage";
+					break;
+
+				default:
+					assert(!"Unhandled message type");
+					break;
+			}
+
+			if (m_controlScript.GetGlobal(luaFunction) == Nz::LuaType_Function)
+			{
+				m_controlScript.Push(botError.errorMessage);
+
+				if (!m_controlScript.Call(1))
+					std::cerr << "OnBotError failed: " << m_controlScript.GetLastError() << std::endl;
+			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -112,6 +151,8 @@ namespace ewn
 					if (!m_controlScript.Call(1))
 						std::cerr << "OnKeyPressed failed: " << m_controlScript.GetLastError() << std::endl;
 				}
+				else
+					m_controlScript.Pop();
 			}
 		}
 	}
@@ -127,6 +168,8 @@ namespace ewn
 				if (!m_controlScript.Call(1))
 					std::cerr << "OnKeyReleased failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -139,6 +182,8 @@ namespace ewn
 				if (!m_controlScript.Call(0))
 					std::cerr << "OnLostFocus failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -157,6 +202,8 @@ namespace ewn
 				if (!m_controlScript.Call(1))
 					std::cerr << "OnIntegrityUpdate failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -171,6 +218,8 @@ namespace ewn
 				if (!m_controlScript.Call(1))
 					std::cerr << "OnMouseButtonPressed failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -185,6 +234,8 @@ namespace ewn
 				if (!m_controlScript.Call(1))
 					std::cerr << "OnMouseButtonReleased failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -199,6 +250,8 @@ namespace ewn
 				if (!m_controlScript.Call(1))
 					std::cerr << "OnMouseMoved failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 	}
 
@@ -215,6 +268,8 @@ namespace ewn
 				if (!m_controlScript.Call(1))
 					std::cerr << "OnWindowSizeChanged failed: " << m_controlScript.GetLastError() << std::endl;
 			}
+			else
+				m_controlScript.Pop();
 		}
 
 		m_healthBarEntity->GetComponent<Ndk::NodeComponent>().SetPosition({ renderTarget->GetSize().x - 300.f, renderTarget->GetSize().y - 70.f, 0.f });
@@ -224,6 +279,8 @@ namespace ewn
 	{
 		m_sprites.clear();
 		m_controlScript = Nz::LuaInstance();
+		m_controlScript.LoadLibraries();
+
 		m_executeScript = true;
 
 		std::cout << "Loading spaceshipcontroller.lua" << std::endl;
