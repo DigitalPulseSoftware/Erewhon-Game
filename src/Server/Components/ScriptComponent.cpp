@@ -57,7 +57,8 @@ namespace ewn
 			assert(!"Failed to load spacelib.lua");
 	}
 
-	ScriptComponent::ScriptComponent(const ScriptComponent& component)
+	ScriptComponent::ScriptComponent(const ScriptComponent& component) :
+	ScriptComponent()
 	{
 		if (component.HasValidScript())
 		{

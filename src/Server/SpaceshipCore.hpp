@@ -26,6 +26,7 @@ namespace ewn
 	{
 		public:
 			inline SpaceshipCore(const Ndk::EntityHandle& spaceship);
+			SpaceshipCore(const SpaceshipCore&) = delete;
 
 			inline void AddModule(std::unique_ptr<SpaceshipModule> modulePtr);
 
@@ -36,6 +37,8 @@ namespace ewn
 			LuaQuaternion GetRotation() const;
 
 			void Register(Nz::LuaState& lua);
+
+			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
 
 		private:
 			std::vector<std::unique_ptr<SpaceshipModule>> m_modules;
