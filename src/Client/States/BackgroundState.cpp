@@ -10,6 +10,7 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
 #include <NDK/Entity.hpp>
+#include <random>
 
 namespace ewn
 {
@@ -24,6 +25,12 @@ namespace ewn
 			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::SkyboxBackground::New(background));
 		else
 			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
+
+		std::random_device rd;
+		std::uniform_real_distribution<float> rotGen(-180.f, 180.f);
+
+		Ndk::NodeComponent& nodeComponent = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
+		nodeComponent.SetRotation(Nz::EulerAnglesf(rotGen(rd), rotGen(rd), rotGen(rd)));
 	}
 
 	void BackgroundState::Leave(Ndk::StateMachine& /*fsm*/)
