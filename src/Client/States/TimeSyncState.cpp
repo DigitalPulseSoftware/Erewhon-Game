@@ -18,6 +18,7 @@ namespace ewn
 	{
 		m_accumulator = 0.f;
 		m_connected = m_stateData.server->IsConnected();
+		m_pingAccumulator = 0;
 		m_results.clear();
 		m_statusSprite = Nz::TextSprite::New();
 
@@ -112,7 +113,8 @@ namespace ewn
 		{
 			// Oops, server crashed?
 			m_expectedRequestId = 0;
-			m_nextStepTime = m_accumulator + 0.5f;
+			m_nextStepTime = m_accumulator + 1.f;
+			m_pingAccumulator = 0;
 			m_results.clear();
 
 			UpdateStatus("Error in time synchronization, restarting process...", Nz::Color::Red);
@@ -122,15 +124,14 @@ namespace ewn
 		Nz::UInt64 diff = (youngerThanServer) ? (response.serverTime - appTime) : (appTime - response.serverTime);
 		diff += pingTime / 2;
 
+		m_pingAccumulator += pingTime;
+
 		m_results.push_back(diff);
 
-		UpdateStatus("Syncing time with server " + Nz::String::Number(m_results.size()) + "/" + Nz::String::Number(DesiredRequestCount));
+		UpdateStatus("Syncing clock with server " + Nz::String::Number(m_results.size()) + "/" + Nz::String::Number(DesiredRequestCount));
 
 		if (m_results.size() >= DesiredRequestCount)
 		{
-			if (!m_isClientYounger)
-				std::transform(m_results.begin(), m_results.end(), m_results.begin(), [](Nz::UInt64 time) { return std::numeric_limits<Nz::UInt64>::max() - time; });
-
 			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0)) / m_results.size();
 			Nz::UInt64 variance = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0), [meanDiff](Nz::UInt64 init, Nz::UInt64 delta)
 			{
@@ -138,13 +139,18 @@ namespace ewn
 			});
 			variance /= m_results.size() - 1;
 
-			m_stateData.server->UpdateServerTimeDelta(meanDiff);
+			m_stateData.server->UpdateServerTimeDelta((m_isClientYounger) ? meanDiff : std::numeric_limits<Nz::UInt64>::max() - meanDiff);
+
+			UpdateStatus("Clock synchronized with server\n(mean ping: " + Nz::String::Number(m_pingAccumulator / m_results.size()) + "ms, variance: " + Nz::String::Number(variance) + "ms)");
 
 			m_finished = true;
+			m_nextStepTime = m_accumulator + 2.f;
 		}
-
-		m_nextStepTime = m_accumulator + 0.1f;
-		m_expectedRequestId++;
+		else
+		{
+			m_nextStepTime = m_accumulator + 0.1f;
+			m_expectedRequestId++;
+		}
 	}
 
 	void TimeSyncState::UpdateStatus(const Nz::String& status, const Nz::Color& color)

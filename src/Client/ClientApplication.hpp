@@ -36,7 +36,6 @@ namespace ewn
 			void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) override;
 
 			std::vector<ServerConnection*> m_servers;
-			Nz::UInt64 m_deltaTimeDegueux;
 	};
 }
 

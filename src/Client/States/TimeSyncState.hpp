@@ -43,6 +43,7 @@ namespace ewn
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
 			Nz::UInt8 m_expectedRequestId;
+			Nz::UInt64 m_pingAccumulator;
 			Nz::UInt64 m_requestTime;
 			std::vector<Nz::UInt64> m_results;
 			bool m_connected;
