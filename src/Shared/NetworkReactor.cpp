@@ -113,11 +113,15 @@ namespace ewn
 		ConnectionRequest request;
 		while (m_connectionRequests.try_dequeue(request))
 		{
-			Nz::ENetPeer* peer = m_host.Connect(request.remoteAddress, NetworkChannelCount, request.data);
-			Nz::UInt16 peerId = peer->GetPeerId();
-			m_clients[peerId] = peer;
+			if (Nz::ENetPeer* peer = m_host.Connect(request.remoteAddress, NetworkChannelCount, request.data))
+			{
+				Nz::UInt16 peerId = peer->GetPeerId();
+				m_clients[peerId] = peer;
 
-			request.callback(peerId);
+				request.callback(peerId);
+			}
+			else
+				request.callback(InvalidPeerId);
 		}
 	}
 
