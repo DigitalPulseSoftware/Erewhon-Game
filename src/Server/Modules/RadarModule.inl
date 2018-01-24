@@ -22,12 +22,24 @@ namespace Nz
 		return 1;
 	}
 
+	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::ConeScanResult&& result, TypeTag<ewn::RadarModule::ConeScanResult>)
+	{
+		state.PushTable(0, 3);
+		{
+			state.PushField("id", result.id);
+			state.PushField("type", std::move(result.type));
+			state.PushField("pos", result.pos);
+		}
+
+		return 1;
+	}
+
 	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::ScanResult&& result, TypeTag<ewn::RadarModule::ScanResult>)
 	{
 		state.PushTable(0, 6);
 		{
-			state.PushField("name", result.name);
-			state.PushField("type", result.type);
+			state.PushField("name", std::move(result.name));
+			state.PushField("type", std::move(result.type));
 			state.PushField("angularVelocity", result.angularVelocity);
 			state.PushField("linearVelocity", result.linearVelocity);
 			state.PushField("position", result.position);

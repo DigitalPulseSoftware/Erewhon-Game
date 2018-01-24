@@ -25,12 +25,12 @@ namespace ewn
 
 		// Outgoing commands
 		OutgoingCommand(ArenaState,       0,                           0);
+		OutgoingCommand(BotMessage,       Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ChatMessage,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ControlEntity,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateEntity,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteEntity,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(IntegrityUpdate,  Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(BotMessage,   Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncResponse, 0,                           0);
