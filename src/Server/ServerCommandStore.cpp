@@ -11,17 +11,20 @@ namespace ewn
 	{
 		using namespace std::placeholders;
 
-#define IncomingCommand(Type, Func) RegisterIncomingCommand<Packets::Type>(#Type, Func)
+#define IncomingCommand(Type) RegisterIncomingCommand<Packets::Type>(#Type, [app](std::size_t peerId, const Packets::Type& packet) \
+{ \
+	app->Handle##Type(peerId, packet); \
+})
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
-		IncomingCommand(JoinArena,       std::bind(&ServerApplication::HandleJoinArena, app, _1, _2));
-		IncomingCommand(Login,           std::bind(&ServerApplication::HandleLogin, app, _1, _2));
-		IncomingCommand(PlayerChat,      std::bind(&ServerApplication::HandlePlayerChat, app, _1, _2));
-		IncomingCommand(PlayerMovement,  std::bind(&ServerApplication::HandlePlayerMovement, app, _1, _2));
-		IncomingCommand(PlayerShoot,     std::bind(&ServerApplication::HandlePlayerShoot, app, _1, _2));
-		IncomingCommand(TimeSyncRequest, std::bind(&ServerApplication::HandleTimeSyncRequest, app, _1, _2));
-		IncomingCommand(UploadScript,    std::bind(&ServerApplication::HandleUploadScript, app, _1, _2));
+		IncomingCommand(JoinArena);
+		IncomingCommand(Login);
+		IncomingCommand(PlayerChat);
+		IncomingCommand(PlayerMovement);
+		IncomingCommand(PlayerShoot);
+		IncomingCommand(TimeSyncRequest);
+		IncomingCommand(UploadScript);
 
 		// Outgoing commands
 		OutgoingCommand(ArenaState,       0,                           0);
