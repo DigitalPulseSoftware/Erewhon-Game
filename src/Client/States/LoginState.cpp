@@ -21,8 +21,6 @@ namespace ewn
 		m_loginSucceeded = false;
 
 		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
-		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw("An error occured", 24));
-		m_statusLabel->ResizeToContent();
 		m_statusLabel->Show(false);
 
 		m_loginLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
@@ -217,6 +215,7 @@ namespace ewn
 	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
 	{
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
+		m_statusLabel->ResizeToContent();
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->Show(true);
 	}
