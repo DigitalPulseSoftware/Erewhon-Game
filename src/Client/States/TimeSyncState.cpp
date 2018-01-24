@@ -49,7 +49,7 @@ namespace ewn
 		if (!m_connected)
 		{
 			if (m_accumulator > 2.f)
-				fsm.ChangeState(std::make_shared<ConnectionState>(m_stateData)); //< TODO: Put background state in a generic way
+				fsm.ChangeState(std::make_shared<LoginState>(m_stateData)); //< TODO: Put background state in a generic way
 
 			return true;
 		}

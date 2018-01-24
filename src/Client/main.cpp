@@ -16,9 +16,8 @@
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
 #include <Client/States/BackgroundState.hpp>
-#include <Client/States/ConnectionState.hpp>
 #include <Client/States/DisconnectionState.hpp>
-#include <Client/States/GameState.hpp>
+#include <Client/States/LoginState.hpp>
 #include <Client/ServerConnection.hpp>
 #include <iostream>
 
@@ -30,8 +29,6 @@ int main()
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
 
 	ewn::ServerConnection serverConnection(app);
-	serverConnection.Connect("localhost");
-	//serverConnection.Connect("malcolm.digitalpulsesoftware.net");
 
 	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>(Nz::VideoMode(1280, 720), "Utopia");
 	window.EnableCloseOnQuit(false);
@@ -111,7 +108,7 @@ int main()
 	stateData.world3D = world3D.CreateHandle();
 
 	Ndk::StateMachine fsm(std::make_shared<ewn::BackgroundState>(stateData));
-	fsm.PushState(std::make_shared<ewn::ConnectionState>(stateData));
+	fsm.PushState(std::make_shared<ewn::LoginState>(stateData));
 
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
 	{

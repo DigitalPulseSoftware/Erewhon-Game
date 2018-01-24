@@ -24,12 +24,18 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
+			void LayoutWidgets();
+
+			void OnConnected(ServerConnection* server, Nz::UInt32 data);
 			void OnConnectionPressed();
+			void OnDisconnected(ServerConnection* server, Nz::UInt32 data);
+
+			void SendLoginPacket();
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
 
-			void LayoutWidgets();
-
+			NazaraSlot(ServerConnection, OnConnected,    m_onConnectedSlot);
+			NazaraSlot(ServerConnection, OnDisconnected, m_onDisconnectedSlot);
 			NazaraSlot(ServerConnection, OnLoginFailure, m_onLoginFailureSlot);
 			NazaraSlot(ServerConnection, OnLoginSuccess, m_onLoginSuccess);
 
@@ -42,6 +48,7 @@ namespace ewn
 			Ndk::TextAreaWidget* m_loginArea;
 			Ndk::TextAreaWidget* m_passwordArea;
 			bool m_loginSucceeded;
+			bool m_isLoggingIn;
 			float m_loginAccumulator;
 	};
 }

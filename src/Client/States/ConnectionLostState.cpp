@@ -41,7 +41,7 @@ namespace ewn
 
 		m_accumulator += elapsedTime;
 		if (m_accumulator >= quitGameAfter)
-			m_stateData.app->Quit();
+			fsm.ChangeState(std::make_shared<ewn::LoginState>(m_stateData));
 
 		return true;
 	}

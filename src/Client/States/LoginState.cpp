@@ -17,6 +17,7 @@ namespace ewn
 {
 	void LoginState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		m_isLoggingIn = false;
 		m_loginSucceeded = false;
 
 		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
@@ -48,6 +49,9 @@ namespace ewn
 		m_rememberCheckbox = m_stateData.canvas->Add<Ndk::CheckboxWidget>();
 		m_rememberCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Remember me", 24));
 		m_rememberCheckbox->ResizeToContent();
+
+		m_onConnectedSlot.Connect(m_stateData.server->OnConnected, this, &LoginState::OnConnected);
+		m_onDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
 
 		m_connectionButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
@@ -95,6 +99,8 @@ namespace ewn
 		m_passwordArea->Destroy();
 		m_rememberCheckbox->Destroy();
 		m_statusLabel->Destroy();
+		m_onConnectedSlot.Disconnect();
+		m_onDisconnectedSlot.Disconnect();
 		m_onLoginFailureSlot.Disconnect();
 		m_onLoginSuccess.Disconnect();
 	}
@@ -131,11 +137,37 @@ namespace ewn
 		else if (loginFile.Exists())
 			loginFile.Delete();
 
-		Packets::Login loginPacket;
-		loginPacket.login = m_loginArea->GetText().ToStdString();
-		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex().ToStdString();
+		if (m_stateData.server->IsConnected())
+			SendLoginPacket();
+		else if (!m_isLoggingIn)
+		{
+			m_isLoggingIn = true;
 
-		m_stateData.server->SendPacket(loginPacket);
+			// Connect to server
+			static constexpr const char* serverHostname = "malcolm.digitalpulsesoftware.net";
+
+			if (m_stateData.server->Connect(serverHostname))
+				UpdateStatus("Connecting...");
+			else
+				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+		}
+	}
+
+	void LoginState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
+	{
+		if (m_isLoggingIn)
+		{
+			m_isLoggingIn = false;
+
+			SendLoginPacket();
+		}
+	}
+
+	void LoginState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
+	{
+		m_isLoggingIn = false;
+
+		UpdateStatus("Error: failed to connect to server", Nz::Color::Red);
 	}
 
 	void LoginState::LayoutWidgets()
@@ -171,6 +203,15 @@ namespace ewn
 
 		m_connectionButton->SetPosition({ 0.f, cursor.y, 0.f });
 		m_connectionButton->CenterHorizontal();
+	}
+
+	void LoginState::SendLoginPacket()
+	{
+		Packets::Login loginPacket;
+		loginPacket.login = m_loginArea->GetText().ToStdString();
+		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex().ToStdString();
+
+		m_stateData.server->SendPacket(loginPacket);
 	}
 
 	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
