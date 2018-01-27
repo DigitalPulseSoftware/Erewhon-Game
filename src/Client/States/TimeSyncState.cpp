@@ -135,13 +135,13 @@ namespace ewn
 			Nz::UInt64 meanDiff = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0)) / m_results.size();
 			Nz::UInt64 variance = std::accumulate(m_results.begin(), m_results.end(), Nz::UInt64(0), [meanDiff](Nz::UInt64 init, Nz::UInt64 delta)
 			{
-				return (delta - meanDiff) * (delta - meanDiff);
+				return init + (delta - meanDiff) * (delta - meanDiff);
 			});
 			variance /= m_results.size() - 1;
 
 			m_stateData.server->UpdateServerTimeDelta((m_isClientYounger) ? meanDiff : std::numeric_limits<Nz::UInt64>::max() - meanDiff);
 
-			UpdateStatus("Clock synchronized with server\n(mean ping: " + Nz::String::Number(m_pingAccumulator / m_results.size()) + "ms, variance: " + Nz::String::Number(variance) + "ms)");
+			UpdateStatus("Clock synchronized with server\n(mean ping: " + Nz::String::Number(m_pingAccumulator / m_results.size()) + " +- " + Nz::String::Number(std::sqrt(variance)) + "ms)");
 
 			m_finished = true;
 			m_nextStepTime = m_accumulator + 2.f;
