@@ -24,7 +24,14 @@
 int main()
 {
 	Nz::Initializer<Nz::Audio, Nz::Network> nazaraInit;
+
 	ewn::ClientApplication app;
+	if (!app.LoadConfig("cconfig.lua"))
+	{
+		std::cerr << "Failed to load config file" << std::endl;
+		return EXIT_FAILURE;
+	}
+
 	app.EnableFPSCounter(true);
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
 

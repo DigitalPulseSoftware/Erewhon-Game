@@ -283,10 +283,12 @@ namespace ewn
 
 		m_executeScript = true;
 
-		std::cout << "Loading spaceshipcontroller.lua" << std::endl;
-		if (!m_controlScript.ExecuteFromFile("spaceshipcontroller.lua"))
+		const std::string& scriptName = m_app->GetConfig().GetStringOption("ClientScript.Filename");
+
+		std::cout << "Loading " << scriptName << std::endl;
+		if (!m_controlScript.ExecuteFromFile(scriptName))
 		{
-			std::cerr << "Failed to load spaceshipcontroller.lua: " << m_controlScript.GetLastError() << std::endl;
+			std::cerr << "Failed to load " << scriptName << ": " << m_controlScript.GetLastError() << std::endl;
 			m_executeScript = false;
 			return;
 		}
@@ -294,7 +296,7 @@ namespace ewn
 		// Check existence of some functions
 		if (m_controlScript.GetGlobal("UpdateInput") != Nz::LuaType_Function)
 		{
-			std::cerr << "spaceshipcontroller.lua: UpdateInput is not a valid function!" << std::endl;
+			std::cerr << scriptName << ": UpdateInput is not a valid function!" << std::endl;
 			m_executeScript = false;
 		}
 		m_controlScript.Pop();

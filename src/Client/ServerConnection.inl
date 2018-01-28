@@ -23,6 +23,16 @@ namespace ewn
 		m_networkReactor->DisconnectPeer(m_peerId, data);
 	}
 
+	inline ClientApplication& ServerConnection::GetApp()
+	{
+		return m_application;
+	}
+
+	inline const ClientApplication& ServerConnection::GetApp() const
+	{
+		return m_application;
+	}
+
 	inline bool ServerConnection::IsConnected()
 	{
 		return m_connected;

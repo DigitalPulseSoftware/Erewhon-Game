@@ -33,6 +33,9 @@ namespace ewn
 
 			Nz::UInt64 EstimateServerTime() const;
 
+			inline ClientApplication& GetApp();
+			inline const ClientApplication& GetApp() const;
+
 			inline bool IsConnected();
 			
 			template<typename T> void SendPacket(const T& packet);

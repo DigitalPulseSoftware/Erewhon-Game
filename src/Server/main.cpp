@@ -41,11 +41,18 @@ int main()
 	Ndk::InitializeSystem<ewn::SpaceshipSystem>();
 
 	ewn::ServerApplication app;
+	if (!app.LoadConfig("sconfig.lua"))
+	{
+		std::cerr << "Failed to load config file" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	const ewn::ConfigFile& config = app.GetConfig();
 
 	Nz::IpAddress listenAddress = Nz::IpAddress::AnyIpV4;
-	listenAddress.SetPort(2049);
+	listenAddress.SetPort(config.GetIntegerOption("Game.Port"));
 
-	app.SetupNetwork(100, listenAddress);
+	app.SetupNetwork(config.GetIntegerOption("Game.MaxClients"), listenAddress);
 
 	while (app.Run())
 	{

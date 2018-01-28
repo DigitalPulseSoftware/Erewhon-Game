@@ -26,7 +26,7 @@ namespace ewn
 
 	bool ChatCommandStore::HandleUpload(ServerConnection* server)
 	{
-		static constexpr const char* scriptName = "botscript.lua";
+		const std::string& scriptName = server->GetApp().GetConfig().GetStringOption("ServerScript.Filename");
 
 		Nz::File file(scriptName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
 		if (!file.IsOpen())

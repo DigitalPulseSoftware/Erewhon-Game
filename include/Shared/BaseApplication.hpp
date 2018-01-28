@@ -8,6 +8,7 @@
 #define EREWHON_SHARED_BASE_APPLICATION_HPP
 
 #include <NDK/Application.hpp>
+#include <Shared/ConfigFile.hpp>
 #include <Shared/NetworkReactor.hpp>
 #include <memory>
 #include <vector>
@@ -21,8 +22,11 @@ namespace ewn
 			virtual ~BaseApplication();
 
 			inline Nz::UInt64 GetAppTime() const;
+			inline const ConfigFile& GetConfig() const;
 			inline std::size_t GetPeerPerReactor() const;
 			inline std::size_t GetReactorCount() const;
+
+			inline bool LoadConfig(const std::string& configFile);
 
 			virtual bool Run() = 0;
 
@@ -34,6 +38,8 @@ namespace ewn
 			virtual void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) = 0;
 			virtual void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) = 0;
 			virtual void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) = 0;
+
+			ConfigFile m_config;
 
 		private:
 			Nz::Clock m_appClock;

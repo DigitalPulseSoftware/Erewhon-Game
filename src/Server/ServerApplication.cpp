@@ -15,6 +15,8 @@ namespace ewn
 	m_chatCommandStore(this),
 	m_commandStore(this)
 	{
+		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
+		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
 	}
 
 	ServerApplication::~ServerApplication()

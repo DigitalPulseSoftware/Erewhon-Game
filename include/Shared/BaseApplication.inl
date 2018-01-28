@@ -11,6 +11,11 @@ namespace ewn
 		return m_appClock.GetMilliseconds();
 	}
 
+	inline const ConfigFile& BaseApplication::GetConfig() const
+	{
+		return m_config;
+	}
+
 	inline std::size_t BaseApplication::GetPeerPerReactor() const
 	{
 		return m_peerPerReactor;
@@ -19,6 +24,11 @@ namespace ewn
 	inline std::size_t BaseApplication::GetReactorCount() const
 	{
 		return m_reactors.size();
+	}
+
+	inline bool BaseApplication::LoadConfig(const std::string& configFile)
+	{
+		return m_config.LoadFromFile(configFile);
 	}
 
 	inline const std::unique_ptr<NetworkReactor>& BaseApplication::GetReactor(std::size_t reactorId)

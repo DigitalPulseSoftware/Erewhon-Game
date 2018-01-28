@@ -142,9 +142,7 @@ namespace ewn
 			m_isLoggingIn = true;
 
 			// Connect to server
-			static constexpr const char* serverHostname = "malcolm.digitalpulsesoftware.net";
-
-			if (m_stateData.server->Connect(serverHostname))
+			if (m_stateData.server->Connect(m_stateData.app->GetConfig().GetStringOption("Server.Address")))
 				UpdateStatus("Connecting...");
 			else
 				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);

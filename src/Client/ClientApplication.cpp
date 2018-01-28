@@ -10,7 +10,15 @@
 
 namespace ewn
 {
-	ClientApplication::ClientApplication() = default;
+	ClientApplication::ClientApplication()
+	{
+		m_config.RegisterStringOption("ClientScript.Filename");
+		m_config.RegisterStringOption("ServerScript.Filename");
+
+		m_config.RegisterStringOption("Server.Address");
+		m_config.RegisterIntegerOption("Server.Port", 1, 0xFFFF);
+	}
+
 	ClientApplication::~ClientApplication() = default;
 
 	bool ClientApplication::Run()
@@ -20,8 +28,10 @@ namespace ewn
 
 	bool ClientApplication::ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor)
 	{
+		long long port = m_config.GetIntegerOption("Server.Port");
+
 		Nz::ResolveError resolveError = Nz::ResolveError_NoError;
-		std::vector<Nz::HostnameInfo> results = Nz::IpAddress::ResolveHostname(Nz::NetProtocol_IPv4, serverHostname, "2049", &resolveError);
+		std::vector<Nz::HostnameInfo> results = Nz::IpAddress::ResolveHostname(Nz::NetProtocol_IPv4, serverHostname, Nz::String::Number(port), &resolveError);
 		if (results.empty())
 		{
 			std::cerr << "Failed to resolve server hostname: " << Nz::ErrorToString(resolveError) << std::endl;
