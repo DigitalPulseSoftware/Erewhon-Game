@@ -1,35 +1,3 @@
-if (not os.isfile("config.lua")) then
-	error("config.lua is missing")
-end
-
-Config = {}
-
-local configLoader, err = load(io.readfile("config.lua"), "config.lua", "t", Config)
-if (not configLoader) then
-	error("config.lua failed to load: " .. err)
-end
-
-local configLoaded, err = pcall(configLoader)
-if (not configLoaded) then
-	error("config.lua failed to load: " .. err)
-end
-
-local libs = {"NazaraPath"}
-local libsDirs = {"", "/bin", "/include"}
-if (os.istarget("windows")) then
-	table.insert(libsDirs, "/lib")
-end
-
-for k,v in pairs(libs) do
-	local dir = Config[v]
-	for k,v in pairs(libsDirs) do
-		local checkPath = dir .. v
-		if (not os.isdir(checkPath)) then
-			error("\"" .. checkPath .. "\" does not exists")
-		end
-	end
-end
-
 WorkspaceName = "Erewhon"
 Projects = {
 	{
@@ -49,12 +17,47 @@ Projects = {
 		Defines = {"NDK_SERVER"},
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Server/**"},
 		Includes = {"../thirdparty/include"},
-		Libs = {},
+		Libs = {"libpq"},
 		LibsDebug = {"NazaraCore-d", "NazaraLua-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraSDKServer-d", "NazaraUtility-d"},
 		LibsRelease = {"NazaraCore", "NazaraLua", "NazaraNetwork", "NazaraNoise", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraSDKServer", "NazaraUtility"},
-		AdditionalDependencies = {"Newton"}
+		AdditionalDependencies = {"libeay32", "libintl-8", "libiconv-2", "Newton", "ssleay32"}
 	}
 }
+
+-- Do not edit past this line if you don't know what you're doing
+
+-- Load configs
+if (not os.isfile("config.lua")) then
+	error("config.lua is missing")
+end
+
+Config = {}
+
+local configLoader, err = load(io.readfile("config.lua"), "config.lua", "t", Config)
+if (not configLoader) then
+	error("config.lua failed to load: " .. err)
+end
+
+local configLoaded, err = pcall(configLoader)
+if (not configLoaded) then
+	error("config.lua failed to load: " .. err)
+end
+
+local libs = {"NazaraPath", "PostgresClientPath"}
+local libsDirs = {"", "/bin", "/include"}
+if (os.istarget("windows")) then
+	table.insert(libsDirs, "/lib")
+end
+
+for k,v in pairs(libs) do
+	local dir = Config[v]
+	for k,v in pairs(libsDirs) do
+		local checkPath = dir .. v
+		if (not os.isdir(checkPath)) then
+			error("\"" .. checkPath .. "\" does not exists")
+		end
+	end
+end
 
 location(_ACTION)
 
