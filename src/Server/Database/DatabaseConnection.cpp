@@ -4,6 +4,7 @@
 
 #include <Server/Database/DatabaseConnection.hpp>
 #include <Nazara/Core/MemoryHelper.hpp>
+#include <Nazara/Network/Algorithm.hpp>
 #include <Server/Database/DatabaseResult.hpp>
 #include <pgsql/libpq-fe.h>
 #include <array>
@@ -143,7 +144,12 @@ namespace ewn
 
 		parameterFormat.fill(1); //< Push everything as binary
 
-		return DatabaseResult(PQexecPrepared(m_connection, statementName.data(), int(parameters.size()), parameterValues.data(), parameterSize.data(), parameterFormat.data(), 0));
+		return DatabaseResult(PQexecPrepared(m_connection, statementName.data(), int(parameters.size()), parameterValues.data(), parameterSize.data(), parameterFormat.data(), 1));
+	}
+
+	DatabaseResult DatabaseConnection::ExecPreparedStatement(const std::string& statementName, const std::vector<DatabaseValue>& parameters)
+	{
+		return ExecPreparedStatement(statementName, std::initializer_list<DatabaseValue>(parameters.data(), parameters.data() + parameters.size()));
 	}
 
 	std::string DatabaseConnection::GetLastErrorMessage() const
@@ -164,6 +170,6 @@ namespace ewn
 		for (std::size_t i = 0; i < parameterTypes.size(); ++i)
 			parameterIds[i] = GetDatabaseOid(*parameterId++);
 
-		return DatabaseResult(PQprepare(m_connection, statementName.data(), query.data(), parameterIds.size(), parameterIds.data()));
+		return DatabaseResult(PQprepare(m_connection, statementName.data(), query.data(), int(parameterIds.size()), parameterIds.data()));
 	}
 }

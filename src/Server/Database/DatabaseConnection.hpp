@@ -27,6 +27,7 @@ namespace ewn
 
 			DatabaseResult Exec(const std::string& query);
 			DatabaseResult ExecPreparedStatement(const std::string& statementName, std::initializer_list<DatabaseValue> parameters);
+			DatabaseResult ExecPreparedStatement(const std::string& statementName, const std::vector<DatabaseValue>& parameters);
 
 			std::string GetLastErrorMessage() const;
 

@@ -19,16 +19,19 @@ namespace ewn
 		Binary,
 		Bool,
 		Char,
+		Date,
 		Double,
+		FixedVarchar,
 		Int16,
 		Int32,
 		Int64,
 		Single,
 		Text,
+		Time,
 		Varchar
 	};
 
-	unsigned int GetDatabaseOid(DatabaseType type);
+	constexpr unsigned int GetDatabaseOid(DatabaseType type);
 	template<typename T> constexpr DatabaseType GetDatabaseType();
 
 	using DatabaseValue = std::variant<std::vector<Nz::UInt8>, bool, char, double, Nz::Int16, Nz::Int32, Nz::Int64, float, const char*, std::string>;

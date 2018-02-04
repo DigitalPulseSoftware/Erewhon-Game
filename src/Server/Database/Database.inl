@@ -15,4 +15,14 @@ namespace ewn
 	m_dbUsername(std::move(dbUser))
 	{
 	}
+
+	inline Database::RequestQueue& Database::GetRequestQueue()
+	{
+		return m_requestQueue;
+	}
+
+	inline void Database::SubmitResult(Result&& result)
+	{
+		m_resultQueue.enqueue(std::move(result));
+	}
 }
