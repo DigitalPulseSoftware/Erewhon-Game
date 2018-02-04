@@ -6,10 +6,9 @@
 
 namespace ewn
 {
-	inline DatabaseWorker::DatabaseWorker(Database& database, DatabaseConnection connection) :
+	inline DatabaseWorker::DatabaseWorker(Database& database) :
 	m_running(true),
-	m_database(database),
-	m_connection(std::move(connection))
+	m_database(database)
 	{
 		m_thread = Nz::Thread(&DatabaseWorker::WorkerThread, this);
 		m_thread.SetName("DatabaseWorker");

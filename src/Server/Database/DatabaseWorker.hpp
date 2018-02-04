@@ -20,7 +20,7 @@ namespace ewn
 	class DatabaseWorker final
 	{
 		public:
-			inline DatabaseWorker(Database& database, DatabaseConnection connection);
+			inline DatabaseWorker(Database& database);
 			DatabaseWorker(const DatabaseWorker&) = delete;
 			DatabaseWorker(DatabaseWorker&&) = delete;
 			~DatabaseWorker();
@@ -34,7 +34,6 @@ namespace ewn
 			std::atomic_bool m_running;
 			Nz::Thread m_thread;
 			Database& m_database;
-			DatabaseConnection m_connection;
 	};
 }
 

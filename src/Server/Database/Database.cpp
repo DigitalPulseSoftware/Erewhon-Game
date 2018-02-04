@@ -9,7 +9,8 @@ namespace ewn
 	DatabaseConnection Database::CreateConnection()
 	{
 		DatabaseConnection connection = DatabaseConnection(m_dbHostname, std::to_string(m_dbPort), m_dbUsername, m_dbPassword, m_dbName);
-		PrepareStatements(connection);
+		if (connection.IsConnected())
+			PrepareStatements(connection);
 
 		return connection;
 	}
@@ -34,7 +35,7 @@ namespace ewn
 	void Database::SpawnWorkers(std::size_t workerCount)
 	{
 		for (std::size_t i = 0; i < workerCount; ++i)
-			m_workers.emplace_back(std::make_unique<DatabaseWorker>(*this, CreateConnection()));
+			m_workers.emplace_back(std::make_unique<DatabaseWorker>(*this));
 	}
 
 	void Database::PrepareStatement(DatabaseConnection& connection, const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes)
