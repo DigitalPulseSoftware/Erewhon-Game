@@ -32,7 +32,7 @@ namespace ewn
 	bool ConfigFile::LoadFromFile(const std::string& fileName)
 	{
 		Nz::LuaInstance configFile;
-		configFile.LoadLibraries(0);
+		configFile.LoadLibraries();
 
 		if (!configFile.ExecuteFromFile(fileName))
 		{
