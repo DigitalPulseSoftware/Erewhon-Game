@@ -37,6 +37,7 @@ namespace ewn
 			const Ndk::EntityHandle& GetBotEntity();
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetName() const;
+			inline std::size_t GetPeerId() const;
 
 			inline bool IsAuthenticated() const;
 

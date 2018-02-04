@@ -27,4 +27,8 @@ namespace ewn
 
 		m_reactors.emplace_back(std::make_unique<NetworkReactor>(0, ipAddress, peerPerReactor));
 	}
+
+	void BaseApplication::OnConfigLoaded(const ConfigFile& /*config*/)
+	{
+	}
 }

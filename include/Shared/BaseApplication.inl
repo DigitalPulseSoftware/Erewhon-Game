@@ -28,7 +28,13 @@ namespace ewn
 
 	inline bool BaseApplication::LoadConfig(const std::string& configFile)
 	{
-		return m_config.LoadFromFile(configFile);
+		if (m_config.LoadFromFile(configFile))
+		{
+			OnConfigLoaded(m_config);
+			return true;
+		}
+		else
+			return false;
 	}
 
 	inline const std::unique_ptr<NetworkReactor>& BaseApplication::GetReactor(std::size_t reactorId)

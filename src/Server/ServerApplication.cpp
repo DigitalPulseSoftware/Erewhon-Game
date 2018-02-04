@@ -4,7 +4,9 @@
 
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/ScriptComponent.hpp>
+#include <Server/Database/Database.hpp>
 #include <Server/Player.hpp>
+#include <cctype>
 #include <iostream>
 
 namespace ewn
@@ -15,6 +17,14 @@ namespace ewn
 	m_chatCommandStore(this),
 	m_commandStore(this)
 	{
+		// Database configuration
+		m_config.RegisterStringOption("Database.Host");
+		m_config.RegisterStringOption("Database.Name");
+		m_config.RegisterStringOption("Database.Password");
+		m_config.RegisterIntegerOption("Database.Port", 1, 0xFFFF);
+		m_config.RegisterStringOption("Database.Username");
+		m_config.RegisterIntegerOption("Database.WorkerCount", 1, 100);
+
 		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
 		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
 	}
@@ -31,9 +41,17 @@ namespace ewn
 		}
 	}
 
+	Database& ServerApplication::GetGlobalDatabase()
+	{
+		assert(m_globalDatabase.has_value());
+		return *m_globalDatabase;
+	}
+
 	bool ServerApplication::Run()
 	{
 		m_arena.Update(GetUpdateTime());
+
+		m_globalDatabase->Poll();
 
 		return BaseApplication::Run();
 	}
@@ -65,12 +83,26 @@ namespace ewn
 			m_players[peerId]->Disconnect();
 	}
 
+	void ServerApplication::OnConfigLoaded(const ConfigFile& config)
+	{
+		const std::string& dbHost = m_config.GetStringOption("Database.Host");
+		const std::string& dbUser = m_config.GetStringOption("Database.Username");
+		const std::string& dbPassword = m_config.GetStringOption("Database.Password");
+		const std::string& dbName = m_config.GetStringOption("Database.Name");
+		long long dbPort = m_config.GetIntegerOption("Database.Port");
+		long long workerCount = m_config.GetIntegerOption("Database.WorkerCount");
+
+		InitGlobalDatabase(workerCount, dbHost, dbPort, dbUser, dbPassword, dbName);
+	}
+
+	void ServerApplication::InitGlobalDatabase(std::size_t workerCount, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName)
+	{
+		m_globalDatabase.emplace(std::move(dbHost), port, std::move(dbUser), std::move(dbPassword), std::move(dbName));
+		m_globalDatabase->SpawnWorkers(workerCount);
+	}
+
 	void ServerApplication::HandleLogin(std::size_t peerId, const Packets::Login& data)
 	{
-		std::cout << "Player #" << peerId << " tried to login with\n";
-		std::cout << " -login: " << data.login << '\n';
-		std::cout << " -hash: " << data.passwordHash << '\n';
-
 		Player* player = m_players[peerId];
 		if (player->IsAuthenticated())
 			return;
@@ -78,23 +110,54 @@ namespace ewn
 		if (data.login.empty() || data.login.size() > 20)
 			return;
 
-		if (data.login != "Lynix" || data.passwordHash == "98b533129f885fefbf10b3b4678bca87989e55244e822df6b94fe29d96e89540")
+		m_globalDatabase->ExecuteQuery("FindAccountByLogin", { data.login },
+		[ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash](DatabaseResult& result)
 		{
-			player->Authenticate(data.login);
+			if (!ply)
+				return;
 
-			player->SendPacket(Packets::LoginSuccess());
+			if (!result.IsValid())
+			{
+				std::cerr << "FindAccountByLogin failed: " << result.GetLastErrorMessage() << std::endl;
 
-			std::cout << "Player #" << peerId << " authenticated as " << data.login << std::endl;
-		}
-		else
-		{
-			Packets::LoginFailure loginFailure;
-			loginFailure.reason = 42;
+				Packets::LoginFailure loginFailure;
+				loginFailure.reason = 5; //< Server error
 
-			player->SendPacket(loginFailure);
+				ply->SendPacket(loginFailure);
+				return;
+			}
 
-			std::cout << "Player #" << peerId << " authenticated failed" << std::endl;
-		}
+			if (result.GetRowCount() == 0)
+			{
+				std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: player not found" << std::endl;
+
+				Packets::LoginFailure loginFailure;
+				loginFailure.reason = 5; //< Player not found
+
+				ply->SendPacket(loginFailure);
+				return;
+			}
+
+			assert(result.GetRowCount() == 1);
+
+			if (pwd == std::get<std::string>(result.GetValue(0, 0)))
+			{
+				ply->Authenticate(login);
+
+				ply->SendPacket(Packets::LoginSuccess());
+
+				std::cout << "Player #" << ply->GetPeerId() << " authenticated as " << login << std::endl;
+			}
+			else
+			{
+				Packets::LoginFailure loginFailure;
+				loginFailure.reason = 42; //< Password mismatch
+
+				ply->SendPacket(loginFailure);
+
+				std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
+			}
+		});
 	}
 
 	void ServerApplication::HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data)

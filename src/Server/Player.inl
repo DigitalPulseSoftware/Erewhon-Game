@@ -18,6 +18,11 @@ namespace ewn
 		return m_login;
 	}
 
+	inline std::size_t Player::GetPeerId() const
+	{
+		return m_peerId;
+	}
+
 	inline bool Player::IsAuthenticated() const
 	{
 		return m_authenticated;
