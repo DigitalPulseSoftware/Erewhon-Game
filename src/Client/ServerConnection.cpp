@@ -20,5 +20,4 @@ namespace ewn
 	{
 		return m_application.GetAppTime() + m_deltaTime;
 	}
-
 }

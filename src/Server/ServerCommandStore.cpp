@@ -23,6 +23,7 @@ namespace ewn
 		IncomingCommand(PlayerChat);
 		IncomingCommand(PlayerMovement);
 		IncomingCommand(PlayerShoot);
+		IncomingCommand(Register);
 		IncomingCommand(TimeSyncRequest);
 		IncomingCommand(UploadScript);
 
@@ -36,6 +37,8 @@ namespace ewn
 		OutgoingCommand(IntegrityUpdate,  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(RegisterFailure,  Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(RegisterSuccess,  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncResponse, 0,                           0);
 
 #undef IncomingCommand

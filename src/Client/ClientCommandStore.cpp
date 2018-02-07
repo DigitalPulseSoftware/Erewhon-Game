@@ -19,6 +19,7 @@ namespace ewn
 
 		// Incoming commands
 		IncomingCommand(ArenaState);
+		IncomingCommand(BotMessage);
 		IncomingCommand(ChatMessage);
 		IncomingCommand(ControlEntity);
 		IncomingCommand(CreateEntity);
@@ -26,7 +27,8 @@ namespace ewn
 		IncomingCommand(IntegrityUpdate);
 		IncomingCommand(LoginFailure);
 		IncomingCommand(LoginSuccess);
-		IncomingCommand(BotMessage);
+		IncomingCommand(RegisterFailure);
+		IncomingCommand(RegisterSuccess);
 		IncomingCommand(TimeSyncResponse);
 
 		// Outgoing commands
@@ -35,6 +37,7 @@ namespace ewn
 		OutgoingCommand(PlayerChat,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement,  0, 0);
 		OutgoingCommand(PlayerShoot,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(Register,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncRequest, 0, 0);
 		OutgoingCommand(UploadScript,    Nz::ENetPacketFlag_Reliable, 0);
 

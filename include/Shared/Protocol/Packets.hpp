@@ -35,6 +35,9 @@ namespace ewn
 		PlayerChat,
 		PlayerMovement,
 		PlayerShoot,
+		Register,
+		RegisterFailure,
+		RegisterSuccess,
 		TimeSyncRequest,
 		TimeSyncResponse,
 		UploadScript
@@ -138,6 +141,22 @@ namespace ewn
 		{
 		};
 
+		DeclarePacket(Register)
+		{
+			std::string login;
+			std::string email;
+			std::string passwordHash;
+		};
+
+		DeclarePacket(RegisterFailure)
+		{
+			Nz::UInt8 reason;
+		};
+
+		DeclarePacket(RegisterSuccess)
+		{
+		};
+
 		DeclarePacket(TimeSyncRequest)
 		{
 			Nz::UInt8 requestId;
@@ -170,6 +189,9 @@ namespace ewn
 		void Serialize(Nz::NetPacket& packet, const PlayerChat& data);
 		void Serialize(Nz::NetPacket& packet, const PlayerMovement& data);
 		void Serialize(Nz::NetPacket& packet, const PlayerShoot& data);
+		void Serialize(Nz::NetPacket& packet, const Register& data);
+		void Serialize(Nz::NetPacket& packet, const RegisterFailure& data);
+		void Serialize(Nz::NetPacket& packet, const RegisterSuccess& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data);
 		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data);
 		void Serialize(Nz::NetPacket& packet, const UploadScript& data);
@@ -188,6 +210,9 @@ namespace ewn
 		void Unserialize(Nz::NetPacket& packet, PlayerChat& data);
 		void Unserialize(Nz::NetPacket& packet, PlayerMovement& data);
 		void Unserialize(Nz::NetPacket& packet, PlayerShoot& data);
+		void Unserialize(Nz::NetPacket& packet, Register& data);
+		void Unserialize(Nz::NetPacket& packet, RegisterFailure& data);
+		void Unserialize(Nz::NetPacket& packet, RegisterSuccess& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data);
 		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data);
 		void Unserialize(Nz::NetPacket& packet, UploadScript& data);

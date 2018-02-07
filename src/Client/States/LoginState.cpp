@@ -10,6 +10,7 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <Client/States/RegisterState.hpp>
 #include <Client/States/TimeSyncState.hpp>
 #include <cassert>
 
@@ -19,6 +20,7 @@ namespace ewn
 	{
 		m_isLoggingIn = false;
 		m_loginSucceeded = false;
+		m_isRegistering = false;
 
 		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
@@ -54,11 +56,24 @@ namespace ewn
 		m_connectionButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
 		m_connectionButton->ResizeToContent();
-		m_connectionButton->SetSize(m_connectionButton->GetSize() + Nz::Vector2f(10.f));
 		m_connectionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnConnectionPressed();
 		});
+
+		m_registerButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
+		m_registerButton->ResizeToContent();
+		m_registerButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		{
+			OnRegisterPressed();
+		});
+
+		// Set both connection and register button of the same width
+		constexpr float buttonPadding = 10.f;
+		float regConnWidth = std::max(m_connectionButton->GetSize().x, m_registerButton->GetSize().x) + buttonPadding;
+		m_connectionButton->SetSize({ regConnWidth, m_connectionButton->GetSize().y + buttonPadding });
+		m_registerButton->SetSize({ regConnWidth, m_registerButton->GetSize().y + buttonPadding });
 
 		m_onLoginFailureSlot.Connect(m_stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
@@ -96,6 +111,7 @@ namespace ewn
 		m_passwordLabel->Destroy();
 		m_passwordArea->Destroy();
 		m_rememberCheckbox->Destroy();
+		m_registerButton->Destroy();
 		m_statusLabel->Destroy();
 		m_onConnectedSlot.Disconnect();
 		m_onDisconnectedSlot.Disconnect();
@@ -111,6 +127,8 @@ namespace ewn
 			if (m_loginAccumulator > 1.f)
 				fsm.ChangeState(std::make_shared<TimeSyncState>(m_stateData));
 		}
+		else if (m_isRegistering)
+			fsm.ChangeState(std::make_shared<RegisterState>(m_stateData));
 
 		return true;
 	}
@@ -121,6 +139,12 @@ namespace ewn
 		if (login.IsEmpty())
 		{
 			UpdateStatus("Error: blank login", Nz::Color::Red);
+			return;
+		}
+
+		if (login.GetSize() > 20)
+		{
+			UpdateStatus("Error: Login is too long", Nz::Color::Red);
 			return;
 		}
 
@@ -166,13 +190,31 @@ namespace ewn
 		UpdateStatus("Error: failed to connect to server", Nz::Color::Red);
 	}
 
+	void LoginState::OnRegisterPressed()
+	{
+		if (m_isLoggingIn)
+			return;
+
+		m_isRegistering = true;
+	}
+
 	void LoginState::LayoutWidgets()
 	{
 		Nz::Vector2f center = m_stateData.canvas->GetSize() / 2.f;
 
 		constexpr float padding = 10.f;
 
-		float totalSize = m_statusLabel->GetSize().y + m_loginArea->GetSize().y + m_passwordArea->GetSize().y + m_connectionButton->GetSize().y + padding * 3.f;
+		std::array<Ndk::BaseWidget*, 5> widgets = {
+			m_statusLabel,
+			m_loginArea,
+			m_passwordArea,
+			m_connectionButton,
+			m_registerButton
+		};
+
+		float totalSize = padding * (widgets.size() - 1);
+		for (Ndk::BaseWidget* widget : widgets)
+			totalSize += widget->GetSize().y;
 
 		Nz::Vector2f cursor = center;
 		cursor.y -= totalSize / 2.f;
@@ -199,13 +241,22 @@ namespace ewn
 
 		m_connectionButton->SetPosition({ 0.f, cursor.y, 0.f });
 		m_connectionButton->CenterHorizontal();
+		cursor.y += m_connectionButton->GetSize().y + padding;
+
+		m_registerButton->SetPosition({ 0.f, cursor.y, 0.f });
+		m_registerButton->CenterHorizontal();
+		cursor.y += m_registerButton->GetSize().y + padding;
 	}
 
 	void LoginState::SendLoginPacket()
 	{
 		Packets::Login loginPacket;
 		loginPacket.login = m_loginArea->GetText().ToStdString();
-		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, m_passwordArea->GetText()).ToHex().ToStdString();
+
+		// Salt password before hashing it
+		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText() + "utopia";
+
+		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, saltedPassword).ToHex().ToStdString();
 
 		m_stateData.server->SendPacket(loginPacket);
 	}

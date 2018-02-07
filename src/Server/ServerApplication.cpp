@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
+#include <Shared/SecureRandomGenerator.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Player.hpp>
@@ -140,7 +141,13 @@ namespace ewn
 
 			assert(result.GetRowCount() == 1);
 
-			if (pwd == std::get<std::string>(result.GetValue(0, 0)))
+			std::string dbPassword = std::get<std::string>(result.GetValue(0, 0));
+			std::string dbSalt = std::get<std::string>(result.GetValue(1, 0));
+
+			// Salt password and hash it again
+			Nz::String saltedPassword = Nz::ComputeHash(Nz::HashType_SHA256, pwd + dbSalt).ToHex();
+
+			if (saltedPassword == std::get<std::string>(result.GetValue(0, 0)))
 			{
 				ply->Authenticate(login);
 
@@ -222,6 +229,63 @@ namespace ewn
 			return;
 
 		player->Shoot();
+	}
+
+	void ServerApplication::HandleRegister(std::size_t peerId, const Packets::Register& data)
+	{
+		Player* player = m_players[peerId];
+		if (player->IsAuthenticated())
+			return;
+
+		if (data.login.empty() || data.login.size() > 20)
+			return;
+
+		if (data.email.empty() || data.email.size() > 40)
+			return;
+
+		if (data.passwordHash.empty() || data.passwordHash.size() > 128)
+			return;
+
+		// Generate salt
+		SecureRandomGenerator gen;
+
+		Nz::ByteArray saltBuff(16, 0);
+		if (!gen(saltBuff.GetBuffer(), saltBuff.GetSize()))
+		{
+			std::cerr << "SecureRandomGenerator failed" << std::endl;
+
+			Packets::RegisterFailure registerFailure;
+			registerFailure.reason = 0; //< Server error
+
+			player->SendPacket(registerFailure);
+			return;
+		}
+
+		// Salt password and hash it again
+		Nz::String salt = saltBuff.ToHex();
+		Nz::String saltedPassword = Nz::ComputeHash(Nz::HashType_SHA256, data.passwordHash + salt).ToHex();
+
+		m_globalDatabase->ExecuteQuery("RegisterAccount", { data.login, saltedPassword.ToStdString(), salt.ToStdString(), data.email },
+		[ply = player->CreateHandle(), login = data.login](DatabaseResult& result)
+		{
+			if (!ply)
+				return;
+
+			if (!result.IsValid())
+			{
+				std::cerr << "RegisterAccount failed: " << result.GetLastErrorMessage() << std::endl;
+
+				Packets::RegisterFailure loginFailure;
+				loginFailure.reason = 1; //< Login already exists
+
+				ply->SendPacket(loginFailure);
+				return;
+			}
+
+			ply->SendPacket(Packets::RegisterSuccess());
+
+			std::cout << "Player #" << ply->GetPeerId() << " registered as " << login << std::endl;
+		});
 	}
 
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)

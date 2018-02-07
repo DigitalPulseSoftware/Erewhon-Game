@@ -58,6 +58,8 @@ namespace ewn
 			NazaraSignal(OnIntegrityUpdate,  ServerConnection* /*server*/, const Packets::IntegrityUpdate&  /*data*/);
 			NazaraSignal(OnLoginFailure,     ServerConnection* /*server*/, const Packets::LoginFailure&     /*data*/);
 			NazaraSignal(OnLoginSuccess,     ServerConnection* /*server*/, const Packets::LoginSuccess&     /*data*/);
+			NazaraSignal(OnRegisterFailure,  ServerConnection* /*server*/, const Packets::RegisterFailure&  /*data*/);
+			NazaraSignal(OnRegisterSuccess,  ServerConnection* /*server*/, const Packets::RegisterSuccess&  /*data*/);
 			NazaraSignal(OnTimeSyncResponse, ServerConnection* /*server*/, const Packets::TimeSyncResponse& /*data*/);
 
 		private:

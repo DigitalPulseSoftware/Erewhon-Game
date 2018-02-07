@@ -100,6 +100,22 @@ namespace ewn
 		{
 		}
 
+		void Serialize(Nz::NetPacket& packet, const Register& data)
+		{
+			packet << data.login;
+			packet << data.email;
+			packet << data.passwordHash;
+		}
+
+		void Serialize(Nz::NetPacket& packet, const RegisterFailure& data)
+		{
+			packet << data.reason;
+		}
+
+		void Serialize(Nz::NetPacket& packet, const RegisterSuccess& data)
+		{
+		}
+
 		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data)
 		{
 			packet << data.requestId;
@@ -208,6 +224,22 @@ namespace ewn
 		}
 
 		void Unserialize(Nz::NetPacket& packet, PlayerShoot& data)
+		{
+		}
+
+		void Unserialize(Nz::NetPacket& packet, Register& data)
+		{
+			packet >> data.login;
+			packet >> data.email;
+			packet >> data.passwordHash;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, RegisterFailure& data)
+		{
+			packet >> data.reason;
+		}
+
+		void Unserialize(Nz::NetPacket& packet, RegisterSuccess& data)
 		{
 		}
 
