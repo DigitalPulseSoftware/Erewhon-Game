@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Shared/ConfigFile.hpp>
+#include <Shared/Utils.hpp>
 #include <Nazara/Lua/LuaInstance.hpp>
 #include <iostream>
 

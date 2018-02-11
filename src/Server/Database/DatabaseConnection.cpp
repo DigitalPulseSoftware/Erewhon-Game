@@ -5,6 +5,7 @@
 #include <Server/Database/DatabaseConnection.hpp>
 #include <Nazara/Core/MemoryHelper.hpp>
 #include <Nazara/Network/Algorithm.hpp>
+#include <Shared/Utils.hpp>
 #include <Server/Database/DatabaseResult.hpp>
 #include <pgsql/libpq-fe.h>
 #include <array>

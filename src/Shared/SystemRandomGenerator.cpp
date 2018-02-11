@@ -27,9 +27,6 @@ namespace ewn
 #ifdef NAZARA_PLATFORM_WINDOWS
 		if (!CryptReleaseContext(m_provider, 0))
 			std::cerr << "Failed to free HCRYPTPROV: " << ::GetLastError() << std::endl;
-#else
-		if (std::fclose(m_handle) != 0)
-			std::cerr << "Failed to close /dev/urandom handle: " << errno << std::endl;
 #endif
 	}
 
