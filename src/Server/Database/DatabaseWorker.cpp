@@ -3,7 +3,6 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Database/DatabaseWorker.hpp>
-#include <Nazara/Core/Thread.hpp>
 #include <Server/Database/Database.hpp>
 #include <chrono>
 #include <iostream>

@@ -23,7 +23,7 @@ namespace ewn
 			inline DatabaseWorker(Database& database);
 			DatabaseWorker(const DatabaseWorker&) = delete;
 			DatabaseWorker(DatabaseWorker&&) = delete;
-			~DatabaseWorker();
+			inline ~DatabaseWorker();
 
 			DatabaseWorker& operator=(const DatabaseWorker&) = delete;
 			DatabaseWorker& operator=(DatabaseWorker&&) = delete;

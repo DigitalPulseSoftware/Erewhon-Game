@@ -28,6 +28,7 @@ namespace ewn
 
 		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
 		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
+		m_config.RegisterIntegerOption("Game.WorkerCount", 1, 100);
 	}
 
 	ServerApplication::~ServerApplication()
@@ -53,6 +54,10 @@ namespace ewn
 		m_arena.Update(GetUpdateTime());
 
 		m_globalDatabase->Poll();
+
+		ServerCallback func;
+		while (m_callbackQueue.try_dequeue(func))
+			func();
 
 		return BaseApplication::Run();
 	}
@@ -84,6 +89,19 @@ namespace ewn
 			m_players[peerId]->Disconnect();
 	}
 
+	void ServerApplication::InitGameWorkers(std::size_t workerCount)
+	{
+		m_workers.reserve(workerCount);
+		for (std::size_t i = 0; i < workerCount; ++i)
+			m_workers.emplace_back(std::make_unique<GameWorker>(this));
+	}
+
+	void ServerApplication::InitGlobalDatabase(std::size_t workerCount, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName)
+	{
+		m_globalDatabase.emplace(std::move(dbHost), port, std::move(dbUser), std::move(dbPassword), std::move(dbName));
+		m_globalDatabase->SpawnWorkers(workerCount);
+	}
+
 	void ServerApplication::OnConfigLoaded(const ConfigFile& config)
 	{
 		const std::string& dbHost = m_config.GetStringOption("Database.Host");
@@ -91,15 +109,12 @@ namespace ewn
 		const std::string& dbPassword = m_config.GetStringOption("Database.Password");
 		const std::string& dbName = m_config.GetStringOption("Database.Name");
 		long long dbPort = m_config.GetIntegerOption("Database.Port");
-		long long workerCount = m_config.GetIntegerOption("Database.WorkerCount");
+		long long dbWorkerCount = m_config.GetIntegerOption("Database.WorkerCount");
 
-		InitGlobalDatabase(workerCount, dbHost, dbPort, dbUser, dbPassword, dbName);
-	}
+		long long gameWorkerCount = m_config.GetIntegerOption("Game.WorkerCount");
 
-	void ServerApplication::InitGlobalDatabase(std::size_t workerCount, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName)
-	{
-		m_globalDatabase.emplace(std::move(dbHost), port, std::move(dbUser), std::move(dbPassword), std::move(dbName));
-		m_globalDatabase->SpawnWorkers(workerCount);
+		InitGameWorkers(gameWorkerCount);
+		InitGlobalDatabase(dbWorkerCount, dbHost, dbPort, dbUser, dbPassword, dbName);
 	}
 
 	void ServerApplication::HandleLogin(std::size_t peerId, const Packets::Login& data)

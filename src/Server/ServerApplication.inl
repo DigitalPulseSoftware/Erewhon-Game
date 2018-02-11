@@ -6,4 +6,18 @@
 
 namespace ewn
 {
+	inline void ServerApplication::DispatchWork(WorkerFunction workFunc)
+	{
+		m_workerQueue.enqueue(std::move(workFunc));
+	}
+
+	inline void ServerApplication::RegisterCallback(ServerCallback callback)
+	{
+		m_callbackQueue.enqueue(std::move(callback));
+	}
+
+	inline ServerApplication::WorkerQueue& ServerApplication::GetWorkerQueue()
+	{
+		return m_workerQueue;
+	}
 }

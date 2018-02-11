@@ -11,6 +11,7 @@
 #include <Nazara/Core/MemoryPool.hpp>
 #include <Server/Arena.hpp>
 #include <Server/ChatCommandStore.hpp>
+#include <Server/GameWorker.hpp>
 #include <Server/GlobalDatabase.hpp>
 #include <Server/ServerCommandStore.hpp>
 #include <optional>
@@ -22,9 +23,16 @@ namespace ewn
 
 	class ServerApplication final : public BaseApplication
 	{
+		friend GameWorker;
+
 		public:
+			using ServerCallback = std::function<void()>;
+			using WorkerFunction = std::function<void()>;
+
 			ServerApplication();
 			virtual ~ServerApplication();
+
+			inline void DispatchWork(WorkerFunction workFunc);
 
 			Database& GetGlobalDatabase();
 
@@ -39,19 +47,31 @@ namespace ewn
 			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
 			void HandleUploadScript(std::size_t peerId, const Packets::UploadScript& data);
 
+			inline void RegisterCallback(ServerCallback callback);
+
 		private:
+			using CallbackQueue = moodycamel::ConcurrentQueue<ServerCallback>;
+			using WorkerQueue = moodycamel::BlockingConcurrentQueue<WorkerFunction>;
+
+			inline WorkerQueue& GetWorkerQueue();
+
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) override;
-			void OnConfigLoaded(const ConfigFile& config) override;
 
+			void InitGameWorkers(std::size_t workerCount);
 			void InitGlobalDatabase(std::size_t workerCount, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName);
+
+			void OnConfigLoaded(const ConfigFile& config) override;
 
 			std::vector<Player*> m_players;
 			Nz::MemoryPool m_playerPool;
 			Arena m_arena;
+			CallbackQueue m_callbackQueue;
 			ChatCommandStore m_chatCommandStore;
+			WorkerQueue m_workerQueue;
 			std::optional<GlobalDatabase> m_globalDatabase;
+			std::vector<std::unique_ptr<GameWorker>> m_workers;
 			ServerCommandStore m_commandStore;
 	};
 }
