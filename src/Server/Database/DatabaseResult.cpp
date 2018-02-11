@@ -8,6 +8,7 @@
 #include <postgresql/libpq-fe.h>
 #include <array>
 #include <cassert>
+#include <cstring>
 #include <sstream>
 #include <stdexcept>
 

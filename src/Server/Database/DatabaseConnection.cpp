@@ -59,19 +59,28 @@ namespace ewn
 
 	DatabaseResult DatabaseConnection::ExecPreparedStatement(const std::string& statementName, std::initializer_list<DatabaseValue> parameters)
 	{
-		Nz::StackArray<const char*> parameterValues = NazaraStackAllocationNoInit(const char*, parameters.size());
-		Nz::StackArray<int> parameterSize = NazaraStackAllocationNoInit(int, parameters.size());
-		Nz::StackArray<int> parameterFormat = NazaraStackAllocationNoInit(int, parameters.size());
+		return ExecPreparedStatement(statementName, &*parameters.begin(), parameters.size());
+	}
+
+	DatabaseResult DatabaseConnection::ExecPreparedStatement(const std::string& statementName, const std::vector<DatabaseValue>& parameters)
+	{
+		return ExecPreparedStatement(statementName, parameters.data(), parameters.size());
+	}
+
+	DatabaseResult DatabaseConnection::ExecPreparedStatement(const std::string& statementName, const DatabaseValue* parameters, std::size_t parameterCount)
+	{
+		Nz::StackArray<const char*> parameterValues = NazaraStackAllocationNoInit(const char*, parameterCount);
+		Nz::StackArray<int> parameterSize = NazaraStackAllocationNoInit(int, parameterCount);
+		Nz::StackArray<int> parameterFormat = NazaraStackAllocationNoInit(int, parameterCount);
 
 		Nz::Int8 boolTrue = 1;
 		Nz::Int8 boolFalse = 0;
 
 		// Allocate a raw memory array to store temporary big endian representations of types
-		Nz::StackArray<Nz::UInt8> bigEndianFormats = NazaraStackAllocationNoInit(Nz::UInt8, 8 * parameters.size());
+		Nz::StackArray<Nz::UInt8> bigEndianFormats = NazaraStackAllocationNoInit(Nz::UInt8, 8 * parameterCount);
 		std::size_t bigEndianFormatUsedSize = 0;
 
-		std::size_t parameterIndex = 0;
-		for (const DatabaseValue& value : parameters)
+		for (std::size_t i = 0; i < parameterCount; ++i)
 		{
 			std::visit([&](auto&& arg)
 			{
@@ -169,22 +178,15 @@ namespace ewn
 				else
 					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
-				parameterSize[parameterIndex] = int(valueSize);
-				parameterValues[parameterIndex] = static_cast<const char*>(valuePtr);
+				parameterSize[i] = int(valueSize);
+				parameterValues[i] = static_cast<const char*>(valuePtr);
 
-			}, value);
-
-			parameterIndex++;
+			}, parameters[i]);
 		}
 
 		parameterFormat.fill(1); //< Push everything as binary
 
-		return DatabaseResult(PQexecPrepared(m_connection, statementName.data(), int(parameters.size()), parameterValues.data(), parameterSize.data(), parameterFormat.data(), 1));
-	}
-
-	DatabaseResult DatabaseConnection::ExecPreparedStatement(const std::string& statementName, const std::vector<DatabaseValue>& parameters)
-	{
-		return ExecPreparedStatement(statementName, std::initializer_list<DatabaseValue>(parameters.data(), parameters.data() + parameters.size()));
+		return DatabaseResult(PQexecPrepared(m_connection, statementName.data(), int(parameterCount), parameterValues.data(), parameterSize.data(), parameterFormat.data(), 1));
 	}
 
 	std::string DatabaseConnection::GetLastErrorMessage() const
