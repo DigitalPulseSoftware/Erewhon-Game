@@ -35,6 +35,12 @@ namespace ewn
 		m_databaseId = id;
 		m_login = std::move(login);
 		m_authenticated = true;
+
+		m_app->GetGlobalDatabase().ExecuteQuery("UpdateLastLoginDate", { Nz::Int32(id) }, [id = m_databaseId](DatabaseResult& result)
+		{
+			if (!result.IsValid())
+				std::cerr << "Failed to update last login date for player #" << id << std::endl;
+		});
 	}
 
 	const Ndk::EntityHandle& Player::GetBotEntity()
