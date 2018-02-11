@@ -48,6 +48,7 @@ namespace ewn
 			Ndk::LabelWidget* m_passwordLabel;
 			Ndk::LabelWidget* m_passwordCheckLabel;
 			Ndk::LabelWidget* m_statusLabel;
+			Ndk::LabelWidget* m_titleLabel;
 			Ndk::TextAreaWidget* m_emailArea;
 			Ndk::TextAreaWidget* m_loginArea;
 			Ndk::TextAreaWidget* m_passwordArea;

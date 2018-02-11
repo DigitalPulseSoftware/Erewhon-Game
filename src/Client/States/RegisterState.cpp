@@ -23,6 +23,10 @@ namespace ewn
 		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
 
+		m_titleLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Register form:", 24));
+		m_titleLabel->ResizeToContent();
+
 		m_loginLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
 		m_loginLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login: ", 24));
 		m_loginLabel->ResizeToContent();
@@ -96,9 +100,29 @@ namespace ewn
 		m_onConnectedSlot.Connect(m_stateData.server->OnConnected, this, &RegisterState::OnConnected);
 		m_onDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &RegisterState::OnDisconnected);
 
-		m_onRegisterFailureSlot.Connect(m_stateData.server->OnRegisterFailure, [this](ServerConnection* connection, const Packets::RegisterFailure& loginFailure)
+		m_onRegisterFailureSlot.Connect(m_stateData.server->OnRegisterFailure, [this](ServerConnection* connection, const Packets::RegisterFailure& registerFailure)
 		{
-			UpdateStatus("Registration failed: " + std::to_string(loginFailure.reason), Nz::Color::Red);
+			std::string reason;
+			switch (registerFailure.reason)
+			{
+				case RegisterFailureReason::EmailAlreadyTaken:
+					reason = "email already taken";
+					break;
+
+				case RegisterFailureReason::LoginAlreadyTaken:
+					reason = "login already taken";
+					break;
+
+				case RegisterFailureReason::ServerError:
+					reason = "server error, please try again later";
+					break;
+
+				default:
+					reason = "<packet error>";
+					break;
+			}
+
+			UpdateStatus("Registration failed: " + reason, Nz::Color::Red);
 		});
 
 		m_onRegisterSuccess.Connect(m_stateData.server->OnRegisterSuccess, [this](ServerConnection* connection, const Packets::RegisterSuccess&)
@@ -123,6 +147,7 @@ namespace ewn
 		m_passwordCheckArea->Destroy();
 		m_registerButton->Destroy();
 		m_statusLabel->Destroy();
+		m_titleLabel->Destroy();
 		m_onConnectedSlot.Disconnect();
 		m_onDisconnectedSlot.Disconnect();
 		m_onRegisterFailureSlot.Disconnect();
@@ -232,8 +257,9 @@ namespace ewn
 
 		constexpr float padding = 10.f;
 
-		std::array<Ndk::BaseWidget*, 7> widgets = {
+		std::array<Ndk::BaseWidget*, 8> widgets = {
 			m_statusLabel,
+			m_titleLabel,
 			m_loginArea,
 			m_emailArea,
 			m_passwordArea,
@@ -249,9 +275,15 @@ namespace ewn
 		Nz::Vector2f cursor = center;
 		cursor.y -= totalSize / 2.f;
 
+		// Status
 		m_statusLabel->SetPosition({ 0.f, cursor.y, 0.f });
 		m_statusLabel->CenterHorizontal();
 		cursor.y += m_statusLabel->GetSize().y + padding;
+
+		// Title
+		m_titleLabel->SetPosition({ 0.f, cursor.y, 0.f });
+		m_titleLabel->CenterHorizontal();
+		cursor.y += m_titleLabel->GetSize().y + padding;
 
 		// Login
 		m_loginArea->SetPosition({ 0.f, cursor.y, 0.f });

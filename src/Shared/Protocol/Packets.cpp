@@ -77,7 +77,7 @@ namespace ewn
 
 		void Serialize(Nz::NetPacket& packet, const LoginFailure& data)
 		{
-			packet << data.reason;
+			packet << static_cast<Nz::UInt8>(data.reason);
 		}
 
 		void Serialize(Nz::NetPacket& packet, const LoginSuccess& data)
@@ -109,7 +109,7 @@ namespace ewn
 
 		void Serialize(Nz::NetPacket& packet, const RegisterFailure& data)
 		{
-			packet << data.reason;
+			packet << static_cast<Nz::UInt8>(data.reason);
 		}
 
 		void Serialize(Nz::NetPacket& packet, const RegisterSuccess& data)
@@ -204,7 +204,9 @@ namespace ewn
 
 		void Unserialize(Nz::NetPacket& packet, LoginFailure& data)
 		{
-			packet >> data.reason;
+			Nz::UInt8 reason;
+			packet >> reason;
+			data.reason = static_cast<LoginFailureReason>(reason);
 		}
 
 		void Unserialize(Nz::NetPacket& packet, LoginSuccess& data)
@@ -236,7 +238,9 @@ namespace ewn
 
 		void Unserialize(Nz::NetPacket& packet, RegisterFailure& data)
 		{
-			packet >> data.reason;
+			Nz::UInt8 reason;
+			packet >> reason;
+			data.reason = static_cast<RegisterFailureReason>(reason);
 		}
 
 		void Unserialize(Nz::NetPacket& packet, RegisterSuccess& data)

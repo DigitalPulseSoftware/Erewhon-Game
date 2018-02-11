@@ -17,6 +17,20 @@ namespace ewn
 		Warning,
 		Info
 	};
+
+	enum class LoginFailureReason : Nz::UInt8
+	{
+		AccountNotFound,
+		PasswordMismatch,
+		ServerError
+	};
+
+	enum class RegisterFailureReason : Nz::UInt8
+	{
+		EmailAlreadyTaken,
+		LoginAlreadyTaken,
+		ServerError
+	};
 }
 
 #endif // EREWHON_SHARED_ENUMS_HPP

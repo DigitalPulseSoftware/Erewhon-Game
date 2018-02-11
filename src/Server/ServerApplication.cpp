@@ -112,7 +112,7 @@ namespace ewn
 			return;
 
 		m_globalDatabase->ExecuteQuery("FindAccountByLogin", { data.login },
-		[ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash](DatabaseResult& result)
+		[ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash, this](DatabaseResult& result)
 		{
 			if (!ply)
 				return;
@@ -122,7 +122,7 @@ namespace ewn
 				std::cerr << "FindAccountByLogin failed: " << result.GetLastErrorMessage() << std::endl;
 
 				Packets::LoginFailure loginFailure;
-				loginFailure.reason = 5; //< Server error
+				loginFailure.reason = LoginFailureReason::ServerError;
 
 				ply->SendPacket(loginFailure);
 				return;
@@ -133,7 +133,7 @@ namespace ewn
 				std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: player not found" << std::endl;
 
 				Packets::LoginFailure loginFailure;
-				loginFailure.reason = 5; //< Player not found
+				loginFailure.reason = LoginFailureReason::AccountNotFound;
 
 				ply->SendPacket(loginFailure);
 				return;
@@ -158,7 +158,7 @@ namespace ewn
 			else
 			{
 				Packets::LoginFailure loginFailure;
-				loginFailure.reason = 42; //< Password mismatch
+				loginFailure.reason = LoginFailureReason::PasswordMismatch;
 
 				ply->SendPacket(loginFailure);
 
@@ -255,7 +255,7 @@ namespace ewn
 			std::cerr << "SecureRandomGenerator failed" << std::endl;
 
 			Packets::RegisterFailure registerFailure;
-			registerFailure.reason = 0; //< Server error
+			registerFailure.reason = RegisterFailureReason::ServerError;
 
 			player->SendPacket(registerFailure);
 			return;
@@ -276,7 +276,7 @@ namespace ewn
 				std::cerr << "RegisterAccount failed: " << result.GetLastErrorMessage() << std::endl;
 
 				Packets::RegisterFailure loginFailure;
-				loginFailure.reason = 1; //< Login already exists
+				loginFailure.reason = RegisterFailureReason::LoginAlreadyTaken;
 
 				ply->SendPacket(loginFailure);
 				return;

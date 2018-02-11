@@ -118,7 +118,7 @@ namespace ewn
 
 		DeclarePacket(LoginFailure)
 		{
-			Nz::UInt8 reason;
+			LoginFailureReason reason;
 		};
 
 		DeclarePacket(LoginSuccess)
@@ -150,7 +150,7 @@ namespace ewn
 
 		DeclarePacket(RegisterFailure)
 		{
-			Nz::UInt8 reason;
+			RegisterFailureReason reason;
 		};
 
 		DeclarePacket(RegisterSuccess)

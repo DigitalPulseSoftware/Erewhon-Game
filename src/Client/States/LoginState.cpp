@@ -77,7 +77,27 @@ namespace ewn
 
 		m_onLoginFailureSlot.Connect(m_stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
-			UpdateStatus("Login failed: " + std::to_string(loginFailure.reason), Nz::Color::Red);
+			std::string reason;
+			switch (loginFailure.reason)
+			{
+				case LoginFailureReason::AccountNotFound:
+					reason = "account not found";
+					break;
+
+				case LoginFailureReason::PasswordMismatch:
+					reason = "password mismatch";
+					break;
+
+				case LoginFailureReason::ServerError:
+					reason = "server error, please try again later";
+					break;
+
+				default:
+					reason = "<packet error>";
+					break;
+			}
+
+			UpdateStatus("Login failed: " + reason, Nz::Color::Red);
 		});
 
 		m_onLoginSuccess.Connect(m_stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
