@@ -65,6 +65,10 @@ namespace ewn
 		Nz::Int8 boolTrue = 1;
 		Nz::Int8 boolFalse = 0;
 
+		// Allocate a raw memory array to store temporary big endian representations of types
+		Nz::StackArray<Nz::UInt8> bigEndianFormats = NazaraStackAllocationNoInit(Nz::UInt8, 8 * parameters.size());
+		std::size_t bigEndianFormatUsedSize = 0;
+
 		std::size_t parameterIndex = 0;
 		for (const DatabaseValue& value : parameters)
 		{
@@ -91,30 +95,60 @@ namespace ewn
 				{
 					static_assert(sizeof(float) == 4);
 
-					valuePtr = &arg;
+					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
+
+					valuePtr = bigEndianPtr;
 					valueSize = 4;
+
+					float bigEndianValue = Nz::HostToNet(arg);
+					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
+					bigEndianFormatUsedSize += valueSize;
 				}
 				else if constexpr (std::is_same_v<T, double>)
 				{
 					static_assert(sizeof(double) == 8);
 
-					valuePtr = &arg;
+					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
+
+					valuePtr = bigEndianPtr;
 					valueSize = 8;
+
+					double bigEndianValue = Nz::HostToNet(arg);
+					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
+					bigEndianFormatUsedSize += valueSize;
 				}
 				else if constexpr (std::is_same_v<T, Nz::Int16>)
 				{
-					valuePtr = &arg;
+					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
+
+					valuePtr = bigEndianPtr;
 					valueSize = 2;
+
+					Nz::Int16 bigEndianValue = Nz::HostToNet(arg);
+					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
+					bigEndianFormatUsedSize += valueSize;
 				}
 				else if constexpr (std::is_same_v<T, Nz::Int32>)
 				{
-					valuePtr = &arg;
+					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
+
+					valuePtr = bigEndianPtr;
 					valueSize = 4;
+
+					Nz::Int32 bigEndianValue = Nz::HostToNet(arg);
+					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
+					bigEndianFormatUsedSize += valueSize;
 				}
 				else if constexpr (std::is_same_v<T, Nz::Int64>)
 				{
-					valuePtr = &arg;
+					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
+
+					valuePtr = bigEndianPtr;
 					valueSize = 8;
+
+					Nz::Int64 bigEndianValue = Nz::HostToNet(arg);
+					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
+					bigEndianFormatUsedSize += valueSize;
 				}
 				else if constexpr (std::is_same_v<T, const char*>)
 				{
