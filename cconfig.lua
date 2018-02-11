@@ -7,7 +7,7 @@ Server = {
 Security = {
 	Argon2 = {
 		IterationCost = 10,
-		MemoryCost    = 64 * 1024,
+		MemoryCost    = 32 * 1024,
 		ThreadCost    = 1
 	},
 	HashLength          = 64,
