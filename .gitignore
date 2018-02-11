@@ -6,6 +6,7 @@ Assets/*
 
 # Game binaries
 bin/*
+lib/*
 
 # Codeblocks
 *.save-failed

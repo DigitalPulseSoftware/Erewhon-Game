@@ -1,14 +1,25 @@
 WorkspaceName = "Erewhon"
 Projects = {
 	{
+		Name = "argon2",
+		Kind = "StaticLib",
+		Defines = {},
+		Files = {"../thirdparty/include/argon2/**", "../thirdparty/src/argon2/**"},
+		Includes = {"../thirdparty/include/argon2"},
+		Libs = {},
+		LibsDebug = {},
+		LibsRelease = {},
+		AdditionalDependencies = {}
+	},
+	{
 		Name = "ErewhonClient",
 		Kind = "ConsoleApp",
 		Defines = {},
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Client/**"},
 		Includes = {"../thirdparty/include"},
 		Libs = {},
-		LibsDebug = {"NazaraAudio-d", "NazaraCore-d", "NazaraLua-d", "NazaraGraphics-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraRenderer-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraPlatform-d", "NazaraSDK-d", "NazaraUtility-d"},
-		LibsRelease = {"NazaraAudio", "NazaraCore", "NazaraLua", "NazaraGraphics", "NazaraNetwork", "NazaraNoise", "NazaraRenderer", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraPlatform", "NazaraSDK", "NazaraUtility"},
+		LibsDebug = {"argon2-d", "NazaraAudio-d", "NazaraCore-d", "NazaraLua-d", "NazaraGraphics-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraRenderer-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraPlatform-d", "NazaraSDK-d", "NazaraUtility-d"},
+		LibsRelease = {"argon2", "NazaraAudio", "NazaraCore", "NazaraLua", "NazaraGraphics", "NazaraNetwork", "NazaraNoise", "NazaraRenderer", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraPlatform", "NazaraSDK", "NazaraUtility"},
 		AdditionalDependencies = {"Newton", "libsndfile-1", "soft_oal"}
 	},
 	{
@@ -18,8 +29,8 @@ Projects = {
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Server/**"},
 		Includes = {"../thirdparty/include"},
 		Libs = {"libpq"},
-		LibsDebug = {"NazaraCore-d", "NazaraLua-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraSDKServer-d", "NazaraUtility-d"},
-		LibsRelease = {"NazaraCore", "NazaraLua", "NazaraNetwork", "NazaraNoise", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraSDKServer", "NazaraUtility"},
+		LibsDebug = {"argon2-d", "NazaraCore-d", "NazaraLua-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraSDKServer-d", "NazaraUtility-d"},
+		LibsRelease = {"argon2", "NazaraCore", "NazaraLua", "NazaraNetwork", "NazaraNoise", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraSDKServer", "NazaraUtility"},
 		AdditionalDependencies = {"libeay32", "libintl-8", "libiconv-2", "Newton", "ssleay32"}
 	}
 }
@@ -85,7 +96,7 @@ workspace(WorkspaceName)
 			flags { "MultiProcessorCompile", "NoMinimalRebuild" }
 
 			for _, path in pairs(data.Files) do
-				for _, ext in pairs({".h", ".hpp", ".inl", ".cpp"}) do
+				for _, ext in pairs({".h", ".hpp", ".inl", ".c", ".cpp"}) do
 					files(path .. ext)
 				end
 			end
@@ -93,6 +104,12 @@ workspace(WorkspaceName)
 
 			debugdir("../bin/%{cfg.buildcfg}")
 			targetdir("../bin/%{cfg.buildcfg}")
+
+			filter {"architecture:x86"}
+				libdirs("../lib/" .. _ACTION .. "/x86")
+
+			filter {"architecture:x86_64"}
+				libdirs("../lib/" .. _ACTION .. "/x64")
 
 			for k,v in pairs(libs) do
 				local dir = Config[v]
@@ -142,6 +159,15 @@ workspace(WorkspaceName)
 				defines { "NDEBUG" }
 				links(data.LibsRelease)
 				optimize "On"
+
+			filter {"configurations:Debug", "kind:*Lib"}
+				targetsuffix("-d")
+
+			filter {"architecture:x86", "kind:*Lib"}
+				targetdir("../lib/" .. _ACTION .. "/x86")
+
+			filter {"architecture:x86_64", "kind:*Lib"}
+				targetdir("../lib/" .. _ACTION .. "/x64")
 
 			filter "action:vs*"
 				defines "_CRT_SECURE_NO_WARNINGS"
