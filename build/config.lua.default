@@ -3,3 +3,6 @@
 
 -- Nazara base directory (should contains bin, include and lib directories)
 NazaraPath = [[C:\NazaraEngine]]
+
+-- libpq base directory (should contains bin, include and lib directories)
+PostgresClientPath = [[C:\pgsql]]
