@@ -141,11 +141,13 @@ namespace ewn
 
 			assert(result.GetRowCount() == 1);
 
+			const std::string& globalSalt = m_config.GetStringOption("Security.PasswordSalt");
+
 			std::string dbPassword = std::get<std::string>(result.GetValue(0, 0));
 			std::string dbSalt = std::get<std::string>(result.GetValue(1, 0));
 
 			// Salt password and hash it again
-			Nz::String saltedPassword = Nz::ComputeHash(Nz::HashType_SHA256, pwd + dbSalt).ToHex();
+			Nz::String saltedPassword = Nz::ComputeHash(Nz::HashType_SHA256, globalSalt + pwd + dbSalt).ToHex();
 
 			if (saltedPassword == std::get<std::string>(result.GetValue(0, 0)))
 			{

@@ -11,3 +11,8 @@ Game = {
 	MaxClients = 100,
 	Port       = 2050
 }
+
+-- Warning: changing these parameters will break login to already registered accounts
+Security = {
+	PasswordSalt = "<randomsalt>",
+}

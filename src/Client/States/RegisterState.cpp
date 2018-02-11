@@ -329,7 +329,9 @@ namespace ewn
 		registerPacket.email = m_emailArea->GetText().ToStdString();
 
 		// Salt password before hashing it
-		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText() + "utopia";
+		const std::string& salt = m_stateData.app->GetConfig().GetStringOption("Security.PasswordSalt");
+
+		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText() + salt;
 
 		registerPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, saltedPassword).ToHex().ToStdString();
 
