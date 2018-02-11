@@ -167,8 +167,9 @@ namespace ewn
 
 			const std::string& globalSalt = m_config.GetStringOption("Security.PasswordSalt");
 
-			std::string dbPassword = std::get<std::string>(result.GetValue(0, 0));
-			std::string dbSalt = std::get<std::string>(result.GetValue(1, 0));
+			Nz::Int32 dbId = std::get<Nz::Int32>(result.GetValue(0, 0));
+			std::string dbPassword = std::get<std::string>(result.GetValue(1, 0));
+			std::string dbSalt = std::get<std::string>(result.GetValue(2, 0));
 			std::string salt = globalSalt + dbSalt;
 
 			int iCost = m_config.GetIntegerOption("Security.Argon2.IterationCost");
@@ -176,7 +177,7 @@ namespace ewn
 			int tCost = m_config.GetIntegerOption("Security.Argon2.ThreadCost");
 			int hashLength = m_config.GetIntegerOption("Security.HashLength");
 
-			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, ply, login, iCost, mCost, tCost, hashLength]()
+			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, ply, login, iCost, mCost, tCost, hashLength]()
 			{
 				Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
 				Nz::StackArray<char> outputHex = NazaraStackAllocationNoInit(char, hashLength * 2 + 1);
@@ -218,12 +219,12 @@ namespace ewn
 
 				if (!failure)
 				{
-					RegisterCallback([ply, login]()
+					RegisterCallback([ply, id, login]()
 					{
 						if (!ply)
 							return;
 
-						ply->Authenticate(login);
+						ply->Authenticate(id, login);
 
 						ply->SendPacket(Packets::LoginSuccess());
 

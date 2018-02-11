@@ -11,7 +11,7 @@ namespace ewn
 	{
 		try
 		{
-			PrepareStatement(conn, "FindAccountByLogin", "SELECT password, password_salt FROM account WHERE login=LOWER($1);", { DatabaseType::Text });
+			PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM account WHERE login=LOWER($1);", { DatabaseType::Text });
 			PrepareStatement(conn, "RegisterAccount", "INSERT INTO account(login, display_name, password, password_salt, email, creation_date) VALUES (LOWER($1), $1, $2, $3, $4, NOW());", { DatabaseType::Text, DatabaseType::Text, DatabaseType::Text, DatabaseType::Text });
 		}
 		catch (const std::exception& e)

@@ -29,12 +29,13 @@ namespace ewn
 			Player(ServerApplication* app, std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
 			~Player();
 
-			void Authenticate(std::string login);
+			void Authenticate(Nz::UInt32 dbId, std::string login);
 
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
 			const Ndk::EntityHandle& GetBotEntity();
+			inline Nz::UInt32 GetDatabaseId() const;
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetName() const;
 			inline std::size_t GetPeerId() const;
@@ -58,6 +59,7 @@ namespace ewn
 			std::string m_login;
 			Ndk::EntityOwner m_botEntity;
 			Ndk::EntityOwner m_spaceship;
+			Nz::UInt32 m_databaseId;
 			Nz::UInt64 m_lastInputTime;
 			Nz::UInt64 m_lastShootTime;
 			bool m_authenticated;

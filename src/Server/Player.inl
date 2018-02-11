@@ -5,6 +5,7 @@
 #include <Server/Player.hpp>
 #include <Nazara/Network/NetPacket.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <cassert>
 
 namespace ewn
 {
@@ -13,8 +14,15 @@ namespace ewn
 		return m_arena;
 	}
 
-	inline const std::string & Player::GetName() const
+	inline Nz::UInt32 Player::GetDatabaseId() const
 	{
+		assert(m_authenticated);
+		return m_databaseId;
+	}
+
+	inline const std::string& Player::GetName() const
+	{
+		assert(m_authenticated);
 		return m_login;
 	}
 

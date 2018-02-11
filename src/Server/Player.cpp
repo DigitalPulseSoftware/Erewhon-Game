@@ -18,6 +18,7 @@ namespace ewn
 	m_networkReactor(reactor),
 	m_commandStore(commandStore),
 	m_peerId(peerId),
+	m_databaseId(0),
 	m_lastInputTime(0),
 	m_authenticated(false)
 	{
@@ -29,8 +30,9 @@ namespace ewn
 			m_arena->HandlePlayerLeave(this);
 	}
 
-	void Player::Authenticate(std::string login)
+	void Player::Authenticate(Nz::UInt32 id, std::string login)
 	{
+		m_databaseId = id;
 		m_login = std::move(login);
 		m_authenticated = true;
 	}
