@@ -12,7 +12,9 @@
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/States/RegisterState.hpp>
 #include <Client/States/TimeSyncState.hpp>
+#include <argon2/argon2.h>
 #include <cassert>
+#include <chrono>
 
 namespace ewn
 {
@@ -98,6 +100,7 @@ namespace ewn
 			}
 
 			UpdateStatus("Login failed: " + reason, Nz::Color::Red);
+			m_isLoggingIn = false;
 		});
 
 		m_onLoginSuccess.Connect(m_stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
@@ -149,12 +152,24 @@ namespace ewn
 		}
 		else if (m_isRegistering)
 			fsm.ChangeState(std::make_shared<RegisterState>(m_stateData));
+		else if (m_isLoggingIn)
+		{
+			// Computing password, wait for it
+			if (m_passwordFuture.valid() && m_passwordFuture.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
+			{
+				if (m_stateData.server->IsConnected())
+					SendLoginPacket();
+			}
+		}
 
 		return true;
 	}
 
 	void LoginState::OnConnectionPressed()
 	{
+		if (m_isLoggingIn)
+			return;
+
 		Nz::String login = m_loginArea->GetText();
 		if (login.IsEmpty())
 		{
@@ -179,28 +194,27 @@ namespace ewn
 		else if (loginFile.Exists())
 			loginFile.Delete();
 
-		if (m_stateData.server->IsConnected())
-			SendLoginPacket();
-		else if (!m_isLoggingIn)
+		ComputePassword();
+
+		if (!m_stateData.server->IsConnected())
 		{
 			m_isLoggingIn = true;
 
 			// Connect to server
 			if (m_stateData.server->Connect(m_stateData.app->GetConfig().GetStringOption("Server.Address")))
+			{
 				UpdateStatus("Connecting...");
+				m_isLoggingIn = true;
+			}
 			else
 				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 		}
+		else
+			m_isLoggingIn = true;
 	}
 
 	void LoginState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
 	{
-		if (m_isLoggingIn)
-		{
-			m_isLoggingIn = false;
-
-			SendLoginPacket();
-		}
 	}
 
 	void LoginState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
@@ -268,15 +282,42 @@ namespace ewn
 		cursor.y += m_registerButton->GetSize().y + padding;
 	}
 
+	void LoginState::ComputePassword()
+	{
+		// Salt password before hashing it
+		const ConfigFile& config = m_stateData.app->GetConfig();
+
+		int iCost = config.GetIntegerOption("Security.Argon2.IterationCost");
+		int mCost = config.GetIntegerOption("Security.Argon2.MemoryCost");
+		int tCost = config.GetIntegerOption("Security.Argon2.ThreadCost");
+		int hashLength = config.GetIntegerOption("Security.HashLength");
+		const std::string& salt = config.GetStringOption("Security.PasswordSalt");
+
+		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText();
+
+		m_passwordFuture = std::async(std::launch::async, [pwd = std::move(saltedPassword), &salt, iCost, mCost, tCost, hashLength]()->std::string
+		{
+			std::string hash(hashLength, '\0');
+			if (argon2_hash(iCost, mCost, tCost, pwd.GetConstBuffer(), pwd.GetSize(), salt.data(), salt.size(), hash.data(), hash.size(), nullptr, 0, argon2_type::Argon2_id, ARGON2_VERSION_13) != ARGON2_OK)
+				hash.clear();
+
+			return hash;
+		});
+	}
+
 	void LoginState::SendLoginPacket()
 	{
+		std::string hashedPassword = m_passwordFuture.get();
+		if (hashedPassword.empty())
+		{
+			UpdateStatus("Failed to hash password", Nz::Color::Red);
+			m_isLoggingIn = false;
+			return;
+		}
+
 		Packets::Login loginPacket;
 		loginPacket.login = m_loginArea->GetText().ToStdString();
-
-		// Salt password before hashing it
-		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText() + "utopia";
-
-		loginPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, saltedPassword).ToHex().ToStdString();
+		loginPacket.passwordHash = hashedPassword;
 
 		m_stateData.server->SendPacket(loginPacket);
 	}

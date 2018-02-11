@@ -10,6 +10,7 @@
 #include <Client/States/StateData.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
+#include <future>
 
 namespace ewn
 {
@@ -31,6 +32,7 @@ namespace ewn
 			void OnDisconnected(ServerConnection* server, Nz::UInt32 data);
 			void OnRegisterPressed();
 
+			void ComputePassword();
 			void SendLoginPacket();
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
@@ -49,6 +51,7 @@ namespace ewn
 			Ndk::LabelWidget* m_statusLabel;
 			Ndk::TextAreaWidget* m_loginArea;
 			Ndk::TextAreaWidget* m_passwordArea;
+			std::future<std::string> m_passwordFuture;
 			bool m_loginSucceeded;
 			bool m_isLoggingIn;
 			bool m_isRegistering;

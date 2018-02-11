@@ -3,10 +3,12 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
+#include <Nazara/Core/MemoryHelper.hpp>
 #include <Shared/SecureRandomGenerator.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Player.hpp>
+#include <argon2/argon2.h>
 #include <cctype>
 #include <iostream>
 
@@ -25,6 +27,12 @@ namespace ewn
 		m_config.RegisterIntegerOption("Database.Port", 1, 0xFFFF);
 		m_config.RegisterStringOption("Database.Username");
 		m_config.RegisterIntegerOption("Database.WorkerCount", 1, 100);
+
+		m_config.RegisterIntegerOption("Security.Argon2.IterationCost");
+		m_config.RegisterIntegerOption("Security.Argon2.MemoryCost");
+		m_config.RegisterIntegerOption("Security.Argon2.ThreadCost");
+		m_config.RegisterIntegerOption("Security.HashLength");
+		m_config.RegisterStringOption("Security.PasswordSalt");
 
 		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
 		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
@@ -127,7 +135,7 @@ namespace ewn
 			return;
 
 		m_globalDatabase->ExecuteQuery("FindAccountByLogin", { data.login },
-		[ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash, this](DatabaseResult& result)
+		[this, ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash](DatabaseResult& result)
 		{
 			if (!ply)
 				return;
@@ -160,27 +168,83 @@ namespace ewn
 
 			std::string dbPassword = std::get<std::string>(result.GetValue(0, 0));
 			std::string dbSalt = std::get<std::string>(result.GetValue(1, 0));
+			std::string salt = globalSalt + dbSalt;
 
-			// Salt password and hash it again
-			Nz::String saltedPassword = Nz::ComputeHash(Nz::HashType_SHA256, globalSalt + pwd + dbSalt).ToHex();
+			int iCost = m_config.GetIntegerOption("Security.Argon2.IterationCost");
+			int mCost = m_config.GetIntegerOption("Security.Argon2.MemoryCost");
+			int tCost = m_config.GetIntegerOption("Security.Argon2.ThreadCost");
+			int hashLength = m_config.GetIntegerOption("Security.HashLength");
 
-			if (saltedPassword == std::get<std::string>(result.GetValue(0, 0)))
+			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, ply, login, iCost, mCost, tCost, hashLength]()
 			{
-				ply->Authenticate(login);
+				Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
+				Nz::StackArray<char> outputHex = NazaraStackAllocationNoInit(char, hashLength * 2 + 1);
 
-				ply->SendPacket(Packets::LoginSuccess());
+				argon2_context context;
+				std::memset(&context, 0, sizeof(argon2_context));
 
-				std::cout << "Player #" << ply->GetPeerId() << " authenticated as " << login << std::endl;
-			}
-			else
-			{
-				Packets::LoginFailure loginFailure;
-				loginFailure.reason = LoginFailureReason::PasswordMismatch;
+				context.out = output.data();
+				context.outlen = uint32_t(hashLength);
+				context.pwd = reinterpret_cast<uint8_t*>(const_cast<char*>(pass.data()));
+				context.pwdlen = uint32_t(pass.size());
+				context.salt = reinterpret_cast<uint8_t*>(const_cast<char*>(s.data()));
+				context.saltlen = uint32_t(s.size());
+				context.t_cost = iCost;
+				context.m_cost = mCost;
+				context.lanes = tCost;
+				context.threads = tCost;
+				context.flags = ARGON2_DEFAULT_FLAGS;
+				context.version = ARGON2_VERSION_13;
 
-				ply->SendPacket(loginFailure);
+				std::optional<LoginFailureReason> failure;
+				if (argon2_ctx(&context, argon2_type::Argon2_id) == ARGON2_OK)
+				{
+					for (std::size_t i = 0; i < output.size(); ++i)
+						std::sprintf(&outputHex[i * 2], "%02x", output[i]);
 
-				std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
-			}
+					// Protect against timed-attack
+					assert(dbPass.size() == outputHex.size() - 1);
+
+					bool isSame = true;
+					for (std::size_t i = 0; i < dbPass.size(); ++i)
+						isSame = isSame && (outputHex[i] == dbPass[i]);
+
+					if (!isSame)
+						failure = LoginFailureReason::PasswordMismatch;
+				}
+				else
+					failure = LoginFailureReason::ServerError;
+
+				if (!failure)
+				{
+					RegisterCallback([ply, login]()
+					{
+						if (!ply)
+							return;
+
+						ply->Authenticate(login);
+
+						ply->SendPacket(Packets::LoginSuccess());
+
+						std::cout << "Player #" << ply->GetPeerId() << " authenticated as " << login << std::endl;
+					});
+				}
+				else
+				{
+					RegisterCallback([ply, login, reason = failure.value()]()
+					{
+						if (!ply)
+							return;
+
+						Packets::LoginFailure loginFailure;
+						loginFailure.reason = reason;
+
+						ply->SendPacket(loginFailure);
+
+						std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
+					});
+				}
+			});
 		});
 	}
 
@@ -279,29 +343,81 @@ namespace ewn
 		}
 
 		// Salt password and hash it again
-		Nz::String salt = saltBuff.ToHex();
-		Nz::String saltedPassword = Nz::ComputeHash(Nz::HashType_SHA256, data.passwordHash + salt).ToHex();
+		const std::string& globalSalt = m_config.GetStringOption("Security.PasswordSalt");
 
-		m_globalDatabase->ExecuteQuery("RegisterAccount", { data.login, saltedPassword.ToStdString(), salt.ToStdString(), data.email },
-		[ply = player->CreateHandle(), login = data.login](DatabaseResult& result)
+		Nz::String userSalt = saltBuff.ToHex();
+		Nz::String salt = globalSalt + userSalt;
+
+		int iCost = m_config.GetIntegerOption("Security.Argon2.IterationCost");
+		int mCost = m_config.GetIntegerOption("Security.Argon2.MemoryCost");
+		int tCost = m_config.GetIntegerOption("Security.Argon2.ThreadCost");
+		int hashLength = m_config.GetIntegerOption("Security.HashLength");
+
+		DispatchWork([this, ply = player->CreateHandle(), s = std::move(salt), uSalt = std::move(userSalt), data, iCost, mCost, tCost, hashLength]()
 		{
-			if (!ply)
-				return;
+			Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
 
-			if (!result.IsValid())
+			argon2_context context;
+			std::memset(&context, 0, sizeof(argon2_context));
+
+			context.out = output.data();
+			context.outlen = uint32_t(hashLength);
+			context.pwd = reinterpret_cast<uint8_t*>(const_cast<char*>(data.passwordHash.data()));
+			context.pwdlen = uint32_t(data.passwordHash.size());
+			context.salt = reinterpret_cast<uint8_t*>(const_cast<char*>(s.GetConstBuffer()));
+			context.saltlen = uint32_t(s.GetSize());
+			context.t_cost = iCost;
+			context.m_cost = mCost;
+			context.lanes = tCost;
+			context.threads = tCost;
+			context.flags = ARGON2_DEFAULT_FLAGS;
+			context.version = ARGON2_VERSION_13;
+
+			std::optional<LoginFailureReason> failure;
+			if (argon2_ctx(&context, argon2_type::Argon2_id) == ARGON2_OK)
 			{
-				std::cerr << "RegisterAccount failed: " << result.GetLastErrorMessage() << std::endl;
+				std::string outputHex(hashLength * 2 + 1, '\0');
 
-				Packets::RegisterFailure loginFailure;
-				loginFailure.reason = RegisterFailureReason::LoginAlreadyTaken;
+				for (std::size_t i = 0; i < output.size(); ++i)
+					std::sprintf(&outputHex[i * 2], "%02x", output[i]);
 
-				ply->SendPacket(loginFailure);
-				return;
+				outputHex.resize(hashLength * 2);
+
+				m_globalDatabase->ExecuteQuery("RegisterAccount", { data.login, std::move(outputHex), uSalt.ToStdString(), data.email },
+				[ply, login = data.login](DatabaseResult& result)
+				{
+					if (!ply)
+						return;
+
+					if (!result.IsValid())
+					{
+						std::cerr << "RegisterAccount failed: " << result.GetLastErrorMessage() << std::endl;
+
+						Packets::RegisterFailure loginFailure;
+						loginFailure.reason = RegisterFailureReason::LoginAlreadyTaken;
+
+						ply->SendPacket(loginFailure);
+						return;
+					}
+
+					ply->SendPacket(Packets::RegisterSuccess());
+
+					std::cout << "Player #" << ply->GetPeerId() << " registered as " << login << std::endl;
+				});
 			}
+			else
+			{
+				RegisterCallback([ply]()
+				{
+					if (!ply)
+						return;
 
-			ply->SendPacket(Packets::RegisterSuccess());
+					Packets::RegisterFailure loginFailure;
+					loginFailure.reason = RegisterFailureReason::ServerError;
 
-			std::cout << "Player #" << ply->GetPeerId() << " registered as " << login << std::endl;
+					ply->SendPacket(loginFailure);
+				});
+			}
 		});
 	}
 

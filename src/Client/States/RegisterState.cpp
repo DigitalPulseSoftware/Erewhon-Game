@@ -11,7 +11,9 @@
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/States/LoginState.hpp>
+#include <argon2/argon2.h>
 #include <cassert>
+#include <chrono>
 
 namespace ewn
 {
@@ -123,6 +125,7 @@ namespace ewn
 			}
 
 			UpdateStatus("Registration failed: " + reason, Nz::Color::Red);
+			m_isRegistering = false;
 		});
 
 		m_onRegisterSuccess.Connect(m_stateData.server->OnRegisterSuccess, [this](ServerConnection* connection, const Packets::RegisterSuccess&)
@@ -162,6 +165,15 @@ namespace ewn
 			if (m_waitTime <= 0.f)
 				fsm.ChangeState(std::make_shared<LoginState>(m_stateData));
 		}
+		else if (m_isRegistering)
+		{
+			// Computing password, wait for it
+			if (m_passwordFuture.valid() && m_passwordFuture.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
+			{
+				if (m_stateData.server->IsConnected())
+					SendRegisterPacket();
+			}
+		}
 
 		return true;
 	}
@@ -174,12 +186,6 @@ namespace ewn
 
 	void RegisterState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
 	{
-		if (m_isRegistering)
-		{
-			m_isRegistering = false;
-
-			SendRegisterPacket();
-		}
 	}
 
 	void RegisterState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
@@ -191,6 +197,9 @@ namespace ewn
 
 	void RegisterState::OnRegisterPressed()
 	{
+		if (m_isRegistering)
+			return;
+
 		Nz::String login = m_loginArea->GetText();
 		if (login.IsEmpty())
 		{
@@ -237,18 +246,21 @@ namespace ewn
 			return;
 		}
 
-		if (m_stateData.server->IsConnected())
-			SendRegisterPacket();
-		else if (!m_isRegistering)
-		{
-			m_isRegistering = true;
+		ComputePassword();
 
+		if (!m_stateData.server->IsConnected())
+		{
 			// Connect to server
 			if (m_stateData.server->Connect(m_stateData.app->GetConfig().GetStringOption("Server.Address")))
+			{
 				UpdateStatus("Connecting...");
+				m_isRegistering = true;
+			}
 			else
 				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 		}
+		else
+			m_isRegistering = true;
 	}
 
 	void RegisterState::LayoutWidgets()
@@ -322,18 +334,44 @@ namespace ewn
 		cursor.y += m_cancelButton->GetSize().y + padding;
 	}
 
+	void RegisterState::ComputePassword()
+	{
+		// Salt password before hashing it
+		const ConfigFile& config = m_stateData.app->GetConfig();
+
+		int iCost = config.GetIntegerOption("Security.Argon2.IterationCost");
+		int mCost = config.GetIntegerOption("Security.Argon2.MemoryCost");
+		int tCost = config.GetIntegerOption("Security.Argon2.ThreadCost");
+		int hashLength = config.GetIntegerOption("Security.HashLength");
+		const std::string& salt = config.GetStringOption("Security.PasswordSalt");
+
+		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText();
+
+		m_passwordFuture = std::async(std::launch::async, [pwd = std::move(saltedPassword), &salt, iCost, mCost, tCost, hashLength]()->std::string
+		{
+			std::string hash(hashLength, '\0');
+			if (argon2_hash(iCost, mCost, tCost, pwd.GetConstBuffer(), pwd.GetSize(), salt.data(), salt.size(), hash.data(), hash.size(), nullptr, 0, argon2_type::Argon2_id, ARGON2_VERSION_13) != ARGON2_OK)
+				hash.clear();
+
+			return hash;
+		});
+	}
+
 	void RegisterState::SendRegisterPacket()
 	{
+		std::string hashedPassword = m_passwordFuture.get();
+		if (hashedPassword.empty())
+		{
+			UpdateStatus("Failed to hash password", Nz::Color::Red);
+			m_isRegistering = false;
+			return;
+		}
+
 		Packets::Register registerPacket;
 		registerPacket.login = m_loginArea->GetText().ToStdString();
 		registerPacket.email = m_emailArea->GetText().ToStdString();
 
-		// Salt password before hashing it
-		const std::string& salt = m_stateData.app->GetConfig().GetStringOption("Security.PasswordSalt");
-
-		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText() + salt;
-
-		registerPacket.passwordHash = ComputeHash(Nz::HashType_SHA256, saltedPassword).ToHex().ToStdString();
+		registerPacket.passwordHash = hashedPassword;
 
 		m_stateData.server->SendPacket(registerPacket);
 	}

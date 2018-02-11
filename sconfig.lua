@@ -15,5 +15,11 @@ Game = {
 
 -- Warning: changing these parameters will break login to already registered accounts
 Security = {
-	PasswordSalt = "<randomsalt>",
+	Argon2 = {
+		IterationCost = 10,
+		MemoryCost    = 4 * 1024,
+		ThreadCost    = 1
+	},
+	HashLength   = 32,
+	PasswordSalt = "<random and unique salt>",
 }
