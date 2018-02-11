@@ -58,7 +58,7 @@ namespace ewn
 	template<typename T>
 	constexpr DatabaseType GetDatabaseType()
 	{
-		static_assert(false, "Unknown");
+		static_assert(AlwaysFalse<T>, "Unknown");
 	}
 
 	template<>
