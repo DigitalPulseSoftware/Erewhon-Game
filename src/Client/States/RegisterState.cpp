@@ -14,6 +14,7 @@
 #include <argon2/argon2.h>
 #include <cassert>
 #include <chrono>
+#include <regex>
 
 namespace ewn
 {
@@ -226,10 +227,23 @@ namespace ewn
 			return;
 		}
 
+		const std::regex emailPattern(R"((\w+)(\.|_)?(\w*)@(\w+)(\.(\w+))+)");
+		if (!std::regex_match(email.GetConstBuffer(), emailPattern))
+		{
+			UpdateStatus("Error: invalid mail address", Nz::Color::Red);
+			return;
+		}
+
 		Nz::String password = m_passwordArea->GetText();
 		if (password.IsEmpty())
 		{
 			UpdateStatus("Error: blank password", Nz::Color::Red);
+			return;
+		}
+
+		if (password.GetLength() < 8)
+		{
+			UpdateStatus("Error: password is too short (at least 8 characters required)", Nz::Color::Red);
 			return;
 		}
 
@@ -260,7 +274,10 @@ namespace ewn
 				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 		}
 		else
+		{
+			UpdateStatus("Connecting...");
 			m_isRegistering = true;
+		}
 	}
 
 	void RegisterState::LayoutWidgets()

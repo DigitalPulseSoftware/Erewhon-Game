@@ -11,6 +11,7 @@
 #include <argon2/argon2.h>
 #include <cctype>
 #include <iostream>
+#include <regex>
 
 namespace ewn
 {
@@ -325,6 +326,10 @@ namespace ewn
 			return;
 
 		if (data.passwordHash.empty() || data.passwordHash.size() > 128)
+			return;
+
+		const std::regex emailPattern(R"((\w+)(\.|_)?(\w*)@(\w+)(\.(\w+))+)");
+		if (!std::regex_match(data.email, emailPattern))
 			return;
 
 		// Generate salt

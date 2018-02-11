@@ -183,6 +183,13 @@ namespace ewn
 			return;
 		}
 
+		Nz::String password = m_passwordArea->GetText();
+		if (password.GetLength() < 8)
+		{
+			UpdateStatus("Error: password is too short (at least 8 characters required)", Nz::Color::Red);
+			return;
+		}
+
 		Nz::File loginFile("lastlogin.rememberme");
 		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked)
 		{
@@ -210,7 +217,10 @@ namespace ewn
 				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 		}
 		else
+		{
+			UpdateStatus("Connecting...");
 			m_isLoggingIn = true;
+		}
 	}
 
 	void LoginState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
