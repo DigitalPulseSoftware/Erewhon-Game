@@ -7,7 +7,7 @@
 #include <Nazara/Network/Algorithm.hpp>
 #include <Shared/Utils.hpp>
 #include <Server/Database/DatabaseResult.hpp>
-#include <pgsql/libpq-fe.h>
+#include <postgresql/libpq-fe.h>
 #include <array>
 #include <cassert>
 #include <cstring>
