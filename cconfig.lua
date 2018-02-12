@@ -1,6 +1,6 @@
 Server = {
 	Address = "localhost",
-	Port    = 2050
+	Port    = 2049
 }
 
 -- Warning: changing these parameters will break login to already registered accounts
