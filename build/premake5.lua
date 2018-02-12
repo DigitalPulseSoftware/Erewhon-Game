@@ -280,25 +280,16 @@ workspace(WorkspaceName)
 					if (copy) then
 						print("Copying " .. lib .. "...")
 
-						-- Copying using os.copyfile doesn't update modified time...
-						local src = io.open(sourcePath, "rb")
-						local dst = io.open(targetPath, "wb")
-						if (not src or not dst) then
-							error("Failed to copy " .. targetPath)
+						local ok, err = os.copyfile(sourcePath, targetPath)
+						if (not ok) then
+							error("Failed to copy " .. targetPath .. ": " .. tostring(err))
 						end
-
-						local data
-						repeat
-							data = src:read(10 * 1024 * 1024) -- 10 MiB
-							if (not data) then
-								break
-							end
-
-							dst:write(data)
-						until false
-
-						src:close()
-						dst:close()
+						
+						-- Copying using os.copyfile doesn't update modified time...
+						local ok, err = os.touchfile(targetPath)
+						if (not ok) then
+							error("Failed to touch " .. targetPath .. ": " .. tostring(err))
+						end
 
 						updatedCount = updatedCount + 1
 					end
