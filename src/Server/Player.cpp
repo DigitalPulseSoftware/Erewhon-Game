@@ -38,8 +38,8 @@ namespace ewn
 
 		m_app->GetGlobalDatabase().ExecuteQuery("UpdateLastLoginDate", { Nz::Int32(id) }, [id = m_databaseId](DatabaseResult& result)
 		{
-			if (!result.IsValid())
-				std::cerr << "Failed to update last login date for player #" << id << std::endl;
+			if (!result.IsValid() || result.GetAffectedRowCount() == 0)
+				std::cerr << "Failed to update last login date for player #" << id << ": " << result.GetLastErrorMessage() << std::endl;
 		});
 	}
 
