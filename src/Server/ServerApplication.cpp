@@ -336,7 +336,7 @@ namespace ewn
 		// Generate salt
 		SecureRandomGenerator gen;
 
-		Nz::ByteArray saltBuff(16, 0);
+		Nz::ByteArray saltBuff(32, 0);
 		if (!gen(saltBuff.GetBuffer(), saltBuff.GetSize()))
 		{
 			std::cerr << "SecureRandomGenerator failed" << std::endl;
