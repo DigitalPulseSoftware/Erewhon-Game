@@ -204,14 +204,14 @@ namespace ewn
 					for (std::size_t i = 0; i < output.size(); ++i)
 						std::sprintf(&outputHex[i * 2], "%02x", output[i]);
 
-					// Protect against timed-attack
+					// Protect against timing-attack
 					assert(dbPass.size() == outputHex.size() - 1);
 
-					bool isSame = true;
+					int isDifferent = 0;
 					for (std::size_t i = 0; i < dbPass.size(); ++i)
-						isSame = isSame && (outputHex[i] == dbPass[i]);
+						isDifferent |= (outputHex[i] ^ dbPass[i]);
 
-					if (!isSame)
+					if (isDifferent)
 						failure = LoginFailureReason::PasswordMismatch;
 				}
 				else
