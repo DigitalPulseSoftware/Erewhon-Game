@@ -24,6 +24,7 @@ namespace ewn
 			DatabaseResult(DatabaseResult&&) = default;
 			~DatabaseResult();
 
+			std::size_t GetAffectedRowCount() const;
 			std::size_t GetColumnCount() const;
 			const char* GetColumnName(std::size_t columnIndex) const;
 			std::string GetLastErrorMessage() const;
