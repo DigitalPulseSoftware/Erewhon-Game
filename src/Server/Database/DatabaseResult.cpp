@@ -8,6 +8,7 @@
 #include <postgresql/libpq-fe.h>
 #include <array>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <sstream>
 #include <stdexcept>
@@ -18,6 +19,15 @@ namespace ewn
 	{
 		if (m_result)
 			PQclear(m_result);
+	}
+
+	std::size_t DatabaseResult::GetAffectedRowCount() const
+	{
+		const char* affectedRow = PQcmdTuples(m_result); //< PQcmdTuples returns a string representation of a number...
+		if (!affectedRow[0])
+			return 0;
+
+		return std::strtoull(affectedRow, nullptr, 10);
 	}
 
 	std::size_t DatabaseResult::GetColumnCount() const

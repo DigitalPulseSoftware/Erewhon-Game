@@ -62,10 +62,17 @@ end
 
 for k,v in pairs(libs) do
 	local dir = Config[v]
-	for k,v in pairs(libsDirs) do
-		local checkPath = dir .. v
-		if (not os.isdir(checkPath)) then
-			error("\"" .. checkPath .. "\" does not exists")
+	if (not dir) then
+		error("Missing " .. v .. " value in config.lua")
+	end
+
+	-- Only check directories if not empty
+	if (#dir > 0) then
+		for k,v in pairs(libsDirs) do
+			local checkPath = dir .. v
+			if (not os.isdir(checkPath)) then
+				error("\"" .. checkPath .. "\" does not exists")
+			end
 		end
 	end
 end
@@ -114,40 +121,42 @@ workspace(WorkspaceName)
 			for k,v in pairs(libs) do
 				local dir = Config[v]
 
-				filter {}
-					includedirs(dir .. "/include")
+				if (#dir > 0) then
+					filter {}
+						includedirs(dir .. "/include")
 
-				filter {"architecture:x86", "system:not Windows", "configurations:Debug"}
-					libdirs(dir .. "/bin/debug")
-					libdirs(dir .. "/bin/x86/debug")
+					filter {"architecture:x86", "system:not Windows", "configurations:Debug"}
+						libdirs(dir .. "/bin/debug")
+						libdirs(dir .. "/bin/x86/debug")
 
-				filter {"architecture:x86", "system:not Windows"}
-					libdirs(dir .. "/bin")
-					libdirs(dir .. "/bin/x86")
+					filter {"architecture:x86", "system:not Windows"}
+						libdirs(dir .. "/bin")
+						libdirs(dir .. "/bin/x86")
 
-				filter {"architecture:x86_64", "system:not Windows", "configurations:Debug"}
-					libdirs(dir .. "/bin/debug")
-					libdirs(dir .. "/bin/x64/debug")
+					filter {"architecture:x86_64", "system:not Windows", "configurations:Debug"}
+						libdirs(dir .. "/bin/debug")
+						libdirs(dir .. "/bin/x64/debug")
 
-				filter {"architecture:x86_64", "system:not Windows"}
-					libdirs(dir .. "/bin")
-					libdirs(dir .. "/bin/x64")
+					filter {"architecture:x86_64", "system:not Windows"}
+						libdirs(dir .. "/bin")
+						libdirs(dir .. "/bin/x64")
 
-				filter {"architecture:x86", "system:Windows", "configurations:Debug"}
-					libdirs(dir .. "/lib/debug")
-					libdirs(dir .. "/lib/x86/debug")
+					filter {"architecture:x86", "system:Windows", "configurations:Debug"}
+						libdirs(dir .. "/lib/debug")
+						libdirs(dir .. "/lib/x86/debug")
 
-				filter {"architecture:x86", "system:Windows"}
-					libdirs(dir .. "/lib")
-					libdirs(dir .. "/lib/x86")
+					filter {"architecture:x86", "system:Windows"}
+						libdirs(dir .. "/lib")
+						libdirs(dir .. "/lib/x86")
 
-				filter {"architecture:x86_64", "system:Windows", "configurations:Debug"}
-					libdirs(dir .. "/lib/debug")
-					libdirs(dir .. "/lib/x64/debug")
-				
-				filter {"architecture:x86_64", "system:Windows"}
-					libdirs(dir .. "/lib")
-					libdirs(dir .. "/lib/x64")
+					filter {"architecture:x86_64", "system:Windows", "configurations:Debug"}
+						libdirs(dir .. "/lib/debug")
+						libdirs(dir .. "/lib/x64/debug")
+					
+					filter {"architecture:x86_64", "system:Windows"}
+						libdirs(dir .. "/lib")
+						libdirs(dir .. "/lib/x64")
+				end
 			end
 			
 			filter "configurations:Debug"
@@ -271,25 +280,16 @@ workspace(WorkspaceName)
 					if (copy) then
 						print("Copying " .. lib .. "...")
 
-						-- Copying using os.copyfile doesn't update modified time...
-						local src = io.open(sourcePath, "rb")
-						local dst = io.open(targetPath, "wb")
-						if (not src or not dst) then
-							error("Failed to copy " .. targetPath)
+						local ok, err = os.copyfile(sourcePath, targetPath)
+						if (not ok) then
+							error("Failed to copy " .. targetPath .. ": " .. tostring(err))
 						end
-
-						local data
-						repeat
-							data = src:read(10 * 1024 * 1024) -- 10 MiB
-							if (not data) then
-								break
-							end
-
-							dst:write(data)
-						until false
-
-						src:close()
-						dst:close()
+						
+						-- Copying using os.copyfile doesn't update modified time...
+						local ok, err = os.touchfile(targetPath)
+						if (not ok) then
+							error("Failed to touch " .. targetPath .. ": " .. tostring(err))
+						end
 
 						updatedCount = updatedCount + 1
 					end
