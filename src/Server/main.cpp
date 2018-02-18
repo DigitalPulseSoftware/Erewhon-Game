@@ -7,6 +7,7 @@
 #include <Server/Components/HealthComponent.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
+#include <Server/Components/NavigationComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
@@ -14,6 +15,7 @@
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
+#include <Server/Systems/NavigationSystem.hpp>
 #include <Server/Systems/ScriptSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <Nazara/Core/Initializer.hpp>
@@ -30,6 +32,7 @@ int main()
 	Ndk::InitializeComponent<ewn::HealthComponent>("Health");
 	Ndk::InitializeComponent<ewn::LifeTimeComponent>("LifeTime");
 	Ndk::InitializeComponent<ewn::InputComponent>("InptComp");
+	Ndk::InitializeComponent<ewn::NavigationComponent>("NavigCmp");
 	Ndk::InitializeComponent<ewn::OwnerComponent>("OwnrComp");
 	Ndk::InitializeComponent<ewn::PlayerControlledComponent>("PlyCtrl");
 	Ndk::InitializeComponent<ewn::ProjectileComponent>("Prjctile");
@@ -37,6 +40,7 @@ int main()
 	Ndk::InitializeComponent<ewn::SynchronizedComponent>("SyncComp");
 	Ndk::InitializeSystem<ewn::BroadcastSystem>();
 	Ndk::InitializeSystem<ewn::LifeTimeSystem>();
+	Ndk::InitializeSystem<ewn::NavigationSystem>();
 	Ndk::InitializeSystem<ewn::ScriptSystem>();
 	Ndk::InitializeSystem<ewn::SpaceshipSystem>();
 

@@ -6,11 +6,6 @@
 
 namespace ewn
 {
-	inline Nz::UInt64 BaseApplication::GetAppTime() const
-	{
-		return m_appClock.GetMilliseconds();
-	}
-
 	inline const ConfigFile& BaseApplication::GetConfig() const
 	{
 		return m_config;
@@ -41,5 +36,10 @@ namespace ewn
 	{
 		assert(reactorId < m_reactors.size());
 		return m_reactors[reactorId];
+	}
+
+	inline Nz::UInt64 BaseApplication::GetAppTime()
+	{
+		return s_appClock.GetMilliseconds();
 	}
 }

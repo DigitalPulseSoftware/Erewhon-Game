@@ -11,6 +11,8 @@
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
+#include <Server/Modules/EngineModule.hpp>
+#include <Server/Modules/NavigationModule.hpp>
 #include <Server/Modules/RadarModule.hpp>
 #include <Server/Modules/WeaponModule.hpp>
 #include <iostream>
@@ -18,7 +20,8 @@
 namespace ewn
 {
 	ScriptComponent::ScriptComponent() :
-	m_lastMessageTime(0)
+	m_lastMessageTime(0),
+	m_isInitialized(false)
 	{
 		m_instance.SetMemoryLimit(1'000'000);
 		m_instance.SetTimeLimit(50);
@@ -89,68 +92,43 @@ namespace ewn
 
 		if (m_instance.GetGlobal("Spaceship") == Nz::LuaType_Table)
 		{
-			if (m_instance.GetField("OnTick") == Nz::LuaType_Function)
+			if (m_isInitialized)
 			{
-				m_instance.PushValue(-2); // Spaceship
-				m_instance.Push(elapsedTime);
-				if (!m_instance.Call(2, 0))
+				if (m_instance.GetField("OnTick") == Nz::LuaType_Function)
 				{
-					if (lastError)
-						*lastError = m_instance.GetLastError();
+					m_instance.PushValue(-2); // Spaceship
+					m_instance.Push(elapsedTime);
+					if (!m_instance.Call(2, 0))
+					{
+						if (lastError)
+							*lastError = m_instance.GetLastError();
 
-					m_script = Nz::String();
-					return false;
+						m_script = Nz::String();
+						return false;
+					}
 				}
+				else
+					m_instance.Pop();
 			}
 			else
-				m_instance.Pop();
-		}
-		m_instance.Pop();
-
-		if (m_instance.GetGlobal("Spaceship") == Nz::LuaType_Table)
-		{
-			if (m_instance.GetField("OnUpdateInput") == Nz::LuaType_Function)
 			{
-				m_instance.PushValue(-2); // Spaceship
-				m_instance.Push(elapsedTime);
-				if (!m_instance.Call(2, 6))
-				{
-					if (lastError)
-						*lastError = m_instance.GetLastError();
+				m_isInitialized = true;
 
-					m_script = Nz::String();
-					return false;
+				if (m_instance.GetField("OnStart") == Nz::LuaType_Function)
+				{
+					m_instance.PushValue(-2); // Spaceship
+					if (!m_instance.Call(1, 0))
+					{
+						if (lastError)
+							*lastError = m_instance.GetLastError();
+
+						m_script = Nz::String();
+						return false;
+					}
 				}
-
-				// Use some RRID
-				Nz::CallOnExit resetLuaStack([&]()
-				{
-					m_instance.Pop(m_instance.GetStackTop());
-				});
-
-				Nz::Vector3f movement;
-				Nz::Vector3f rotation;
-
-				try
-				{
-					int index = -6;
-					movement = m_instance.Check<Nz::Vector3f>(&index);
-					rotation = m_instance.Check<Nz::Vector3f>(&index);
-				}
-				catch (const std::exception&)
-				{
-					if (lastError)
-						*lastError = "OnUpdateInput failed: returned values are invalid";
-
-					m_script = Nz::String();
-					return false;
-				}
-
-				auto& inputComponent = m_entity->GetComponent<InputComponent>();
-				inputComponent.PushInput(app->GetAppTime(), movement, rotation);
+				else
+					m_instance.Pop();
 			}
-			else
-				m_instance.Pop();
 		}
 		m_instance.Pop();
 
@@ -189,6 +167,8 @@ namespace ewn
 	void ScriptComponent::OnAttached()
 	{
 		m_core.emplace(m_entity);
+		m_core->AddModule(std::make_unique<EngineModule>(m_entity));
+		m_core->AddModule(std::make_unique<NavigationModule>(m_entity));
 		m_core->AddModule(std::make_unique<RadarModule>(m_entity));
 		m_core->AddModule(std::make_unique<WeaponModule>(m_entity));
 

@@ -32,6 +32,12 @@ namespace ewn
 	inline void InputComponent::PushInput(Nz::UInt64 inputTime, const Nz::Vector3f& movement, const Nz::Vector3f& rotation)
 	{
 		assert(inputTime > m_lastInputTime);
+		assert(movement.x >= -1.f && movement.x <= 1.f);
+		assert(movement.y >= -1.f && movement.y <= 1.f);
+		assert(movement.z >= -1.f && movement.z <= 1.f);
+		assert(rotation.x >= -1.f && rotation.x <= 1.f);
+		assert(rotation.y >= -1.f && rotation.y <= 1.f);
+		assert(rotation.z >= -1.f && rotation.z <= 1.f);
 
 		InputData inputData;
 		inputData.serverTime = inputTime;

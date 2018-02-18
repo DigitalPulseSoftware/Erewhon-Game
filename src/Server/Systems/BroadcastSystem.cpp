@@ -15,9 +15,8 @@
 
 namespace ewn
 {
-	BroadcastSystem::BroadcastSystem(ServerApplication* app) :
-	m_snapshotId(0),
-	m_app(app)
+	BroadcastSystem::BroadcastSystem() :
+	m_snapshotId(0)
 	{
 		Requires<Ndk::NodeComponent, SynchronizedComponent>();
 		SetMaximumUpdateRate(30.f);
@@ -88,7 +87,7 @@ namespace ewn
 
 		// Fill our packet with at most MaxEntityPerUpdate entities, by priority order
 		m_arenaStatePacket.stateId = m_snapshotId++;
-		m_arenaStatePacket.serverTime = m_app->GetAppTime();
+		m_arenaStatePacket.serverTime = ServerApplication::GetAppTime();
 
 		std::size_t counter = 0;
 

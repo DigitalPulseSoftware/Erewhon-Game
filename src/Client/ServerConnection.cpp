@@ -18,6 +18,6 @@ namespace ewn
 
 	Nz::UInt64 ServerConnection::EstimateServerTime() const
 	{
-		return m_application.GetAppTime() + m_deltaTime;
+		return ClientApplication::GetAppTime() + m_deltaTime;
 	}
 }

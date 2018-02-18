@@ -31,4 +31,6 @@ namespace ewn
 	void BaseApplication::OnConfigLoaded(const ConfigFile& /*config*/)
 	{
 	}
+
+	Nz::Clock BaseApplication::s_appClock;
 }

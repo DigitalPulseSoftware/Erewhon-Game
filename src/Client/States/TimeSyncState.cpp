@@ -63,7 +63,7 @@ namespace ewn
 				Packets::TimeSyncRequest timeSyncRequest;
 				timeSyncRequest.requestId = m_expectedRequestId;
 
-				m_requestTime = m_stateData.app->GetAppTime();
+				m_requestTime = ClientApplication::GetAppTime();
 				m_stateData.server->SendPacket(timeSyncRequest);
 
 				m_nextStepTime += 1.f;
@@ -100,7 +100,7 @@ namespace ewn
 		if (response.requestId != m_expectedRequestId)
 			return;
 
-		Nz::UInt64 appTime = m_stateData.app->GetAppTime();
+		Nz::UInt64 appTime = ClientApplication::GetAppTime();
 		Nz::UInt64 pingTime = appTime - m_requestTime;
 
 		bool youngerThanServer = (response.serverTime >= appTime);

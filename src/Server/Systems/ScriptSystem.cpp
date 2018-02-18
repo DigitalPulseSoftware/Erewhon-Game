@@ -16,7 +16,7 @@ namespace ewn
 	{
 		Requires<ScriptComponent>();
 
-		SetMaximumUpdateRate(30.f);
+		SetMaximumUpdateRate(10.f);
 	}
 
 	void ScriptSystem::OnUpdate(float elapsedTime)

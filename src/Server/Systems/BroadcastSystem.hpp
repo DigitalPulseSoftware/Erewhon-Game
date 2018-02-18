@@ -18,7 +18,7 @@ namespace ewn
 	class BroadcastSystem : public Ndk::System<BroadcastSystem>
 	{
 		public:
-			BroadcastSystem(ServerApplication* app);
+			BroadcastSystem();
 			~BroadcastSystem() = default;
 
 			void BuildCreateEntity(Ndk::Entity* entity, Packets::CreateEntity& createPacket);

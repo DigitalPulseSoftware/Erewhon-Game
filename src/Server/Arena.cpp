@@ -14,6 +14,7 @@
 #include <Server/Components/HealthComponent.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
+#include <Server/Components/NavigationComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
@@ -21,6 +22,7 @@
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
+#include <Server/Systems/NavigationSystem.hpp>
 #include <Server/Systems/ScriptSystem.hpp>
 #include <Server/Systems/SpaceshipSystem.hpp>
 #include <cassert>
@@ -33,7 +35,7 @@ namespace ewn
 	m_app(app),
 	m_stateBroadcastAccumulator(0.f)
 	{
-		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>(app);
+		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>();
 		broadcastSystem.BroadcastEntityCreation.Connect(this,    &Arena::OnBroadcastEntityCreation);
 		broadcastSystem.BroadcastEntityDestruction.Connect(this, &Arena::OnBroadcastEntityDestruction);
 		broadcastSystem.BroadcastStateUpdate.Connect(this,       &Arena::OnBroadcastStateUpdate);
@@ -42,7 +44,8 @@ namespace ewn
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
 		m_world.AddSystem<LifeTimeSystem>();
-		m_world.AddSystem<ScriptSystem>(app, this);
+		m_world.AddSystem<NavigationSystem>();
+		m_world.AddSystem<ScriptSystem>(m_app, this);
 		m_world.AddSystem<SpaceshipSystem>();
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
@@ -205,6 +208,7 @@ namespace ewn
 			});
 
 			newEntity->AddComponent<InputComponent>();
+			newEntity->AddComponent<NavigationComponent>();
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 5);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -238,7 +242,7 @@ namespace ewn
 		{
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
-			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((m_app->GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
+			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
