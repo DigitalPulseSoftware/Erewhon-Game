@@ -30,16 +30,42 @@ namespace ewn
 			m_arena->HandlePlayerLeave(this);
 	}
 
-	void Player::Authenticate(Nz::UInt32 id, std::string login)
+	void Player::Authenticate(Nz::UInt32 dbId, std::function<void(Player*, bool succeeded)> authenticationCallback)
 	{
-		m_databaseId = id;
-		m_login = std::move(login);
-		m_authenticated = true;
+		m_databaseId = dbId;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("UpdateLastLoginDate", { Nz::Int32(id) }, [id = m_databaseId](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteQuery("LoadAccount", { Nz::Int32(dbId) }, [app = m_app, ply = CreateHandle(), cb = std::move(authenticationCallback)](DatabaseResult& result)
 		{
-			if (!result.IsValid() || result.GetAffectedRowCount() == 0)
-				std::cerr << "Failed to update last login date for player #" << id << ": " << result.GetLastErrorMessage() << std::endl;
+			if (!ply)
+				return;
+
+			if (!result.IsValid())
+			{
+				std::cerr << "LoadAccount failed for player #" << ply->GetDatabaseId() << ": " << result.GetLastErrorMessage();
+
+				cb(ply, false);
+			}
+			else if (result.GetRowCount() == 0)
+			{
+				std::cerr << "LoadAccount failed for player #" << ply->GetDatabaseId() << ": No account found";
+
+				cb(ply, false);
+			}
+			else
+			{
+				std::string login = std::get<std::string>(result.GetValue(0, 0));
+				std::string displayName = std::get<std::string>(result.GetValue(1, 0));
+
+				ply->OnAuthenticated(std::move(login), std::move(displayName));
+
+				cb(ply, true);
+
+				app->GetGlobalDatabase().ExecuteQuery("UpdateLastLoginDate", { Nz::Int32(ply->GetDatabaseId()) }, [dbId = ply->GetDatabaseId()](DatabaseResult& result)
+				{
+					if (!result.IsValid() || result.GetAffectedRowCount() == 0)
+						std::cerr << "Failed to update last login date for player #" << dbId << ": " << result.GetLastErrorMessage() << std::endl;
+				});
+			}
 		});
 	}
 
@@ -88,14 +114,14 @@ namespace ewn
 
 	void Player::Shoot()
 	{
-		if (m_app->GetAppTime() - m_lastShootTime < 500)
+		if (ServerApplication::GetAppTime() - m_lastShootTime < 500)
 			return;
 
 		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
 		m_arena->CreateProjectile(this, m_spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
 
-		m_lastShootTime = m_app->GetAppTime();
+		m_lastShootTime = ServerApplication::GetAppTime();
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f movement, Nz::Vector3f rotation)
@@ -136,5 +162,13 @@ namespace ewn
 
 		auto& controlComponent = m_spaceship->GetComponent<InputComponent>();
 		controlComponent.PushInput(lastInputTime, movement, rotation);
+	}
+
+	void Player::OnAuthenticated(std::string login, std::string displayName)
+	{
+		m_displayName = std::move(displayName);
+		m_login = std::move(login);
+
+		m_authenticated = true;
 	}
 }

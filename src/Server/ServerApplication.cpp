@@ -199,7 +199,8 @@ namespace ewn
 				context.version = ARGON2_VERSION_13;
 
 				std::optional<LoginFailureReason> failure;
-				if (argon2_ctx(&context, argon2_type::Argon2_id) == ARGON2_OK)
+				int argon2Ret = argon2_ctx(&context, argon2_type::Argon2_id);
+				if (argon2Ret == ARGON2_OK)
 				{
 					for (std::size_t i = 0; i < output.size(); ++i)
 						std::sprintf(&outputHex[i * 2], "%02x", output[i]);
@@ -219,21 +220,34 @@ namespace ewn
 
 				if (!failure)
 				{
-					RegisterCallback([ply, id, login]()
+					RegisterCallback([ply, id]()
 					{
 						if (!ply)
 							return;
 
-						ply->Authenticate(id, login);
+						ply->Authenticate(id, [](Player* player, bool loginSuccess)
+						{
+							if (loginSuccess)
+							{
+								player->SendPacket(Packets::LoginSuccess());
 
-						ply->SendPacket(Packets::LoginSuccess());
+								std::cout << "Player #" << player->GetPeerId() << " authenticated as " << player->GetName() << std::endl;
+							}
+							else
+							{
+								std::cerr << "Failed to authenticate player #" << player->GetPeerId() << ": Database authentication failed" << std::endl;
 
-						std::cout << "Player #" << ply->GetPeerId() << " authenticated as " << login << std::endl;
+								Packets::LoginFailure loginFailure;
+								loginFailure.reason = LoginFailureReason::ServerError;
+
+								player->SendPacket(loginFailure);
+							}
+						});
 					});
 				}
 				else
 				{
-					RegisterCallback([ply, login, reason = failure.value()]()
+					RegisterCallback([ply, login, reason = failure.value(), argon2Ret]()
 					{
 						if (!ply)
 							return;
@@ -243,7 +257,21 @@ namespace ewn
 
 						ply->SendPacket(loginFailure);
 
-						std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
+						switch (reason)
+						{
+							case LoginFailureReason::PasswordMismatch:
+								std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
+								break;
+
+							case LoginFailureReason::ServerError:
+								std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: argon2 failure (err: " << argon2Ret << ")" << std::endl;
+								break;
+
+							case LoginFailureReason::AccountNotFound:
+							default:
+								assert(false);
+								break;
+						}
 					});
 				}
 			});

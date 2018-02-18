@@ -12,6 +12,7 @@ namespace ewn
 		try
 		{
 			PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM account WHERE login=LOWER($1);", { DatabaseType::Text });
+			PrepareStatement(conn, "LoadAccount", "SELECT login, display_name FROM account WHERE id=$1;", { DatabaseType::Int32 });
 			PrepareStatement(conn, "RegisterAccount", "INSERT INTO account(login, display_name, password, password_salt, email, creation_date) VALUES (LOWER($1), $1, $2, $3, $4, NOW());", { DatabaseType::Text, DatabaseType::Text, DatabaseType::Text, DatabaseType::Text });
 			PrepareStatement(conn, "UpdateLastLoginDate", "UPDATE account SET last_login_date=NOW() WHERE id=$1", { DatabaseType::Int32 });
 		}

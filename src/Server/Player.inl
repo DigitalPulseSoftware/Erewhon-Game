@@ -20,10 +20,16 @@ namespace ewn
 		return m_databaseId;
 	}
 
-	inline const std::string& Player::GetName() const
+	inline const std::string& Player::GetLogin() const
 	{
 		assert(m_authenticated);
 		return m_login;
+	}
+
+	inline const std::string& Player::GetName() const
+	{
+		assert(m_authenticated);
+		return m_displayName;
 	}
 
 	inline std::size_t Player::GetPeerId() const
