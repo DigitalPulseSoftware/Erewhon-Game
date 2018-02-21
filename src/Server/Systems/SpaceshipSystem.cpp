@@ -31,7 +31,7 @@ namespace ewn
 
 				float inputElapsedTime = (lastInput != 0) ? (time - lastInput) / 1000.f : 0.f;
 
-				Nz::Vector3f totalMovement = inputElapsedTime * (movement.x * Nz::Vector3f::Forward() + movement.y * Nz::Vector3f::Left() + movement.z * Nz::Vector3f::Up());
+				Nz::Vector3f totalMovement = inputElapsedTime * movement;
 				Nz::Vector3f totalRotation = inputElapsedTime * rotation;
 
 				spaceshipPhysics.AddForce(ForceMultiplier * totalMovement, Nz::CoordSys_Local);

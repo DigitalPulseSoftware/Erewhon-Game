@@ -4,11 +4,14 @@
 
 #include <Server/SpaceshipCore.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
+#include <Server/SpaceshipModule.hpp>
 #include <Server/Components/HealthComponent.hpp>
 #include <iostream>
 
 namespace ewn
 {
+	SpaceshipCore::~SpaceshipCore() = default;
+
 	LuaVec3 SpaceshipCore::GetAngularVelocity() const
 	{
 		auto& nodeComponent = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();

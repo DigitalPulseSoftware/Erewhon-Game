@@ -11,9 +11,25 @@ namespace ewn
 	{
 	}
 
-	inline void SpaceshipCore::AddModule(std::unique_ptr<SpaceshipModule> modulePtr)
+	inline void SpaceshipCore::AddModule(std::shared_ptr<SpaceshipModule> modulePtr)
 	{
 		m_modules.emplace_back(std::move(modulePtr));
+	}
+
+	inline void SpaceshipCore::PushCallback(std::string callbackName)
+	{
+		m_callbacks.emplace(m_callbacks.begin(), std::move(callbackName));
+	}
+
+	inline std::optional<std::string> SpaceshipCore::PopCallback()
+	{
+		if (m_callbacks.empty())
+			return {};
+
+		std::string callbackName = std::move(m_callbacks.back());
+		m_callbacks.pop_back();
+
+		return callbackName;
 	}
 }
 

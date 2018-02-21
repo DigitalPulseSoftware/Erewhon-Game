@@ -42,7 +42,7 @@ namespace ewn
 			Nz::UInt64 m_lastMessageTime;
 			Nz::LuaInstance m_instance;
 			Nz::String m_script;
-			bool m_isInitialized;
+			float m_tickCounter;
 	};
 }
 

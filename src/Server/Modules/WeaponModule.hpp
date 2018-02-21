@@ -22,7 +22,7 @@ namespace ewn
 	class WeaponModule : public SpaceshipModule, public Nz::HandledObject<WeaponModule>
 	{
 		public:
-			inline WeaponModule(const Ndk::EntityHandle& spaceship);
+			inline WeaponModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			~WeaponModule() = default;
 
 			void Shoot();

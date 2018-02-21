@@ -11,14 +11,15 @@
 #include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <NDK/Entity.hpp>
-#include <Server/SpaceshipModule.hpp>
 #include <Server/Scripting/LuaMathTypes.hpp>
+#include <functional>
 #include <optional>
 #include <vector>
 
 namespace ewn
 {
 	class SpaceshipCore;
+	class SpaceshipModule;
 
 	using SpaceshipCoreHandle = Nz::ObjectHandle<SpaceshipCore>;
 
@@ -27,8 +28,9 @@ namespace ewn
 		public:
 			inline SpaceshipCore(const Ndk::EntityHandle& spaceship);
 			SpaceshipCore(const SpaceshipCore&) = delete;
+			~SpaceshipCore();
 
-			inline void AddModule(std::unique_ptr<SpaceshipModule> modulePtr);
+			inline void AddModule(std::shared_ptr<SpaceshipModule> modulePtr);
 
 			LuaVec3 GetAngularVelocity() const;
 			float GetIntegrity() const;
@@ -38,10 +40,14 @@ namespace ewn
 
 			void Register(Nz::LuaState& lua);
 
+			inline void PushCallback(std::string callbackName);
+			inline std::optional<std::string> PopCallback();
+
 			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
 
 		private:
-			std::vector<std::unique_ptr<SpaceshipModule>> m_modules;
+			std::vector<std::shared_ptr<SpaceshipModule>> m_modules;
+			std::vector<std::string> m_callbacks;
 			Ndk::EntityHandle m_spaceship;
 
 			static std::optional<Nz::LuaClass<SpaceshipCoreHandle>> s_binding;

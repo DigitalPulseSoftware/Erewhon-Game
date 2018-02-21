@@ -6,8 +6,8 @@
 
 namespace ewn
 {
-	inline RadarModule::RadarModule(const Ndk::EntityHandle & spaceship) :
-	SpaceshipModule(spaceship),
+	inline RadarModule::RadarModule(SpaceshipCore* core, const Ndk::EntityHandle & spaceship) :
+	SpaceshipModule(core, spaceship),
 	m_lastConeScanTime(0),
 	m_lastTargetScanTime(0)
 	{

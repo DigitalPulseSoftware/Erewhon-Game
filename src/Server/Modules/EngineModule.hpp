@@ -24,7 +24,7 @@ namespace ewn
 	class EngineModule : public SpaceshipModule, public Nz::HandledObject<EngineModule>
 	{
 		public:
-			inline EngineModule(const Ndk::EntityHandle& spaceship);
+			using SpaceshipModule::SpaceshipModule;
 			~EngineModule() = default;
 
 			void Impulse(Nz::Vector3f impulse, float duration);

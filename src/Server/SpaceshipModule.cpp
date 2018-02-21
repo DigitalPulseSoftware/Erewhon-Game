@@ -3,8 +3,14 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/SpaceshipModule.hpp>
+#include <Server/SpaceshipCore.hpp>
 
 namespace ewn
 {
 	SpaceshipModule::~SpaceshipModule() = default;
+
+	void SpaceshipModule::PushCallback(std::string callbackName)
+	{
+		m_core->PushCallback(std::move(callbackName));
+	}
 }

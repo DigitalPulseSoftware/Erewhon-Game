@@ -38,7 +38,7 @@ namespace ewn
 			InputComponent& entityInput = entity->GetComponent<InputComponent>();
 			NavigationComponent& entityNavigation = entity->GetComponent<NavigationComponent>();
 
-			auto [thrust, rotation] = entityNavigation.Run(m_appTime, elapsedTime, entityNode.GetPosition(), entityNode.GetRotation(), entityPhys.GetLinearVelocity(), entityPhys.GetAngularVelocity());
+			auto [thrust, rotation, isCloseEnough] = entityNavigation.Run(m_appTime, elapsedTime, entityNode.GetPosition(), entityNode.GetRotation(), entityPhys.GetLinearVelocity(), entityPhys.GetAngularVelocity());
 
 			entityInput.PushInput(m_appTime, thrust, rotation);
 		}

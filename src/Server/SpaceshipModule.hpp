@@ -7,6 +7,7 @@
 #ifndef EREWHON_SERVER_SPACESHIPMODULE_HPP
 #define EREWHON_SERVER_SPACESHIPMODULE_HPP
 
+#include <Server/SpaceshipCore.hpp>
 #include <Nazara/Lua/LuaInstance.hpp>
 #include <NDK/Entity.hpp>
 #include <optional>
@@ -16,7 +17,7 @@ namespace ewn
 	class SpaceshipModule
 	{
 		public:
-			inline SpaceshipModule(const Ndk::EntityHandle& spaceship);
+			inline SpaceshipModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			virtual ~SpaceshipModule();
 
 			inline void Disable();
@@ -28,9 +29,11 @@ namespace ewn
 
 		protected:
 			inline const Ndk::EntityHandle& GetSpaceship();
+			void PushCallback(std::string callbackName);
 
 		private:
 			Ndk::EntityHandle m_spaceship;
+			SpaceshipCoreHandle m_core;
 			bool m_enabled;
 	};
 }

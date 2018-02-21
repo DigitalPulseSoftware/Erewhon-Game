@@ -6,8 +6,9 @@
 
 namespace ewn
 {
-	inline SpaceshipModule::SpaceshipModule(const Ndk::EntityHandle& spaceship) :
+	inline SpaceshipModule::SpaceshipModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship) :
 	m_spaceship(spaceship),
+	m_core(core),
 	m_enabled(true)
 	{
 	}

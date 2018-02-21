@@ -23,11 +23,15 @@ namespace ewn
 	class NavigationModule : public SpaceshipModule, public Nz::HandledObject<NavigationModule>
 	{
 		public:
-			inline NavigationModule(const Ndk::EntityHandle& spaceship);
+			using SpaceshipModule::SpaceshipModule;
 			~NavigationModule() = default;
 
 			void FollowTarget(Ndk::EntityId targetId);
+			void FollowTarget(Ndk::EntityId targetId, float triggerDistance);
+
 			void MoveToPosition(const Nz::Vector3f& targetPos);
+			void MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance);
+
 			void Stop();
 
 			void Register(Nz::LuaState& lua) override;

@@ -9,24 +9,38 @@
 
 namespace ewn
 {
-	std::pair<Nz::Vector3f /*thrust*/, Nz::Vector3f /*rotation*/> NavigationComponent::ComputeMovement(float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel)
-{
+	NavigationComponent::NavigationResults NavigationComponent::ComputeMovement(float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel)
+	{
 		Nz::Vector3f targetPos;
-		std::visit([&targetPos](auto&& arg)
+		bool hasTarget = std::visit([&targetPos](auto&& arg) -> bool
 		{
 			using T = std::decay_t<decltype(arg)>;
 			if constexpr (std::is_same_v<T, Nz::Vector3f>)
+			{
 				targetPos = arg;
+				return true;
+			}
 			else if constexpr (std::is_same_v<T, Ndk::EntityHandle>)
+			{
+				if (!arg)
+					return false;
+
 				targetPos = arg->GetComponent<Ndk::NodeComponent>().GetPosition();
+				return true;
+			}
 			else if constexpr (std::is_same_v<T, std::monostate>)
-				assert(false); //< ComputeMovement is not supposed to be called when there's no target
+				return false;
 			else
 				static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
 		}, m_target);
 
+		if (!hasTarget)
+			return { Nz::Vector3f::Zero(), Nz::Vector3f::Zero() };
+
 		Nz::Vector3f desiredHeading = targetPos - position;
+		bool isCloseEnough = (desiredHeading.GetSquaredLength() <= m_triggerDistance * m_triggerDistance);
+
 		desiredHeading.Normalize();
 
 		Nz::Vector3f currentHeading = rotation * Nz::Vector3f::Forward();
@@ -34,7 +48,11 @@ namespace ewn
 
 		Nz::Vector3f torque = m_headingController.Update(headingError, elapsedTime);
 
-		return { Nz::Vector3f::Zero(), torque };
+		Nz::Vector3f force = Nz::Vector3f::Zero();
+		if (currentHeading.DotProduct(desiredHeading) > 0.95)
+			force = Nz::Vector3f::Forward();
+
+		return { force, torque, isCloseEnough };
 	}
 
 	Ndk::ComponentIndex NavigationComponent::componentIndex;

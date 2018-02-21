@@ -28,7 +28,7 @@ namespace ewn
 			using ConeScanResults = std::vector<ConeScanResult>;
 			struct ScanResult;
 
-			inline RadarModule(const Ndk::EntityHandle& spaceship);
+			inline RadarModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			~RadarModule() = default;
 
 			// Script functions

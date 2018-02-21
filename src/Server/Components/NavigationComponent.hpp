@@ -11,6 +11,7 @@
 #include <Nazara/Math/Vector3.hpp>
 #include <NDK/Component.hpp>
 #include <Shared/Utils/PidController.hpp>
+#include <functional>
 #include <variant>
 #include <vector>
 
@@ -19,6 +20,9 @@ namespace ewn
 	class NavigationComponent : public Ndk::Component<NavigationComponent>
 	{
 		public:
+			using ProximityCallback = std::function<void()>;
+			struct NavigationResults;
+
 			inline NavigationComponent();
 			~NavigationComponent() = default;
 
@@ -26,15 +30,24 @@ namespace ewn
 
 			inline void ClearTarget();
 
-			inline std::pair<Nz::Vector3f /*thrust*/, Nz::Vector3f /*rotation*/> Run(Nz::UInt64 currentTime, float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel);
+			inline NavigationResults Run(Nz::UInt64 currentTime, float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel);
 
 			inline void SetTarget(const Ndk::EntityHandle& entity);
+			inline void SetTarget(const Ndk::EntityHandle& entity, float triggerDistance, ProximityCallback proximityCallback);
 			inline void SetTarget(const Nz::Vector3f& position);
+			inline void SetTarget(const Nz::Vector3f& position, float triggerDistance, ProximityCallback proximityCallback);
 
 			static Ndk::ComponentIndex componentIndex;
 
+			struct NavigationResults
+			{
+				Nz::Vector3f thrust;
+				Nz::Vector3f rotation;
+				bool triggerDistance;
+			};
+
 		private:
-			std::pair<Nz::Vector3f /*thrust*/, Nz::Vector3f /*rotation*/> ComputeMovement(float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel);
+			NavigationResults ComputeMovement(float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel);
 
 			struct Impulsion
 			{
@@ -42,9 +55,11 @@ namespace ewn
 				Nz::Vector3f thrust;
 			};
 
+			ProximityCallback m_proximityCallback;
 			PidController<Nz::Vector3f> m_headingController;
 			std::variant<std::monostate, Ndk::EntityHandle, Nz::Vector3f> m_target;
 			std::vector<Impulsion> m_impulses;
+			float m_triggerDistance;
 	};
 }
 

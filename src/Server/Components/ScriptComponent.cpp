@@ -21,7 +21,7 @@ namespace ewn
 {
 	ScriptComponent::ScriptComponent() :
 	m_lastMessageTime(0),
-	m_isInitialized(false)
+	m_tickCounter(0.f)
 	{
 		m_instance.SetMemoryLimit(1'000'000);
 		m_instance.SetTimeLimit(50);
@@ -90,45 +90,50 @@ namespace ewn
 		if (!HasValidScript())
 			return true;
 
+		std::string callbackName;
+		bool hasParameters = false;
+
+		Nz::CallOnExit incrementTickCount([&]()
+		{
+			m_tickCounter += elapsedTime;
+		});
+
+		if (m_tickCounter >= 0.5f)
+		{
+			callbackName = "OnTick";
+			hasParameters = true;
+
+			m_tickCounter -= 0.5f;
+		}
+		else
+		{
+			callbackName = m_core->PopCallback().value_or(std::string());
+			if (callbackName.empty())
+				return true;
+		}
+
+		incrementTickCount.CallAndReset();
+
 		if (m_instance.GetGlobal("Spaceship") == Nz::LuaType_Table)
 		{
-			if (m_isInitialized)
+			if (m_instance.GetField(callbackName) == Nz::LuaType_Function)
 			{
-				if (m_instance.GetField("OnTick") == Nz::LuaType_Function)
-				{
-					m_instance.PushValue(-2); // Spaceship
-					m_instance.Push(elapsedTime);
-					if (!m_instance.Call(2, 0))
-					{
-						if (lastError)
-							*lastError = m_instance.GetLastError();
+				m_instance.PushValue(-2); // Spaceship
 
-						m_script = Nz::String();
-						return false;
-					}
+				if (hasParameters)
+					m_instance.Push(0.5f); //< FIXME
+
+				if (!m_instance.Call((hasParameters) ? 2 : 1, 0))
+				{
+					if (lastError)
+						*lastError = m_instance.GetLastError();
+
+					m_script = Nz::String();
+					return false;
 				}
-				else
-					m_instance.Pop();
 			}
 			else
-			{
-				m_isInitialized = true;
-
-				if (m_instance.GetField("OnStart") == Nz::LuaType_Function)
-				{
-					m_instance.PushValue(-2); // Spaceship
-					if (!m_instance.Call(1, 0))
-					{
-						if (lastError)
-							*lastError = m_instance.GetLastError();
-
-						m_script = Nz::String();
-						return false;
-					}
-				}
-				else
-					m_instance.Pop();
-			}
+				m_instance.Pop();
 		}
 		m_instance.Pop();
 
@@ -167,16 +172,18 @@ namespace ewn
 	void ScriptComponent::OnAttached()
 	{
 		m_core.emplace(m_entity);
-		m_core->AddModule(std::make_unique<EngineModule>(m_entity));
-		m_core->AddModule(std::make_unique<NavigationModule>(m_entity));
-		m_core->AddModule(std::make_unique<RadarModule>(m_entity));
-		m_core->AddModule(std::make_unique<WeaponModule>(m_entity));
+		m_core->AddModule(std::make_shared<EngineModule>(&m_core.value(), m_entity));
+		m_core->AddModule(std::make_shared<NavigationModule>(&m_core.value(), m_entity));
+		m_core->AddModule(std::make_shared<RadarModule>(&m_core.value(), m_entity));
+		m_core->AddModule(std::make_shared<WeaponModule>(&m_core.value(), m_entity));
 
 		m_instance.PushTable();
 		{
 			m_core->Register(m_instance);
 		}
 		m_instance.SetGlobal("Spaceship");
+
+		m_core->PushCallback("OnStart");
 	}
 
 	void ScriptComponent::OnDetached()
