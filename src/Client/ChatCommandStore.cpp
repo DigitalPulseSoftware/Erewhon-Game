@@ -10,13 +10,13 @@
 
 namespace ewn
 {
-	bool ChatCommandStore::ExecuteCommand(const std::string_view& name, ServerConnection* server)
+	std::optional<bool> ChatCommandStore::ExecuteCommand(const std::string_view& name, ServerConnection* server)
 	{
 		auto it = m_commands.find(name);
 		if (it != m_commands.end())
 			return it->second(server);
 		else
-			return false;
+			return {};
 	}
 
 	void ChatCommandStore::BuildStore()

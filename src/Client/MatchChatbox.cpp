@@ -80,8 +80,16 @@ namespace ewn
 						std::string_view command = chatText;
 						command.remove_prefix(1);
 
-						if (!m_chatCommandStore.ExecuteCommand(command, m_server))
+						std::optional<bool> result = m_chatCommandStore.ExecuteCommand(command, m_server);
+						if (result && !result.value())
 							PrintMessage(chatText);
+						else
+						{
+							Packets::PlayerChat chat;
+							chat.text = std::move(chatText);
+
+							m_server->SendPacket(chat);
+						}
 					}
 					else
 					{

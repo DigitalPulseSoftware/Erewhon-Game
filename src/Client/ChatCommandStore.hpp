@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 
 namespace ewn
@@ -23,7 +24,7 @@ namespace ewn
 			inline ChatCommandStore();
 			~ChatCommandStore() = default;
 
-			bool ExecuteCommand(const std::string_view& name, ServerConnection* server);
+			std::optional<bool> ExecuteCommand(const std::string_view& name, ServerConnection* server);
 
 			inline void RegisterCommand(std::string name, Command command);
 			inline void UnregisterCommand(const std::string& name);
