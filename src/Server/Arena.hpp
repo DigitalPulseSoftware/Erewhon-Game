@@ -33,7 +33,7 @@ namespace ewn
 
 		public:
 			Arena(ServerApplication* app);
-			~Arena() = default;
+			~Arena();
 
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
 			const Ndk::EntityHandle& CreateProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);

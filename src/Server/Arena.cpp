@@ -76,6 +76,11 @@ namespace ewn
 		}
 	}
 
+	Arena::~Arena()
+	{
+		m_world.Clear();
+	}
+
 	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* player)
 	{
 		assert(m_players.find(player) != m_players.end());
