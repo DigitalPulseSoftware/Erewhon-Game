@@ -20,17 +20,40 @@ namespace ewn
 
 	void ChatCommandStore::BuildStore()
 	{
-		RegisterCommand("reload", &ChatCommandStore::HandleReload);
+		RegisterCommand("crashserver", &ChatCommandStore::HandleCrashServer);
+		RegisterCommand("resetarena", &ChatCommandStore::HandleResetArena);
+		RegisterCommand("stopserver", &ChatCommandStore::HandleStopServer);
 	}
 
-	bool ChatCommandStore::HandleReload(ServerApplication* app, Player* player)
+	bool ChatCommandStore::HandleCrashServer(ServerApplication * app, Player * player)
 	{
-		// Dat security
+		// Dat security again
+		if (player->GetName() != "Lynix")
+			return false;
+
+		*static_cast<volatile int*>(nullptr) = 42;
+
+		return true;
+	}
+
+	bool ChatCommandStore::HandleResetArena(ServerApplication* app, Player* player)
+	{
+		// Dat security again
 		if (player->GetName() != "Lynix")
 			return false;
 
 		if (Arena* arena = player->GetArena())
-			arena->ReloadScripts();
+			arena->Reset();
+
+		return true;
+	}
+	bool ChatCommandStore::HandleStopServer(ServerApplication* app, Player* player)
+	{
+		// Dat security again
+		if (player->GetName() != "Lynix")
+			return false;
+
+		app->Quit();
 
 		return true;
 	}

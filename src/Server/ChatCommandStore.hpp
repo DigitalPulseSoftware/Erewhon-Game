@@ -32,7 +32,9 @@ namespace ewn
 		private:
 			void BuildStore();
 
-			static bool HandleReload(ServerApplication* app, Player* player);
+			static bool HandleCrashServer(ServerApplication* app, Player* player);
+			static bool HandleResetArena(ServerApplication* app, Player* player);
+			static bool HandleStopServer(ServerApplication* app, Player* player);
 
 			std::map<std::string, Command, std::less<>> m_commands;
 			ServerApplication* m_app;

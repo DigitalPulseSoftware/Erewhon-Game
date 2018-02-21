@@ -62,4 +62,6 @@ int main()
 	{
 		Nz::Thread::Sleep(1);
 	}
+
+	std::cout << "Goodbye" << std::endl;
 }

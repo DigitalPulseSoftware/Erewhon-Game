@@ -57,17 +57,7 @@ namespace ewn
 			return HandleProjectileCollision(firstBody, secondBody);
 		});
 
-		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
-		CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
-
-		/*for (std::size_t i = 0; i < 10; ++i)
-		{
-			const Ndk::EntityHandle& spaceship = CreateEntity("spaceship", "Bot #" + std::to_string(i), nullptr, Nz::Vector3f::UnitX() * i, Nz::Quaternionf::Identity());
-			spaceship->AddComponent<ScriptComponent>("test_script.lua");
-			m_scriptControlledEntities.Insert(spaceship);
-		}*/
-
+		Reset();
 
 		if constexpr (sendServerGhosts)
 		{
@@ -113,12 +103,13 @@ namespace ewn
 			pair.first->SendPacket(chatPacket);
 	}
 
-	void Arena::ReloadScripts()
+	void Arena::Reset()
 	{
-		/*for (const Ndk::EntityHandle& spaceship : m_scriptControlledEntities)
-		{
-			spaceship->AddComponent<ScriptComponent>("test_script.lua");
-		}*/
+		// Earth entity
+		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
+
+		// Space ball entity
+		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
 	}
 
 	void Arena::Update(float elapsedTime)

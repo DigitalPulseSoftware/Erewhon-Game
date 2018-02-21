@@ -9,6 +9,7 @@
 
 #include <Nazara/Core/Clock.hpp>
 #include <NDK/EntityList.hpp>
+#include <NDK/EntityOwner.hpp>
 #include <NDK/World.hpp>
 #include <Shared/NetworkReactor.hpp>
 #include <Shared/Protocol/Packets.hpp>
@@ -40,7 +41,7 @@ namespace ewn
 
 			void DispatchChatMessage(const Nz::String& message);
 
-			void ReloadScripts();
+			void Reset();
 
 			void Update(float elapsedTime);
 
@@ -56,7 +57,8 @@ namespace ewn
 			void OnBroadcastStateUpdate(const BroadcastSystem* system, Packets::ArenaState& statePacket);
 
 			Nz::UdpSocket m_debugSocket;
-			Ndk::EntityHandle m_attractionPoint;
+			Ndk::EntityOwner m_attractionPoint;
+			Ndk::EntityOwner m_spaceball;
 			Ndk::EntityList m_scriptControlledEntities;
 			Ndk::World m_world;
 			std::unordered_map<Player*, Ndk::EntityHandle> m_players;
