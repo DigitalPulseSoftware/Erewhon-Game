@@ -218,13 +218,15 @@ namespace ewn
 		}
 		else
 		{
-			UpdateStatus("Connecting...");
+			UpdateStatus("Logging in...");
 			m_isLoggingIn = true;
 		}
 	}
 
 	void LoginState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
 	{
+		if (m_isLoggingIn)
+			UpdateStatus("Logging in...");
 	}
 
 	void LoginState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
