@@ -34,12 +34,15 @@ namespace ewn
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
-			const Ndk::EntityHandle& GetBotEntity();
+			inline const Ndk::EntityHandle& GetBotEntity() const;
+			inline const Ndk::EntityHandle& GetControlledSpaceship() const;
 			inline Nz::UInt32 GetDatabaseId() const;
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetLogin() const;
 			inline const std::string& GetName() const;
 			inline std::size_t GetPeerId() const;
+
+			const Ndk::EntityHandle& InstantiateOrGetBot();
 
 			inline bool IsAuthenticated() const;
 

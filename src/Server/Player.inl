@@ -14,6 +14,16 @@ namespace ewn
 		return m_arena;
 	}
 
+	inline const Ndk::EntityHandle& Player::GetBotEntity() const
+	{
+		return m_botEntity;
+	}
+
+	const Ndk::EntityHandle& Player::GetControlledSpaceship() const
+	{
+		return m_spaceship;
+	}
+
 	inline Nz::UInt32 Player::GetDatabaseId() const
 	{
 		assert(m_authenticated);

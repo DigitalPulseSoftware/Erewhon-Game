@@ -474,7 +474,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		const Ndk::EntityHandle& playerBot = player->GetBotEntity();
+		const Ndk::EntityHandle& playerBot = player->InstantiateOrGetBot();
 		ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
 
 		Nz::String lastError;

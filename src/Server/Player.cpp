@@ -69,7 +69,7 @@ namespace ewn
 		});
 	}
 
-	const Ndk::EntityHandle& Player::GetBotEntity()
+	const Ndk::EntityHandle& Player::InstantiateOrGetBot()
 	{
 		if (!m_botEntity)
 		{

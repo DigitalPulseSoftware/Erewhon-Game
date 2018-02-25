@@ -6,6 +6,7 @@
 #include <Server/Arena.hpp>
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
+#include <Server/Components/HealthComponent.hpp>
 
 namespace ewn
 {
@@ -21,11 +22,14 @@ namespace ewn
 	void ChatCommandStore::BuildStore()
 	{
 		RegisterCommand("crashserver", &ChatCommandStore::HandleCrashServer);
+		RegisterCommand("kamikaze", &ChatCommandStore::HandleSuicide);
+		RegisterCommand("killbot", &ChatCommandStore::HandleKillBot);
 		RegisterCommand("resetarena", &ChatCommandStore::HandleResetArena);
+		RegisterCommand("suicide", &ChatCommandStore::HandleSuicide);
 		RegisterCommand("stopserver", &ChatCommandStore::HandleStopServer);
 	}
 
-	bool ChatCommandStore::HandleCrashServer(ServerApplication * app, Player * player)
+	bool ChatCommandStore::HandleCrashServer(ServerApplication* /*app*/, Player* player)
 	{
 		// Dat security again
 		if (player->GetName() != "Lynix")
@@ -36,7 +40,15 @@ namespace ewn
 		return true;
 	}
 
-	bool ChatCommandStore::HandleResetArena(ServerApplication* app, Player* player)
+	bool ChatCommandStore::HandleKillBot(ServerApplication * app, Player * player)
+	{
+		if (const Ndk::EntityHandle& botEntity = player->GetBotEntity())
+			botEntity->Kill();
+
+		return true;
+	}
+
+	bool ChatCommandStore::HandleResetArena(ServerApplication* /*app*/, Player* player)
 	{
 		// Dat security again
 		if (player->GetName() != "Lynix")
@@ -47,6 +59,18 @@ namespace ewn
 
 		return true;
 	}
+
+	bool ChatCommandStore::HandleSuicide(ServerApplication* /*app*/, Player* player)
+	{
+		if (const Ndk::EntityHandle& playerSpaceship = player->GetControlledSpaceship())
+		{
+			HealthComponent& spaceshipHealth = playerSpaceship->GetComponent<HealthComponent>();
+			spaceshipHealth.Damage(spaceshipHealth.GetHealth(), playerSpaceship);
+		}
+
+		return true;
+	}
+
 	bool ChatCommandStore::HandleStopServer(ServerApplication* app, Player* player)
 	{
 		// Dat security again
@@ -54,7 +78,6 @@ namespace ewn
 			return false;
 
 		app->Quit();
-
 		return true;
 	}
 }

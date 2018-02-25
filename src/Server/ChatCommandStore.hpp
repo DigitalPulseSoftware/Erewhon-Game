@@ -33,7 +33,9 @@ namespace ewn
 			void BuildStore();
 
 			static bool HandleCrashServer(ServerApplication* app, Player* player);
+			static bool HandleKillBot(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
+			static bool HandleSuicide(ServerApplication* app, Player* player);
 			static bool HandleStopServer(ServerApplication* app, Player* player);
 
 			std::map<std::string, Command, std::less<>> m_commands;
