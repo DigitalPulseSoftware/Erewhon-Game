@@ -25,12 +25,7 @@ namespace ewn
 				if (!arg)
 					return false;
 
-#ifdef NAZARA_COMPILER_GCC
-				// GCC seems to bug when using a variable of type T with a template expression (?)
 				targetPos = arg->template GetComponent<Ndk::NodeComponent>().GetPosition();
-#else
-				targetPos = arg->GetComponent<Ndk::NodeComponent>().GetPosition();
-#endif
 				return true;
 			}
 			else if constexpr (std::is_same_v<T, std::monostate>)
