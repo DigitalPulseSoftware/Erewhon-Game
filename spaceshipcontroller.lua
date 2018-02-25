@@ -50,7 +50,7 @@ API:
         ["type"] = one of "spaceship", "projectile", "ball" and "earth"
         ["name"] = name of the entity, empty for projectiles
 		["position"] = table(x, y, z)
-		["rotation"] = table(w, x, y, z)
+		["rotation"] = table(x, y, z)
 		["angularVelocity"] = table(x, y, z)
 		["linearVelocity"] = table(x, y, z)
 	  }
@@ -324,29 +324,29 @@ function UpdateInput(elapsedTime)
 	local SpaceshipRotation = Vec3.New()
 
 	if (KeyPressed["Z"]) then
-		SpaceshipMovement.x = SpaceshipMovement.x + Acceleration
+		SpaceshipMovement = SpaceshipMovement + Vec3.Forward * Acceleration
 	end
 
 	if (KeyPressed["S"]) then
-		SpaceshipMovement.x = SpaceshipMovement.x - Acceleration
+		SpaceshipMovement = SpaceshipMovement - Vec3.Forward * Acceleration
 	end
 
 	local leftSpeedModifier = 0.0
 	if (KeyPressed["Q"]) then
-		SpaceshipMovement.y = SpaceshipMovement.y + StrafeSpeed
+		SpaceshipMovement = SpaceshipMovement + Vec3.Left * Acceleration
 	end
 
 	if (KeyPressed["D"]) then
-		SpaceshipMovement.y = SpaceshipMovement.y - StrafeSpeed
+		SpaceshipMovement = SpaceshipMovement + Vec3.Right * Acceleration
 	end
 
 	local AscensionSpeedModifier = 0.0
 	if (KeyPressed["LShift"]) then
-		SpaceshipMovement.z = SpaceshipMovement.z + AscensionSpeed
+		SpaceshipMovement = SpaceshipMovement + Vec3.Up * Acceleration
 	end
 
 	if (KeyPressed["LControl"]) then
-		SpaceshipMovement.z = SpaceshipMovement.z - AscensionSpeed
+		SpaceshipMovement = SpaceshipMovement + Vec3.Down * Acceleration
 	end
 
 	local rollSpeedModifier = 0.0
