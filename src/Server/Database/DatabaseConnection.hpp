@@ -22,7 +22,7 @@ namespace ewn
 		public:
 			DatabaseConnection(const std::string& dbHost, const std::string& port, const std::string& dbUser, const std::string& dbPassword, const std::string& dbName);
 			DatabaseConnection(const DatabaseConnection&) = delete;
-			DatabaseConnection(DatabaseConnection&&) = default;
+			DatabaseConnection(DatabaseConnection&&) noexcept = default;
 			~DatabaseConnection();
 
 			DatabaseResult Exec(const std::string& query);
@@ -33,11 +33,12 @@ namespace ewn
 			std::string GetLastErrorMessage() const;
 
 			bool IsConnected() const;
+			bool IsInTransaction() const;
 
 			DatabaseResult PrepareStatement(const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes);
 
 			DatabaseConnection& operator=(const DatabaseConnection&) = delete;
-			DatabaseConnection& operator=(DatabaseConnection&&) = default;
+			DatabaseConnection& operator=(DatabaseConnection&&) noexcept = default;
 
 		private:
 			Nz::MovablePtr<PGconn> m_connection;

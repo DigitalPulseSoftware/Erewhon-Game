@@ -9,6 +9,7 @@
 
 #include <Nazara/Prerequisites.hpp>
 #include <Server/Database/DatabaseConnection.hpp>
+#include <Server/Database/DatabaseTransaction.hpp>
 #include <Server/Database/DatabaseWorker.hpp>
 #include <concurrentqueue/blockingconcurrentqueue.h>
 #include <concurrentqueue/concurrentqueue.h>
@@ -23,14 +24,16 @@ namespace ewn
 		friend DatabaseWorker;
 
 		public:
-			using Callback = std::function<void(DatabaseResult& result)>;
+			using QueryCallback = std::function<void(DatabaseResult& result)>;
+			using TransactionCallback = std::function<void(bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)>;
 
 			inline Database(std::string name, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName);
 			~Database() = default;
 
 			DatabaseConnection CreateConnection();
 
-			void ExecuteQuery(std::string statement, std::vector<DatabaseValue> parameters, Callback callback);
+			inline void ExecuteQuery(std::string statement, std::vector<DatabaseValue> parameters, QueryCallback callback);
+			inline void ExecuteTransaction(DatabaseTransaction transaction, TransactionCallback callback);
 
 			void Poll();
 
@@ -41,18 +44,35 @@ namespace ewn
 			virtual void PrepareStatements(DatabaseConnection& connection) = 0;
 
 		private:
-			struct Request
+			struct QueryRequest
 			{
 				std::string statement;
 				std::vector<DatabaseValue> parameters;
-				Callback callback;
+				QueryCallback callback;
 			};
 
-			struct Result
+			struct TransactionRequest
 			{
-				Callback callback;
+				DatabaseTransaction transaction;
+				TransactionCallback callback;
+			};
+
+			using Request = std::variant<QueryRequest, TransactionRequest>;
+
+			struct QueryResult
+			{
+				QueryCallback callback;
 				DatabaseResult result;
 			};
+
+			struct TransactionResult
+			{
+				TransactionCallback callback;
+				std::vector<DatabaseResult> results;
+				bool transactionSucceeded;
+			};
+
+			using Result = std::variant<QueryResult, TransactionResult>;
 
 			using RequestQueue = moodycamel::BlockingConcurrentQueue<Request>;
 			using ResultQueue = moodycamel::ConcurrentQueue<Result>;

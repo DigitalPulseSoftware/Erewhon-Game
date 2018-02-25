@@ -199,6 +199,22 @@ namespace ewn
 		return PQstatus(m_connection) == CONNECTION_OK;
 	}
 
+	bool DatabaseConnection::IsInTransaction() const
+	{
+		switch (PQtransactionStatus(m_connection))
+		{
+			case PQTRANS_INERROR:
+			case PQTRANS_INTRANS:
+			return true;
+
+			case PQTRANS_IDLE:
+			case PQTRANS_ACTIVE:
+			case PQTRANS_UNKNOWN:
+			default:
+				return false;
+		}
+	}
+
 	ewn::DatabaseResult DatabaseConnection::PrepareStatement(const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes)
 	{
 		Nz::StackArray<Oid> parameterIds = NazaraStackAllocationNoInit(Oid, parameterTypes.size());

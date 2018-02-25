@@ -15,21 +15,28 @@ namespace ewn
 		return connection;
 	}
 
-	void Database::ExecuteQuery(std::string statement, std::vector<DatabaseValue> parameters, Callback callback)
-	{
-		Request newRequest;
-		newRequest.callback = std::move(callback);
-		newRequest.parameters = std::move(parameters);
-		newRequest.statement = std::move(statement);
-
-		m_requestQueue.enqueue(newRequest);
-	}
-
 	void Database::Poll()
 	{
 		Result result;
 		while (m_resultQueue.try_dequeue(result))
-			result.callback(result.result);
+		{
+			std::visit([&](auto&& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+
+				if constexpr (std::is_same_v<T, QueryResult>)
+				{
+					arg.callback(arg.result);
+				}
+				else if constexpr (std::is_same_v<T, TransactionResult>)
+				{
+					arg.callback(arg.transactionSucceeded, arg.results);
+				}
+				else
+					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+
+			}, result);
+		}
 	}
 
 	void Database::SpawnWorkers(std::size_t workerCount)

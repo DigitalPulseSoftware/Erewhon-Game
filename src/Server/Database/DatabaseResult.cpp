@@ -124,6 +124,9 @@ namespace ewn
 
 	bool DatabaseResult::IsValid() const
 	{
+		if (!m_result)
+			return false;
+
 		switch (PQresultStatus(m_result))
 		{
 			case PGRES_COMMAND_OK:

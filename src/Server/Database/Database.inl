@@ -16,6 +16,25 @@ namespace ewn
 	{
 	}
 
+	inline void Database::ExecuteQuery(std::string statement, std::vector<DatabaseValue> parameters, QueryCallback callback)
+	{
+		QueryRequest newRequest;
+		newRequest.callback = std::move(callback);
+		newRequest.parameters = std::move(parameters);
+		newRequest.statement = std::move(statement);
+
+		m_requestQueue.enqueue(std::move(newRequest));
+	}
+
+	inline void Database::ExecuteTransaction(DatabaseTransaction transaction, TransactionCallback callback)
+	{
+		TransactionRequest newRequest;
+		newRequest.callback = std::move(callback);
+		newRequest.transaction = std::move(transaction);
+
+		m_requestQueue.enqueue(std::move(newRequest));
+	}
+
 	inline Database::RequestQueue& Database::GetRequestQueue()
 	{
 		return m_requestQueue;

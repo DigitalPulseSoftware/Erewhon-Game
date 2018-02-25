@@ -9,6 +9,26 @@
 
 namespace ewn
 {
+	DatabaseResult DatabaseWorker::HandleTransactionStatement(DatabaseConnection& connection, const DatabaseTransaction::Statement& transactionStatement)
+	{
+		return std::visit([&](auto&& statement)
+		{
+			using T = std::decay_t<decltype(statement)>;
+
+			if constexpr (std::is_same_v<T, DatabaseTransaction::PreparedStatement>)
+			{
+				return connection.ExecPreparedStatement(statement.statementName, statement.parameters);
+			}
+			else if constexpr (std::is_same_v<T, DatabaseTransaction::QueryStatement>)
+			{
+				return connection.Exec(statement.query);
+			}
+			else
+				static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+
+		}, transactionStatement);
+	}
+
 	void DatabaseWorker::WorkerThread()
 	{
 		DatabaseConnection connection = m_database.CreateConnection();
@@ -39,11 +59,60 @@ namespace ewn
 
 			if (queue.wait_dequeue_timed(consumerToken, request, std::chrono::milliseconds(100)))
 			{
-				Database::Result result;
-				result.callback = std::move(request.callback);
-				result.result = connection.ExecPreparedStatement(request.statement, request.parameters);
+				std::visit([&](auto&& request)
+				{
+					using T = std::decay_t<decltype(request)>;
 
-				m_database.SubmitResult(std::move(result));
+					if constexpr (std::is_same_v<T, Database::QueryRequest>)
+					{
+						Database::QueryResult result;
+						result.callback = std::move(request.callback);
+						result.result = connection.ExecPreparedStatement(request.statement, request.parameters);
+
+						m_database.SubmitResult(std::move(result));
+					}
+					else if constexpr (std::is_same_v<T, Database::TransactionRequest>)
+					{
+						Database::TransactionResult result;
+						result.callback = std::move(request.callback);
+						result.results.reserve(request.transaction.size() + 2); //< + BEGIN/COMMIT results
+						result.transactionSucceeded = false;
+
+						DatabaseResult& beginResult = result.results.emplace_back(connection.Exec("START TRANSACTION"));
+						if (beginResult)
+						{
+							bool failure = false;
+							for (const auto& transactionStatement : request.transaction)
+							{
+								DatabaseResult& statementResult = result.results.emplace_back(HandleTransactionStatement(connection, transactionStatement));
+
+								if (!statementResult)
+								{
+									failure = true;
+									if (connection.IsConnected())
+									{
+										DatabaseResult& rollbackResult = connection.Exec("ROLLBACK");
+										if (!rollbackResult)
+											std::cerr << "Rollback failed: " << rollbackResult.GetLastErrorMessage();
+									}
+									break;
+								}
+							}
+
+							if (!failure)
+							{
+								DatabaseResult& commitResult = result.results.emplace_back(connection.Exec("COMMIT"));
+								if (commitResult)
+									result.transactionSucceeded = true;
+							}
+						}
+
+						m_database.SubmitResult(std::move(result));
+					}
+					else
+						static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+
+				}, request);
 			}
 		}
 	}

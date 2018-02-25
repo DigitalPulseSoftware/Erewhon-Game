@@ -21,7 +21,7 @@ namespace ewn
 		public:
 			inline explicit DatabaseResult(PGresult* result = nullptr);
 			DatabaseResult(const DatabaseResult&) = delete;
-			DatabaseResult(DatabaseResult&&) = default;
+			DatabaseResult(DatabaseResult&&) noexcept = default;
 			~DatabaseResult();
 
 			std::size_t GetAffectedRowCount() const;
@@ -39,7 +39,7 @@ namespace ewn
 			inline explicit operator bool();
 
 			DatabaseResult& operator=(const DatabaseResult&) = delete;
-			DatabaseResult& operator=(DatabaseResult&&) = default;
+			DatabaseResult& operator=(DatabaseResult&&) noexcept = default;
 
 		private:
 			Nz::MovablePtr<PGresult> m_result;

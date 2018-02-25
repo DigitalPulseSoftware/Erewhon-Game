@@ -10,6 +10,7 @@
 #include <Nazara/Prerequisites.hpp>
 #include <Nazara/Core/Thread.hpp>
 #include <Server/Database/DatabaseConnection.hpp>
+#include <Server/Database/DatabaseTransaction.hpp>
 #include <atomic>
 #include <string>
 
@@ -29,6 +30,7 @@ namespace ewn
 			DatabaseWorker& operator=(DatabaseWorker&&) = delete;
 
 		private:
+			DatabaseResult HandleTransactionStatement(DatabaseConnection& connection, const DatabaseTransaction::Statement& transactionStatement);
 			void WorkerThread();
 
 			std::atomic_bool m_running;
