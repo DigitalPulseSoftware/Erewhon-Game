@@ -30,7 +30,7 @@ namespace ewn
 
 		auto it = std::upper_bound(m_callbacks.begin(), m_callbacks.end(), callback, [](const Callback& lhs, const Callback& rhs)
 		{
-			return lhs.triggerTime < rhs.triggerTime;
+			return lhs.triggerTime > rhs.triggerTime;
 		});
 
 		m_callbacks.emplace(it, std::move(callback));
