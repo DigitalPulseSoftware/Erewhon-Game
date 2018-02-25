@@ -19,13 +19,13 @@ namespace ewn
 {
 	bool RadarModule::IsConeScanReady() const
 	{
-		Nz::UInt64 currentTime = Nz::GetElapsedMilliseconds();
+		Nz::UInt64 currentTime = ServerApplication::GetAppTime();
 		return currentTime - m_lastConeScanTime >= 500;
 	}
 
 	bool RadarModule::IsTargetScanReady() const
 	{
-		Nz::UInt64 currentTime = Nz::GetElapsedMilliseconds();
+		Nz::UInt64 currentTime = ServerApplication::GetAppTime();
 		return currentTime - m_lastTargetScanTime >= 100;
 	}
 
@@ -93,7 +93,9 @@ namespace ewn
 			return true;
 		});
 
-		m_lastConeScanTime = Nz::GetElapsedMilliseconds();
+		m_lastConeScanTime = ServerApplication::GetAppTime();
+
+		PushCallback(m_lastConeScanTime + 500, "OnRadarConeScanReady");
 
 		return scanResults;
 	}
@@ -129,7 +131,9 @@ namespace ewn
 			scanResult.linearVelocity = Nz::Vector3f::Zero();
 		}
 
-		m_lastTargetScanTime = Nz::GetElapsedMilliseconds();
+		m_lastTargetScanTime = ServerApplication::GetAppTime();
+
+		PushCallback(m_lastTargetScanTime + 100, "OnRadarTargetScanReady");
 
 		return scanResult;
 	}
