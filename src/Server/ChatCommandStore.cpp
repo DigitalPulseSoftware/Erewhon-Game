@@ -8,6 +8,8 @@
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/HealthComponent.hpp>
 
+#include <exception>
+
 namespace ewn
 {
 	bool ChatCommandStore::ExecuteCommand(const std::string_view& name, Player* player)
@@ -35,7 +37,7 @@ namespace ewn
 		if (player->GetName() != "Lynix")
 			return false;
 
-		*static_cast<volatile int*>(nullptr) = 42;
+		std::terminate();
 
 		return true;
 	}
