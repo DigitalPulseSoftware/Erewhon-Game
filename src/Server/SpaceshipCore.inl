@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/SpaceshipCore.hpp>
+#include <Server/ServerApplication.hpp>
 
 namespace ewn
 {
@@ -18,7 +19,21 @@ namespace ewn
 
 	inline void SpaceshipCore::PushCallback(std::string callbackName)
 	{
-		m_callbacks.emplace(m_callbacks.begin(), std::move(callbackName));
+		PushCallback(ServerApplication::GetAppTime(), std::move(callbackName));
+	}
+
+	inline void SpaceshipCore::PushCallback(Nz::UInt64 triggerTime, std::string callbackName)
+	{
+		Callback callback;
+		callback.callbackName = std::move(callbackName);
+		callback.triggerTime = triggerTime;
+
+		auto it = std::upper_bound(m_callbacks.begin(), m_callbacks.end(), callback, [](const Callback& lhs, const Callback& rhs)
+		{
+			return lhs.triggerTime < rhs.triggerTime;
+		});
+
+		m_callbacks.emplace(it, std::move(callback));
 	}
 
 	inline std::optional<std::string> SpaceshipCore::PopCallback()
@@ -26,10 +41,14 @@ namespace ewn
 		if (m_callbacks.empty())
 			return {};
 
-		std::string callbackName = std::move(m_callbacks.back());
+		Nz::UInt64 now = ServerApplication::GetAppTime();
+		if (m_callbacks.back().triggerTime >= now)
+			return {};
+
+		Callback callback = std::move(m_callbacks.back());
 		m_callbacks.pop_back();
 
-		return callbackName;
+		return callback.callbackName;
 	}
 }
 

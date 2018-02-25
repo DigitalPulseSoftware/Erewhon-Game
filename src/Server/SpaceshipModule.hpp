@@ -30,6 +30,7 @@ namespace ewn
 		protected:
 			inline const Ndk::EntityHandle& GetSpaceship();
 			void PushCallback(std::string callbackName);
+			void PushCallback(Nz::UInt64 triggerTime, std::string callbackName);
 
 		private:
 			Ndk::EntityHandle m_spaceship;

@@ -41,13 +41,20 @@ namespace ewn
 			void Register(Nz::LuaState& lua);
 
 			inline void PushCallback(std::string callbackName);
+			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName);
 			inline std::optional<std::string> PopCallback();
 
 			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
 
 		private:
+			struct Callback
+			{
+				Nz::UInt64 triggerTime;
+				std::string callbackName;
+			};
+
 			std::vector<std::shared_ptr<SpaceshipModule>> m_modules;
-			std::vector<std::string> m_callbacks;
+			std::vector<Callback> m_callbacks;
 			Ndk::EntityHandle m_spaceship;
 
 			static std::optional<Nz::LuaClass<SpaceshipCoreHandle>> s_binding;
