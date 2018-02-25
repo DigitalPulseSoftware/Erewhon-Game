@@ -52,7 +52,13 @@ namespace ewn
 	void NavigationModule::MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance)
 	{
 		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
-		spaceshipNavigation.SetTarget(targetPos, triggerDistance, []() { std::cout << "MoveToPositionCallback!" << std::endl; });
+		spaceshipNavigation.SetTarget(targetPos, triggerDistance, [moduleHandle = CreateHandle()]()
+		{
+			if (!moduleHandle)
+				return;
+
+			moduleHandle->PushCallback("OnNavigationDestinationReached");
+		});
 	}
 
 	void NavigationModule::Stop()
