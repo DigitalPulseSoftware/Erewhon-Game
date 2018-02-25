@@ -69,7 +69,7 @@ namespace ewn
 			{
 				TransactionCallback callback;
 				std::vector<DatabaseResult> results;
-				bool transactionSucceeded;
+				bool transactionSucceeded = false;
 			};
 
 			using Result = std::variant<QueryResult, TransactionResult>;

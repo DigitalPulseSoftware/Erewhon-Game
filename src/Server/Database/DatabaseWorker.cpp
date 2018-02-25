@@ -76,7 +76,6 @@ namespace ewn
 						Database::TransactionResult result;
 						result.callback = std::move(request.callback);
 						result.results.reserve(request.transaction.size() + 2); //< + BEGIN/COMMIT results
-						result.transactionSucceeded = false;
 
 						DatabaseResult& beginResult = result.results.emplace_back(connection.Exec("START TRANSACTION"));
 						if (beginResult)
@@ -91,7 +90,7 @@ namespace ewn
 									failure = true;
 									if (connection.IsConnected())
 									{
-										DatabaseResult& rollbackResult = connection.Exec("ROLLBACK");
+										DatabaseResult rollbackResult = connection.Exec("ROLLBACK");
 										if (!rollbackResult)
 											std::cerr << "Rollback failed: " << rollbackResult.GetLastErrorMessage();
 									}
