@@ -8,6 +8,7 @@
 #define EREWHON_SHARED_NETWORK_PACKETS_HPP
 
 #include <Shared/Enums.hpp>
+#include <Shared/Protocol/PacketSerializer.hpp>
 #include <Nazara/Prerequisites.hpp>
 #include <Nazara/Core/String.hpp>
 #include <Nazara/Math/Quaternion.hpp>
@@ -175,47 +176,26 @@ namespace ewn
 
 #undef DeclarePacket
 
-		void Serialize(Nz::NetPacket& packet, const ArenaState& data);
-		void Serialize(Nz::NetPacket& packet, const BotMessage& data);
-		void Serialize(Nz::NetPacket& packet, const ChatMessage& data);
-		void Serialize(Nz::NetPacket& packet, const ControlEntity& data);
-		void Serialize(Nz::NetPacket& packet, const CreateEntity& data);
-		void Serialize(Nz::NetPacket& packet, const DeleteEntity& data);
-		void Serialize(Nz::NetPacket& packet, const IntegrityUpdate& data);
-		void Serialize(Nz::NetPacket& packet, const JoinArena& data);
-		void Serialize(Nz::NetPacket& packet, const Login& data);
-		void Serialize(Nz::NetPacket& packet, const LoginFailure& data);
-		void Serialize(Nz::NetPacket& packet, const LoginSuccess& data);
-		void Serialize(Nz::NetPacket& packet, const PlayerChat& data);
-		void Serialize(Nz::NetPacket& packet, const PlayerMovement& data);
-		void Serialize(Nz::NetPacket& packet, const PlayerShoot& data);
-		void Serialize(Nz::NetPacket& packet, const Register& data);
-		void Serialize(Nz::NetPacket& packet, const RegisterFailure& data);
-		void Serialize(Nz::NetPacket& packet, const RegisterSuccess& data);
-		void Serialize(Nz::NetPacket& packet, const TimeSyncRequest& data);
-		void Serialize(Nz::NetPacket& packet, const TimeSyncResponse& data);
-		void Serialize(Nz::NetPacket& packet, const UploadScript& data);
-
-		void Unserialize(Nz::NetPacket& packet, ArenaState& data);
-		void Unserialize(Nz::NetPacket& packet, BotMessage& data);
-		void Unserialize(Nz::NetPacket& packet, ChatMessage& data);
-		void Unserialize(Nz::NetPacket& packet, ControlEntity& data);
-		void Unserialize(Nz::NetPacket& packet, CreateEntity& data);
-		void Unserialize(Nz::NetPacket& packet, DeleteEntity& data);
-		void Unserialize(Nz::NetPacket& packet, IntegrityUpdate& data);
-		void Unserialize(Nz::NetPacket& packet, JoinArena& data);
-		void Unserialize(Nz::NetPacket& packet, Login& data);
-		void Unserialize(Nz::NetPacket& packet, LoginFailure& data);
-		void Unserialize(Nz::NetPacket& packet, LoginSuccess& data);
-		void Unserialize(Nz::NetPacket& packet, PlayerChat& data);
-		void Unserialize(Nz::NetPacket& packet, PlayerMovement& data);
-		void Unserialize(Nz::NetPacket& packet, PlayerShoot& data);
-		void Unserialize(Nz::NetPacket& packet, Register& data);
-		void Unserialize(Nz::NetPacket& packet, RegisterFailure& data);
-		void Unserialize(Nz::NetPacket& packet, RegisterSuccess& data);
-		void Unserialize(Nz::NetPacket& packet, TimeSyncRequest& data);
-		void Unserialize(Nz::NetPacket& packet, TimeSyncResponse& data);
-		void Unserialize(Nz::NetPacket& packet, UploadScript& data);
+		void Serialize(PacketSerializer& serializer, ArenaState& data);
+		void Serialize(PacketSerializer& serializer, BotMessage& data);
+		void Serialize(PacketSerializer& serializer, ChatMessage& data);
+		void Serialize(PacketSerializer& serializer, ControlEntity& data);
+		void Serialize(PacketSerializer& serializer, CreateEntity& data);
+		void Serialize(PacketSerializer& serializer, DeleteEntity& data);
+		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
+		void Serialize(PacketSerializer& serializer, JoinArena& data);
+		void Serialize(PacketSerializer& serializer, Login& data);
+		void Serialize(PacketSerializer& serializer, LoginFailure& data);
+		void Serialize(PacketSerializer& serializer, LoginSuccess& data);
+		void Serialize(PacketSerializer& serializer, PlayerChat& data);
+		void Serialize(PacketSerializer& serializer, PlayerMovement& data);
+		void Serialize(PacketSerializer& serializer, PlayerShoot& data);
+		void Serialize(PacketSerializer& serializer, Register& data);
+		void Serialize(PacketSerializer& serializer, RegisterFailure& data);
+		void Serialize(PacketSerializer& serializer, RegisterSuccess& data);
+		void Serialize(PacketSerializer& serializer, TimeSyncRequest& data);
+		void Serialize(PacketSerializer& serializer, TimeSyncResponse& data);
+		void Serialize(PacketSerializer& serializer, UploadScript& data);
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -44,7 +44,7 @@ namespace ewn
 			T data;
 			try
 			{
-				Packets::Unserialize(packet, data);
+				Packets::Serialize(PacketSerializer(packet, false), data);
 			}
 			catch (const std::exception&)
 			{
@@ -85,6 +85,9 @@ namespace ewn
 	{
 		packet << static_cast<Nz::UInt8>(T::Type);
 
-		Packets::Serialize(packet, data);
+		// We need to cast the const away because our serialize functions require a non-const reference as they performs both reading and writing
+		// If you have a better idea...
+		T& dataRef = const_cast<T&>(data);
+		Packets::Serialize(PacketSerializer(packet, true), dataRef);
 	}
 }

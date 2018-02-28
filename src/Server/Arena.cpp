@@ -368,7 +368,7 @@ namespace ewn
 		{
 			// Broadcast arena state over network, for testing purposes
 			Nz::NetPacket debugState(1);
-			Packets::Serialize(debugState, statePacket);
+			Packets::Serialize(PacketSerializer(debugState, true), statePacket);
 
 			Nz::IpAddress debugAddress = Nz::IpAddress::BroadcastIpV4;
 			debugAddress.SetPort(2050);
