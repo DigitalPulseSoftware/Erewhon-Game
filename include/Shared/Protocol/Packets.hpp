@@ -8,6 +8,7 @@
 #define EREWHON_SHARED_NETWORK_PACKETS_HPP
 
 #include <Shared/Enums.hpp>
+#include <Shared/Protocol/CompressedInteger.hpp>
 #include <Shared/Protocol/PacketSerializer.hpp>
 #include <Nazara/Prerequisites.hpp>
 #include <Nazara/Core/String.hpp>
@@ -57,7 +58,7 @@ namespace ewn
 		{
 			struct Entity
 			{
-				Nz::UInt32 id;
+				CompressedUnsigned<Nz::UInt32> id;
 				Nz::Vector3f angularVelocity;
 				Nz::Vector3f linearVelocity;
 				Nz::Vector3f position;
@@ -65,8 +66,8 @@ namespace ewn
 			};
 
 			Nz::UInt16 stateId;
-			Nz::UInt64 serverTime;
-			Nz::UInt64 lastProcessedInputTime;
+			CompressedUnsigned<Nz::UInt64> serverTime;
+			CompressedUnsigned<Nz::UInt64> lastProcessedInputTime;
 			std::vector<Entity> entities;
 		};
 
@@ -83,12 +84,12 @@ namespace ewn
 
 		DeclarePacket(ControlEntity)
 		{
-			Nz::UInt32 id;
+			CompressedUnsigned<Nz::UInt32> id;
 		};
 
 		DeclarePacket(CreateEntity)
 		{
-			Nz::UInt32 id;
+			CompressedUnsigned<Nz::UInt32> id;
 			Nz::Vector3f angularVelocity;
 			Nz::Vector3f linearVelocity;
 			Nz::Vector3f position;
@@ -99,7 +100,7 @@ namespace ewn
 
 		DeclarePacket(DeleteEntity)
 		{
-			Nz::UInt32 id;
+			CompressedUnsigned<Nz::UInt32> id;
 		};
 
 		DeclarePacket(IntegrityUpdate)
@@ -133,7 +134,7 @@ namespace ewn
 
 		DeclarePacket(PlayerMovement)
 		{
-			Nz::UInt64 inputTime; //< Server time
+			CompressedUnsigned<Nz::UInt64> inputTime; //< Server time
 			Nz::Vector3f direction;
 			Nz::Vector3f rotation;
 		};
@@ -166,7 +167,7 @@ namespace ewn
 		DeclarePacket(TimeSyncResponse)
 		{
 			Nz::UInt8 requestId;
-			Nz::UInt64 serverTime;
+			CompressedUnsigned<Nz::UInt64> serverTime;
 		};
 
 		DeclarePacket(UploadScript)
