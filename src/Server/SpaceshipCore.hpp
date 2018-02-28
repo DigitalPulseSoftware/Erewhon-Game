@@ -14,6 +14,7 @@
 #include <Server/Scripting/LuaMathTypes.hpp>
 #include <functional>
 #include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace ewn
@@ -53,6 +54,7 @@ namespace ewn
 				std::string callbackName;
 			};
 
+			std::unordered_map<std::string, bool> m_pushedCallbacks;
 			std::vector<std::shared_ptr<SpaceshipModule>> m_modules;
 			std::vector<Callback> m_callbacks;
 			Ndk::EntityHandle m_spaceship;
