@@ -2,7 +2,7 @@
 // This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Client/ChatCommandStore.hpp>
+#include <Client/ClientChatCommandStore.hpp>
 #include <Nazara/Core/File.hpp>
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/ClientApplication.hpp>
@@ -10,24 +10,13 @@
 
 namespace ewn
 {
-	std::optional<bool> ChatCommandStore::ExecuteCommand(const std::string_view& name, ServerConnection* server)
+	void ClientChatCommandStore::BuildStore(ClientApplication* app)
 	{
-		auto it = m_commands.find(name);
-		if (it != m_commands.end())
-			return it->second(server);
-		else
-			return {};
+		RegisterCommand("upload", &ClientChatCommandStore::HandleUpload, app->GetConfig().GetStringOption("ServerScript.Filename"));
 	}
 
-	void ChatCommandStore::BuildStore()
+	bool ClientChatCommandStore::HandleUpload(ClientApplication* app, ServerConnection* server, const std::string& scriptName)
 	{
-		RegisterCommand("upload", &ChatCommandStore::HandleUpload);
-	}
-
-	bool ChatCommandStore::HandleUpload(ServerConnection* server)
-	{
-		const std::string& scriptName = server->GetApp().GetConfig().GetStringOption("ServerScript.Filename");
-
 		Nz::File file(scriptName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
 		if (!file.IsOpen())
 		{

@@ -10,10 +10,10 @@
 #include <Shared/BaseApplication.hpp>
 #include <Nazara/Core/MemoryPool.hpp>
 #include <Server/Arena.hpp>
-#include <Server/ChatCommandStore.hpp>
 #include <Server/GameWorker.hpp>
 #include <Server/GlobalDatabase.hpp>
 #include <Server/ServerCommandStore.hpp>
+#include <Server/ServerChatCommandStore.hpp>
 #include <optional>
 #include <vector>
 
@@ -68,7 +68,7 @@ namespace ewn
 			Nz::MemoryPool m_playerPool;
 			Arena m_arena;
 			CallbackQueue m_callbackQueue;
-			ChatCommandStore m_chatCommandStore;
+			ServerChatCommandStore m_chatCommandStore;
 			WorkerQueue m_workerQueue;
 			std::optional<GlobalDatabase> m_globalDatabase;
 			std::vector<std::unique_ptr<GameWorker>> m_workers;

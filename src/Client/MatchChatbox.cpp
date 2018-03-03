@@ -9,6 +9,7 @@ namespace ewn
 	static constexpr std::size_t maxChatLines = 15;
 
 	MatchChatbox::MatchChatbox(ServerConnection* server, Nz::RenderWindow& window, Ndk::Canvas* canvas) :
+	m_chatCommandStore(&server->GetApp()),
 	m_server(server)
 	{
 		m_chatEnteringBox = nullptr;
@@ -80,7 +81,7 @@ namespace ewn
 						std::string_view command = chatText;
 						command.remove_prefix(1);
 
-						std::optional<bool> result = m_chatCommandStore.ExecuteCommand(command, m_server);
+						std::optional<bool> result = m_chatCommandStore.ExecuteCommand(m_server, command);
 						if (result && !result.value())
 							PrintMessage(chatText);
 						else

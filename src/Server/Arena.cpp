@@ -103,6 +103,19 @@ namespace ewn
 			pair.first->SendPacket(chatPacket);
 	}
 
+	Player* Arena::FindPlayerByName(const std::string& name) const
+	{
+		for (auto [player, entity] : m_players)
+		{
+			NazaraUnused(entity);
+
+			if (player->GetName() == name)
+				return player;
+		}
+
+		return nullptr;
+	}
+
 	void Arena::Reset()
 	{
 		// Earth entity

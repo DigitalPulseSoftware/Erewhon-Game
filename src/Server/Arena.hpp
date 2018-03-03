@@ -41,6 +41,8 @@ namespace ewn
 
 			void DispatchChatMessage(const Nz::String& message);
 
+			Player* FindPlayerByName(const std::string& name) const;
+
 			void Reset();
 
 			void Update(float elapsedTime);

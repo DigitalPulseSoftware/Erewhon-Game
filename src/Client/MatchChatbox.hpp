@@ -13,7 +13,7 @@
 #include <NDK/EntityOwner.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/ChatCommandStore.hpp>
+#include <Client/ClientChatCommandStore.hpp>
 #include <Client/ServerConnection.hpp>
 
 namespace ewn
@@ -46,7 +46,7 @@ namespace ewn
 			Ndk::TextAreaWidget* m_chatBox;
 			Ndk::TextAreaWidget* m_chatEnteringBox;
 			ServerConnection* m_server;
-			ChatCommandStore m_chatCommandStore;
+			ClientChatCommandStore m_chatCommandStore;
 	};
 }
 

@@ -34,7 +34,7 @@ namespace ewn
 
 	bool ClientApplication::ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor)
 	{
-		long long port = m_config.GetIntegerOption("Server.Port");
+		Nz::UInt16 port = m_config.GetIntegerOption<Nz::UInt16>("Server.Port");
 
 		Nz::ResolveError resolveError = Nz::ResolveError_NoError;
 		std::vector<Nz::HostnameInfo> results = Nz::IpAddress::ResolveHostname(Nz::NetProtocol_IPv4, serverHostname, Nz::String::Number(port), &resolveError);

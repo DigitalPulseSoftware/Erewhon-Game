@@ -7,42 +7,31 @@
 #ifndef EREWHON_SERVER_CHATCOMMANDSTORE_HPP
 #define EREWHON_SERVER_CHATCOMMANDSTORE_HPP
 
-#include <functional>
-#include <map>
-#include <string>
+#include <Shared/ChatCommandStore.hpp>
 
 namespace ewn
 {
 	class Player;
 	class ServerApplication;
 
-	class ChatCommandStore
+	class ServerChatCommandStore final : public ChatCommandStore<ServerApplication, Player>
 	{
 		public:
-			using Command = std::function<bool(ServerApplication* app, Player* player)>;
-
-			inline ChatCommandStore(ServerApplication* app);
-			~ChatCommandStore() = default;
-
-			bool ExecuteCommand(const std::string_view& name, Player* player);
-
-			inline void RegisterCommand(std::string name, Command command);
-			inline void UnregisterCommand(const std::string& name);
+			inline ServerChatCommandStore(ServerApplication* app);
+			~ServerChatCommandStore() = default;
 
 		private:
-			void BuildStore();
+			void BuildStore(ServerApplication* app);
 
 			static bool HandleCrashServer(ServerApplication* app, Player* player);
+			static bool HandleKickPlayer(ServerApplication* app, Player* player, Player* target);
 			static bool HandleKillBot(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
 			static bool HandleSuicide(ServerApplication* app, Player* player);
 			static bool HandleStopServer(ServerApplication* app, Player* player);
-
-			std::map<std::string, Command, std::less<>> m_commands;
-			ServerApplication* m_app;
 	};
 }
 
-#include <Server/ChatCommandStore.inl>
+#include <Server/ServerChatCommandStore.inl>
 
 #endif // EREWHON_SERVER_CHATCOMMANDSTORE_HPP
