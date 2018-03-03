@@ -27,6 +27,8 @@ namespace ewn
 	class SpaceshipCore : public Nz::HandledObject<SpaceshipCore>
 	{
 		public:
+			using CallbackArgFunction = std::function<int(Nz::LuaState& state)>;
+
 			inline SpaceshipCore(const Ndk::EntityHandle& spaceship);
 			SpaceshipCore(const SpaceshipCore&) = delete;
 			~SpaceshipCore();
@@ -41,9 +43,9 @@ namespace ewn
 
 			void Register(Nz::LuaState& lua);
 
-			inline void PushCallback(std::string callbackName);
-			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName);
-			inline std::optional<std::string> PopCallback();
+			inline void PushCallback(std::string callbackName, CallbackArgFunction argFunc = nullptr);
+			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc = nullptr);
+			inline std::optional<std::pair<std::string, CallbackArgFunction>> PopCallback();
 
 			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
 
@@ -52,6 +54,7 @@ namespace ewn
 			{
 				Nz::UInt64 triggerTime;
 				std::string callbackName;
+				CallbackArgFunction argFunc;
 			};
 
 			std::unordered_map<std::string, bool> m_pushedCallbacks;

@@ -91,7 +91,7 @@ namespace ewn
 			return true;
 
 		std::string callbackName;
-		bool hasParameters = false;
+		SpaceshipCore::CallbackArgFunction argFunction;
 
 		Nz::CallOnExit incrementTickCount([&]()
 		{
@@ -101,13 +101,17 @@ namespace ewn
 		if (m_tickCounter >= 0.5f)
 		{
 			callbackName = "OnTick";
-			hasParameters = true;
+			argFunction = [](Nz::LuaState& state)
+			{
+				state.Push(0.5f);
+				return 1;
+			};
 
 			m_tickCounter -= 0.5f;
 		}
 		else
 		{
-			callbackName = m_core->PopCallback().value_or(std::string());
+			auto [callbackName, argFunction] = m_core->PopCallback().value_or(std::string());
 			if (callbackName.empty())
 				return true;
 		}
@@ -120,10 +124,11 @@ namespace ewn
 			{
 				m_instance.PushValue(-2); // Spaceship
 
-				if (hasParameters)
-					m_instance.Push(0.5f); //< FIXME
+				unsigned int argCount = 1;
+				if (argFunction)
+					argCount += argFunction(m_instance);
 
-				if (!m_instance.Call((hasParameters) ? 2 : 1, 0))
+				if (!m_instance.Call(argCount, 0))
 				{
 					if (lastError)
 						*lastError = m_instance.GetLastError();
@@ -183,7 +188,7 @@ namespace ewn
 		}
 		m_instance.SetGlobal("Spaceship");
 
-		m_core->PushCallback("OnStart");
+		m_core->PushCallback(0, "OnStart");
 	}
 
 	void ScriptComponent::OnDetached()

@@ -8,14 +8,4 @@
 namespace ewn
 {
 	SpaceshipModule::~SpaceshipModule() = default;
-
-	void SpaceshipModule::PushCallback(std::string callbackName)
-	{
-		m_core->PushCallback(std::move(callbackName));
-	}
-
-	void SpaceshipModule::PushCallback(Nz::UInt64 triggerTime, std::string callbackName)
-	{
-		m_core->PushCallback(triggerTime, std::move(callbackName));
-	}
 }

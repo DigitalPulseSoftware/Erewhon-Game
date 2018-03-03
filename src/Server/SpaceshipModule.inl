@@ -32,4 +32,10 @@ namespace ewn
 	{
 		return m_spaceship;
 	}
+
+	template<typename... Args>
+	void SpaceshipModule::PushCallback(Args&&... args)
+	{
+		m_core->PushCallback(std::forward<Args>(args)...)
+	}
 }

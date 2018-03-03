@@ -17,12 +17,12 @@ namespace ewn
 		m_modules.emplace_back(std::move(modulePtr));
 	}
 
-	inline void SpaceshipCore::PushCallback(std::string callbackName)
+	inline void SpaceshipCore::PushCallback(std::string callbackName, CallbackArgFunction argFunc)
 	{
-		PushCallback(ServerApplication::GetAppTime(), std::move(callbackName));
+		PushCallback(ServerApplication::GetAppTime(), std::move(callbackName), std::move(argFunc));
 	}
 
-	inline void SpaceshipCore::PushCallback(Nz::UInt64 triggerTime, std::string callbackName)
+	inline void SpaceshipCore::PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc)
 	{
 		auto SortCallbacks = [](const Callback& lhs, const Callback& rhs)
 		{
@@ -40,6 +40,7 @@ namespace ewn
 			{
 				if (callbackIt->callbackName == callbackName)
 				{
+					callbackIt->argFunc = std::move(argFunc);
 					callbackIt->triggerTime = triggerTime;
 					std::sort(m_callbacks.begin(), m_callbacks.end(), SortCallbacks);
 					return;
@@ -51,6 +52,7 @@ namespace ewn
 
 		// Insert a new callback in the queue
 		Callback callback;
+		callback.argFunc = std::move(argFunc);
 		callback.callbackName = std::move(callbackName);
 		callback.triggerTime = triggerTime;
 
