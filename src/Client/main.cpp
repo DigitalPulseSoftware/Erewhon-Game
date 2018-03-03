@@ -117,10 +117,17 @@ int main()
 	Ndk::StateMachine fsm(std::make_shared<ewn::BackgroundState>(stateData));
 	fsm.PushState(std::make_shared<ewn::LoginState>(stateData));
 
+	// Handle exit
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
 	{
 		fsm.ResetState(std::make_shared<ewn::BackgroundState>(stateData));
 		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData));
+	});
+
+	// Handle size change
+	window.GetEventHandler().OnResized.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::SizeEvent& sizeEvent)
+	{
+		canvas.SetSize(Nz::Vector2f(Nz::Vector2ui(sizeEvent.width, sizeEvent.height)));
 	});
 
 	while (app.Run())

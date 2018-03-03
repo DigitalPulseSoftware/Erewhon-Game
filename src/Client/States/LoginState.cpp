@@ -112,6 +112,7 @@ namespace ewn
 		});
 
 		LayoutWidgets();
+		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
 		// Fill with data from lastlogin.rememberme if present
 		Nz::File loginFile("lastlogin.rememberme");
@@ -140,6 +141,7 @@ namespace ewn
 		m_onDisconnectedSlot.Disconnect();
 		m_onLoginFailureSlot.Disconnect();
 		m_onLoginSuccess.Disconnect();
+		m_onTargetChangeSizeSlot.Disconnect();
 	}
 
 	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)

@@ -31,7 +31,6 @@ namespace ewn
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
 			void CenterStatus();
-			void OnServerDisconnected(ServerConnection* server, Nz::UInt32 data);
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White, bool center = true);
 
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);

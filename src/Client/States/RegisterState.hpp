@@ -41,6 +41,7 @@ namespace ewn
 			NazaraSlot(ServerConnection, OnDisconnected, m_onDisconnectedSlot);
 			NazaraSlot(ServerConnection, OnRegisterFailure, m_onRegisterFailureSlot);
 			NazaraSlot(ServerConnection, OnRegisterSuccess, m_onRegisterSuccess);
+			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			StateData& m_stateData;
 			Ndk::ButtonWidget* m_registerButton;

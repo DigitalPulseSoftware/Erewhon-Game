@@ -98,6 +98,7 @@ namespace ewn
 
 
 		LayoutWidgets();
+		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
 		// Slots
 		m_onConnectedSlot.Connect(m_stateData.server->OnConnected, this, &RegisterState::OnConnected);
@@ -156,6 +157,7 @@ namespace ewn
 		m_onDisconnectedSlot.Disconnect();
 		m_onRegisterFailureSlot.Disconnect();
 		m_onRegisterSuccess.Disconnect();
+		m_onTargetChangeSizeSlot.Disconnect();
 	}
 
 	bool RegisterState::Update(Ndk::StateMachine& fsm, float elapsedTime)
