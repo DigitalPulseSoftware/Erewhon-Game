@@ -54,9 +54,9 @@ int main()
 	const ewn::ConfigFile& config = app.GetConfig();
 
 	Nz::IpAddress listenAddress = Nz::IpAddress::AnyIpV4;
-	listenAddress.SetPort(config.GetIntegerOption("Game.Port"));
+	listenAddress.SetPort(config.GetIntegerOption<Nz::UInt16>("Game.Port"));
 
-	app.SetupNetwork(config.GetIntegerOption("Game.MaxClients"), listenAddress);
+	app.SetupNetwork(config.GetIntegerOption<std::size_t>("Game.MaxClients"), listenAddress);
 
 	while (app.Run())
 	{
