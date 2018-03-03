@@ -303,7 +303,7 @@ namespace ewn
 			std::string_view command = data.text;
 			command.remove_prefix(1);
 
-			if (m_chatCommandStore.ExecuteCommand(command, player))
+			if (m_chatCommandStore.ExecuteCommand(player, command))
 				return; // Don't show command if it succeeded
 		}
 
