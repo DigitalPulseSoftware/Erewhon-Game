@@ -18,6 +18,7 @@ namespace ewn
 	m_networkReactor(reactor),
 	m_commandStore(commandStore),
 	m_peerId(peerId),
+	m_permissionLevel(0),
 	m_databaseId(0),
 	m_lastInputTime(0),
 	m_authenticated(false)
@@ -55,8 +56,11 @@ namespace ewn
 			{
 				std::string login = std::get<std::string>(result.GetValue(0, 0));
 				std::string displayName = std::get<std::string>(result.GetValue(1, 0));
+				Nz::Int16 permissionLevel = std::get<Nz::Int16>(result.GetValue(2, 0));
+				if (permissionLevel < 0)
+					permissionLevel = 0;
 
-				ply->OnAuthenticated(std::move(login), std::move(displayName));
+				ply->OnAuthenticated(std::move(login), std::move(displayName), static_cast<Nz::UInt16>(permissionLevel));
 
 				cb(ply, true);
 
@@ -112,6 +116,14 @@ namespace ewn
 		SendPacket(controlPacket);
 	}
 
+	void Player::PrintMessage(std::string chatMessage)
+	{
+		Packets::ChatMessage chatPacket;
+		chatPacket.message = std::move(chatMessage);
+
+		SendPacket(chatPacket);
+	}
+
 	void Player::Shoot()
 	{
 		if (ServerApplication::GetAppTime() - m_lastShootTime < 500)
@@ -164,10 +176,28 @@ namespace ewn
 		controlComponent.PushInput(lastInputTime, movement, rotation);
 	}
 
-	void Player::OnAuthenticated(std::string login, std::string displayName)
+	void Player::UpdatePermissionLevel(Nz::UInt16 permissionLevel, std::function<void(bool updateSucceeded)> databaseCallback)
+	{
+		assert(m_authenticated);
+
+		m_permissionLevel = permissionLevel;
+		m_app->GetGlobalDatabase().ExecuteQuery("UpdatePermissionLevel", { Nz::Int32(m_databaseId), Nz::Int16(permissionLevel) }, [cb = std::move(databaseCallback)](DatabaseResult& result)
+		{
+			if (!result.IsValid())
+				std::cerr << "Failed to update permission level: " << result.GetLastErrorMessage() << std::endl;
+			else if (result.GetAffectedRowCount() == 0)
+				std::cerr << "Failed to update permission level: player not found" << std::endl;
+
+			if (cb)
+				cb(result.IsValid() && result.GetAffectedRowCount() > 0);
+		});
+	}
+
+	void Player::OnAuthenticated(std::string login, std::string displayName, Nz::UInt16 permissionLevel)
 	{
 		m_displayName = std::move(displayName);
 		m_login = std::move(login);
+		m_permissionLevel = permissionLevel;
 
 		m_authenticated = true;
 	}

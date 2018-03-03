@@ -34,12 +34,12 @@ namespace ewn
 		RegisterCommand("resetarena", &ServerChatCommandStore::HandleResetArena);
 		RegisterCommand("suicide", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("stopserver", &ServerChatCommandStore::HandleStopServer);
+		RegisterCommand("updatepermission", &ServerChatCommandStore::HandleUpdatePermission);
 	}
 
 	bool ServerChatCommandStore::HandleCrashServer(ServerApplication* /*app*/, Player* player)
 	{
-		// Dat security again
-		if (player->GetName() != "Lynix")
+		if (player->GetPermissionLevel() < 40)
 			return false;
 
 		*static_cast<volatile int*>(nullptr) = 42;
@@ -49,8 +49,14 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleKickPlayer(ServerApplication* app, Player* player, Player* target)
 	{
-		if (player->GetName() != "Lynix")
+		if (player->GetPermissionLevel() < 30)
 			return false;
+
+		if (target->GetPermissionLevel() >= player->GetPermissionLevel())
+		{
+			player->PrintMessage("You're not allowed to do that");
+			return false;
+		}
 
 		target->Disconnect();
 		return true;
@@ -66,8 +72,7 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleResetArena(ServerApplication* /*app*/, Player* player)
 	{
-		// Dat security again
-		if (player->GetName() != "Lynix")
+		if (player->GetPermissionLevel() < 20)
 			return false;
 
 		if (Arena* arena = player->GetArena())
@@ -89,11 +94,32 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleStopServer(ServerApplication* app, Player* player)
 	{
-		// Dat security again
-		if (player->GetName() != "Lynix")
+		if (player->GetPermissionLevel() < 40)
 			return false;
 
 		app->Quit();
 		return true;
+	}
+
+	bool ServerChatCommandStore::HandleUpdatePermission(ServerApplication* app, Player* player, Player* target, Nz::UInt16 permissionLevel)
+	{
+		if (target->GetPermissionLevel() >= player->GetPermissionLevel())
+		{
+			player->PrintMessage("You're not allowed to do that");
+			return false;
+		}
+
+		target->UpdatePermissionLevel(permissionLevel, [ply = player->CreateHandle()](bool success)
+		{
+			if (!ply)
+				return;
+
+			if (success)
+				ply->PrintMessage("Permission level was successfully updated");
+			else
+				ply->PrintMessage("Failed to update permission level in database, changes are local");
+		});
+
+		return false;
 	}
 }

@@ -14,20 +14,6 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
-
-
 SET search_path = public, pg_catalog;
 
 SET default_with_oids = false;
@@ -44,7 +30,8 @@ CREATE TABLE account (
     password_salt character varying(64) NOT NULL,
     email character varying(64) NOT NULL,
     creation_date timestamp without time zone NOT NULL,
-    last_login_date timestamp without time zone
+    last_login_date timestamp without time zone,
+    permission_level smallint DEFAULT 10 NOT NULL
 );
 
 
@@ -66,15 +53,6 @@ CREATE SEQUENCE account_id_seq
 --
 
 ALTER SEQUENCE account_id_seq OWNED BY account.id;
-
-
---
--- Name: test_table; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE test_table (
-    test_field character varying(255)
-);
 
 
 --

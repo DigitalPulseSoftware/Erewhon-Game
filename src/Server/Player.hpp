@@ -39,6 +39,7 @@ namespace ewn
 			inline Nz::UInt32 GetDatabaseId() const;
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetLogin() const;
+			inline Nz::UInt16 GetPermissionLevel() const;
 			inline const std::string& GetName() const;
 			inline std::size_t GetPeerId() const;
 
@@ -48,14 +49,17 @@ namespace ewn
 
 			void MoveToArena(Arena* arena);
 
+			void PrintMessage(std::string chatMessage);
+
 			template<typename T> void SendPacket(const T& packet);
 
 			void Shoot();
 
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
+			void UpdatePermissionLevel(Nz::UInt16 permissionLevel, std::function<void(bool updateSucceeded)> databaseCallback = nullptr);
 
 		private:
-			void OnAuthenticated(std::string login, std::string displayName);
+			void OnAuthenticated(std::string login, std::string displayName, Nz::UInt16 permissionLevel);
 
 			Arena* m_arena;
 			ServerApplication* m_app;
@@ -66,6 +70,7 @@ namespace ewn
 			std::string m_login;
 			Ndk::EntityOwner m_botEntity;
 			Ndk::EntityOwner m_spaceship;
+			Nz::UInt16 m_permissionLevel;
 			Nz::UInt32 m_databaseId;
 			Nz::UInt64 m_lastInputTime;
 			Nz::UInt64 m_lastShootTime;

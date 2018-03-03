@@ -31,19 +31,21 @@ namespace ewn
 
 	inline Nz::UInt32 Player::GetDatabaseId() const
 	{
-		assert(m_authenticated);
 		return m_databaseId;
 	}
 
 	inline const std::string& Player::GetLogin() const
 	{
-		assert(m_authenticated);
 		return m_login;
+	}
+
+	inline Nz::UInt16 Player::GetPermissionLevel() const
+	{
+		return m_permissionLevel;
 	}
 
 	inline const std::string& Player::GetName() const
 	{
-		assert(m_authenticated);
 		return m_displayName;
 	}
 
