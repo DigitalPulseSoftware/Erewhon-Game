@@ -19,8 +19,8 @@ namespace ewn
 			~ConfigFile() = default;
 
 			inline bool GetBoolOption(const std::string& optionName) const;
-			inline double GetFloatOption(const std::string& optionName) const;
-			inline long long GetIntegerOption(const std::string& optionName) const;
+			template<typename T> T GetFloatOption(const std::string& optionName) const;
+			template<typename T> T GetIntegerOption(const std::string& optionName) const;
 			inline const std::string& GetStringOption(const std::string& optionName) const;
 
 			bool LoadFromFile(const std::string& fileName);

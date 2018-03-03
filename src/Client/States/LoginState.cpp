@@ -299,10 +299,10 @@ namespace ewn
 		// Salt password before hashing it
 		const ConfigFile& config = m_stateData.app->GetConfig();
 
-		int iCost = config.GetIntegerOption("Security.Argon2.IterationCost");
-		int mCost = config.GetIntegerOption("Security.Argon2.MemoryCost");
-		int tCost = config.GetIntegerOption("Security.Argon2.ThreadCost");
-		int hashLength = config.GetIntegerOption("Security.HashLength");
+		int iCost = config.GetIntegerOption<int>("Security.Argon2.IterationCost");
+		int mCost = config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
+		int tCost = config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
+		int hashLength = config.GetIntegerOption<int>("Security.HashLength");
 		const std::string& salt = config.GetStringOption("Security.PasswordSalt");
 
 		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText();

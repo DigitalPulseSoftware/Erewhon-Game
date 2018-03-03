@@ -5,6 +5,7 @@
 #include <Shared/ConfigFile.hpp>
 #include <Nazara/Core/Error.hpp>
 #include <limits>
+#include <stdexcept>
 
 namespace ewn
 {
@@ -13,14 +14,37 @@ namespace ewn
 		return std::get<BoolOption>(m_options.at(optionName)).value;
 	}
 
-	inline double ConfigFile::GetFloatOption(const std::string& optionName) const
+	template<typename T>
+	T ConfigFile::GetFloatOption(const std::string& optionName) const
 	{
-		return std::get<FloatOption>(m_options.at(optionName)).value;
+		return static_cast<T>(std::get<FloatOption>(m_options.at(optionName)).value);
 	}
 
-	inline long long ConfigFile::GetIntegerOption(const std::string& optionName) const
+	template<typename T>
+	T ConfigFile::GetIntegerOption(const std::string& optionName) const
 	{
-		return std::get<IntegerOption>(m_options.at(optionName)).value;
+		long long value = std::get<IntegerOption>(m_options.at(optionName)).value;
+		if constexpr (std::is_unsigned_v<T>)
+		{
+			if (value < 0)
+				throw std::range_error(optionName + " value is smaller than T minimal representable value(" + std::to_string(value) + ')');
+
+			unsigned long long unsignedValue = static_cast<unsigned long long>(value);
+			if (unsignedValue > std::numeric_limits<T>::max())
+				throw std::range_error(optionName + " value is greater than T maximal representable value (" + std::to_string(unsignedValue) + ')');
+
+			return static_cast<T>(unsignedValue);
+		}
+		else
+		{
+			if (value < std::numeric_limits<T>::min())
+				throw std::range_error(optionName + " value is smaller than T minimal representable value(" + std::to_string(value) + ')');
+
+			if (value > std::numeric_limits<T>::max())
+				throw std::range_error(optionName + " value is greater than T maximal representable value (" + std::to_string(value) + ')');
+
+			return static_cast<T>(value);
+		}
 	}
 
 	inline const std::string& ConfigFile::GetStringOption(const std::string& optionName) const

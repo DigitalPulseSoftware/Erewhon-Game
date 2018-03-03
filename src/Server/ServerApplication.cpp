@@ -117,10 +117,10 @@ namespace ewn
 		const std::string& dbUser = m_config.GetStringOption("Database.Username");
 		const std::string& dbPassword = m_config.GetStringOption("Database.Password");
 		const std::string& dbName = m_config.GetStringOption("Database.Name");
-		long long dbPort = m_config.GetIntegerOption("Database.Port");
-		long long dbWorkerCount = m_config.GetIntegerOption("Database.WorkerCount");
+		Nz::UInt16 dbPort = m_config.GetIntegerOption<Nz::UInt16>("Database.Port");
+		std::size_t dbWorkerCount = m_config.GetIntegerOption<std::size_t>("Database.WorkerCount");
 
-		long long gameWorkerCount = m_config.GetIntegerOption("Game.WorkerCount");
+		std::size_t gameWorkerCount = m_config.GetIntegerOption<std::size_t>("Game.WorkerCount");
 
 		InitGameWorkers(gameWorkerCount);
 		InitGlobalDatabase(dbWorkerCount, dbHost, dbPort, dbUser, dbPassword, dbName);
@@ -172,10 +172,10 @@ namespace ewn
 			std::string dbSalt = std::get<std::string>(result.GetValue(2, 0));
 			std::string salt = globalSalt + dbSalt;
 
-			int iCost = m_config.GetIntegerOption("Security.Argon2.IterationCost");
-			int mCost = m_config.GetIntegerOption("Security.Argon2.MemoryCost");
-			int tCost = m_config.GetIntegerOption("Security.Argon2.ThreadCost");
-			int hashLength = m_config.GetIntegerOption("Security.HashLength");
+			int iCost = m_config.GetIntegerOption<int>("Security.Argon2.IterationCost");
+			int mCost = m_config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
+			int tCost = m_config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
+			int hashLength = m_config.GetIntegerOption<int>("Security.HashLength");
 
 			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, ply, login, iCost, mCost, tCost, hashLength]()
 			{
@@ -382,10 +382,10 @@ namespace ewn
 		Nz::String userSalt = saltBuff.ToHex();
 		Nz::String salt = globalSalt + userSalt;
 
-		int iCost = m_config.GetIntegerOption("Security.Argon2.IterationCost");
-		int mCost = m_config.GetIntegerOption("Security.Argon2.MemoryCost");
-		int tCost = m_config.GetIntegerOption("Security.Argon2.ThreadCost");
-		int hashLength = m_config.GetIntegerOption("Security.HashLength");
+		int iCost = m_config.GetIntegerOption<int>("Security.Argon2.IterationCost");
+		int mCost = m_config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
+		int tCost = m_config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
+		int hashLength = m_config.GetIntegerOption<int>("Security.HashLength");
 
 		DispatchWork([this, ply = player->CreateHandle(), s = std::move(salt), uSalt = std::move(userSalt), data, iCost, mCost, tCost, hashLength]()
 		{
