@@ -51,11 +51,17 @@ namespace ewn
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
 		int defaultMaterial = world.GetMaterial("default");
 		m_projectileMaterial = world.CreateMaterial("laser");
+		m_radarMaterial = world.CreateMaterial("radar");
 
 		world.SetMaterialCollisionCallback(defaultMaterial, m_projectileMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 		{
 			return HandleProjectileCollision(firstBody, secondBody);
 		});
+
+		world.SetMaterialCollisionCallback(m_radarMaterial, defaultMaterial, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return HandleRadarCollision(firstBody, secondBody);
+		}, nullptr);
 
 		Reset();
 
@@ -343,6 +349,22 @@ namespace ewn
 		}
 
 		projectile->Kill(); //< Remember entity destruction is not immediate, we can still use it safely
+
+		return false;
+	}
+
+	bool Arena::HandleRadarCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+	{
+		Ndk::EntityId radarEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(firstBody.GetUserdata()));
+		Ndk::EntityId hitEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(secondBody.GetUserdata()));
+
+		if (secondBody.GetMaterial() == m_radarMaterial)
+		{
+			assert(firstBody.GetMaterial() != m_radarMaterial);
+			std::swap(radarEntityId, hitEntityId);
+		}
+
+
 
 		return false;
 	}
