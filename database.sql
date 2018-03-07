@@ -56,10 +56,50 @@ ALTER SEQUENCE account_id_seq OWNED BY account.id;
 
 
 --
+-- Name: spaceship; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE spaceship (
+    id integer NOT NULL,
+    name character varying(64) NOT NULL,
+    script text,
+    owner_id integer,
+    last_update_date timestamp without time zone
+);
+
+
+--
+-- Name: spaceship_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE spaceship_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: spaceship_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE spaceship_id_seq OWNED BY spaceship.id;
+
+
+--
 -- Name: account id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY account ALTER COLUMN id SET DEFAULT nextval('account_id_seq'::regclass);
+
+
+--
+-- Name: spaceship id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship ALTER COLUMN id SET DEFAULT nextval('spaceship_id_seq'::regclass);
 
 
 --
@@ -84,6 +124,22 @@ ALTER TABLE ONLY account
 
 ALTER TABLE ONLY account
     ADD CONSTRAINT account_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: spaceship spaceship_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship
+    ADD CONSTRAINT spaceship_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: spaceship spaceship_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship
+    ADD CONSTRAINT spaceship_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES account(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

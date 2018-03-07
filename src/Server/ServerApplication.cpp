@@ -71,6 +71,52 @@ namespace ewn
 		return BaseApplication::Run();
 	}
 
+	void ServerApplication::HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		DatabaseTransaction trans;
+		trans.AppendPreparedStatement("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName });
+		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code });
+
+		m_globalDatabase->ExecuteTransaction(std::move(trans), [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+		{
+			if (!transactionSucceeded)
+				std::cerr << "Create spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
+
+			if (!ply)
+				return;
+
+			if (transactionSucceeded)
+				ply->PrintMessage("Spaceship \"" + spaceshipName + "\" successfully saved!");
+			else
+				ply->PrintMessage("Failed to save spaceship \"" + spaceshipName + "\", please contact an admin");
+		});
+	}
+
+	void ServerApplication::HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship & data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		m_globalDatabase->ExecuteQuery("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Delete spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			if (!ply)
+				return;
+
+			if (result)
+				ply->PrintMessage("Spaceship \"" + spaceshipName + "\" successfully deleted!");
+			else
+				ply->PrintMessage("Failed to delete spaceship \"" + spaceshipName + "\", please contact an admin");
+		});
+	}
+
 	void ServerApplication::HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data)
 	{
 		const std::unique_ptr<NetworkReactor>& reactor = GetReactor(peerId / GetPeerPerReactor());
@@ -455,6 +501,45 @@ namespace ewn
 		});
 	}
 
+	void ServerApplication::HandleSpawnSpaceship(std::size_t peerId, const Packets::SpawnSpaceship& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			if (!ply)
+				return;
+
+			if (result)
+			{
+				if (result.GetRowCount() == 0)
+				{
+					ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
+					return;
+				}
+
+				std::string code = std::get<std::string>(result.GetValue(0, 0));
+
+				const Ndk::EntityHandle& playerBot = ply->InstantiateOrGetBot();
+				ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
+
+				Nz::String lastError;
+				if (botScript.Execute(code, &lastError))
+					ply->PrintMessage("Server: Script loaded with success");
+				else
+					ply->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
+			}
+			else
+				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
+		});
+
+	}
+
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)
 	{
 		Player* player = m_players[peerId];
@@ -466,31 +551,5 @@ namespace ewn
 		response.serverTime = GetAppTime();
 
 		player->SendPacket(response);
-	}
-
-	void ServerApplication::HandleUploadScript(std::size_t peerId, const Packets::UploadScript& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		const Ndk::EntityHandle& playerBot = player->InstantiateOrGetBot();
-		ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
-
-		Nz::String lastError;
-		if (botScript.Execute(data.code, &lastError))
-		{
-			Packets::ChatMessage chatPacket;
-			chatPacket.message = "Server: Script uploaded with success";
-
-			player->SendPacket(chatPacket);
-		}
-		else
-		{
-			Packets::ChatMessage chatPacket;
-			chatPacket.message = "Server: Failed to execute script: " + lastError.ToStdString();
-
-			player->SendPacket(chatPacket);
-		}
 	}
 }

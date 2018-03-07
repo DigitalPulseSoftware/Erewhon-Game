@@ -18,14 +18,16 @@ namespace ewn
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
+		IncomingCommand(CreateSpaceship);
+		IncomingCommand(DeleteSpaceship);
 		IncomingCommand(JoinArena);
 		IncomingCommand(Login);
 		IncomingCommand(PlayerChat);
 		IncomingCommand(PlayerMovement);
 		IncomingCommand(PlayerShoot);
 		IncomingCommand(Register);
+		IncomingCommand(SpawnSpaceship);
 		IncomingCommand(TimeSyncRequest);
-		IncomingCommand(UploadScript);
 
 		// Outgoing commands
 		OutgoingCommand(ArenaState,       0,                           0);

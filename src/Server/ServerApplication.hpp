@@ -38,14 +38,16 @@ namespace ewn
 
 			bool Run() override;
 
+			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
+			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
 			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
 			void HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
 			void HandlePlayerShoot(std::size_t peerId, const Packets::PlayerShoot& data);
 			void HandleRegister(std::size_t peerId, const Packets::Register& data);
+			void HandleSpawnSpaceship(std::size_t peerId, const Packets::SpawnSpaceship& data);
 			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
-			void HandleUploadScript(std::size_t peerId, const Packets::UploadScript& data);
 
 			inline void RegisterCallback(ServerCallback callback);
 

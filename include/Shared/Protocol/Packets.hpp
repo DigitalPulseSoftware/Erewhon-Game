@@ -26,9 +26,11 @@ namespace ewn
 		ArenaState,
 		BotMessage,
 		ChatMessage,
+		CreateSpaceship,
 		ControlEntity,
 		CreateEntity,
 		DeleteEntity,
+		DeleteSpaceship,
 		IntegrityUpdate,
 		JoinArena,
 		Login,
@@ -40,9 +42,9 @@ namespace ewn
 		Register,
 		RegisterFailure,
 		RegisterSuccess,
+		SpawnSpaceship,
 		TimeSyncRequest,
-		TimeSyncResponse,
-		UploadScript
+		TimeSyncResponse
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -98,9 +100,20 @@ namespace ewn
 			Nz::String entityType;
 		};
 
+		DeclarePacket(CreateSpaceship)
+		{
+			std::string spaceshipName;
+			std::string code;
+		};
+
 		DeclarePacket(DeleteEntity)
 		{
 			CompressedUnsigned<Nz::UInt32> id;
+		};
+
+		DeclarePacket(DeleteSpaceship)
+		{
+			std::string spaceshipName;
 		};
 
 		DeclarePacket(IntegrityUpdate)
@@ -159,6 +172,11 @@ namespace ewn
 		{
 		};
 
+		DeclarePacket(SpawnSpaceship)
+		{
+			std::string spaceshipName;
+		};
+
 		DeclarePacket(TimeSyncRequest)
 		{
 			Nz::UInt8 requestId;
@@ -170,11 +188,6 @@ namespace ewn
 			CompressedUnsigned<Nz::UInt64> serverTime;
 		};
 
-		DeclarePacket(UploadScript)
-		{
-			std::string code;
-		};
-
 #undef DeclarePacket
 
 		void Serialize(PacketSerializer& serializer, ArenaState& data);
@@ -182,7 +195,9 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, ChatMessage& data);
 		void Serialize(PacketSerializer& serializer, ControlEntity& data);
 		void Serialize(PacketSerializer& serializer, CreateEntity& data);
+		void Serialize(PacketSerializer& serializer, CreateSpaceship& data);
 		void Serialize(PacketSerializer& serializer, DeleteEntity& data);
+		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data);
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
 		void Serialize(PacketSerializer& serializer, JoinArena& data);
 		void Serialize(PacketSerializer& serializer, Login& data);
@@ -194,9 +209,9 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, Register& data);
 		void Serialize(PacketSerializer& serializer, RegisterFailure& data);
 		void Serialize(PacketSerializer& serializer, RegisterSuccess& data);
+		void Serialize(PacketSerializer& serializer, SpawnSpaceship& data);
 		void Serialize(PacketSerializer& serializer, TimeSyncRequest& data);
 		void Serialize(PacketSerializer& serializer, TimeSyncResponse& data);
-		void Serialize(PacketSerializer& serializer, UploadScript& data);
 	}
 }
 

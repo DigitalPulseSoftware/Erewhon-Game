@@ -62,9 +62,20 @@ namespace ewn
 			serializer &= data.name;
 		}
 
+		void Serialize(PacketSerializer& serializer, CreateSpaceship& data)
+		{
+			serializer &= data.spaceshipName;
+			serializer &= data.code;
+		}
+
 		void Serialize(PacketSerializer& serializer, DeleteEntity& data)
 		{
 			serializer &= data.id;
+		}
+
+		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data)
+		{
+			serializer &= data.spaceshipName;
 		}
 
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data)
@@ -123,6 +134,11 @@ namespace ewn
 		{
 		}
 
+		void Serialize(PacketSerializer& serializer, SpawnSpaceship& data)
+		{
+			serializer &= data.spaceshipName;
+		}
+
 		void Serialize(PacketSerializer& serializer, TimeSyncRequest& data)
 		{
 			serializer &= data.requestId;
@@ -132,11 +148,6 @@ namespace ewn
 		{
 			serializer &= data.requestId;
 			serializer &= data.serverTime;
-		}
-
-		void Serialize(PacketSerializer& serializer, UploadScript& data)
-		{
-			serializer &= data.code;
 		}
 	}
 }
