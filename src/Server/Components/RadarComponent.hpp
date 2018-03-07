@@ -20,17 +20,21 @@ namespace ewn
 			using OnDestructionCallback = std::function<void(Ndk::Entity*)>;
 			using OnLeaveCallback = std::function<void(Ndk::Entity*)>;
 
-			inline RadarComponent();
+			RadarComponent() = default;
 			RadarComponent(const RadarComponent& radar);
 			RadarComponent(RadarComponent&&) = delete;
 			~RadarComponent() = default;
 
-			void ClearWatchedTargets();
+			void ClearLockedTargets();
 
 			void CheckTargetRange(const Nz::Vector3f& position, float maxRange);
 
-			inline void UnwatchEntity(Ndk::Entity* entity);
-			inline void WatchEntity(Ndk::Entity* entity, OnDestructionCallback destructionCallback, OnLeaveCallback leaveCallback);
+			inline std::size_t GetLockedEntityCount() const;
+
+			inline bool IsEntityLocked(Ndk::EntityId entityId);
+
+			inline void LockEntity(Ndk::Entity* entity, OnDestructionCallback destructionCallback, OnLeaveCallback leaveCallback);
+			inline void UnlockEntity(Ndk::Entity* entity);
 
 			RadarComponent& operator=(const RadarComponent&) = delete;
 			RadarComponent& operator=(RadarComponent&&) = delete;
@@ -40,7 +44,7 @@ namespace ewn
 		private:
 			void OnWatchedEntityDestroyed(Ndk::Entity* entity);
 
-			struct WatchedTarget
+			struct LockedTarget
 			{
 				OnDestructionCallback destructionCallback;
 				OnLeaveCallback rangeLeaveCallback;
@@ -49,7 +53,7 @@ namespace ewn
 				NazaraSlot(Ndk::Entity, OnEntityDestruction, onEntityDestroyed);
 			};
 
-			std::unordered_map<Ndk::EntityId, WatchedTarget> m_watchedTargets;
+			std::unordered_map<Ndk::EntityId, LockedTarget> m_lockedTargets;
 	};
 }
 

@@ -12,6 +12,16 @@ namespace ewn
 {
 	SpaceshipCore::~SpaceshipCore() = default;
 
+	void SpaceshipCore::AddModule(std::shared_ptr<SpaceshipModule> newModule)
+	{
+		const auto& modulePtr = m_modules.emplace_back(std::move(newModule));
+
+		if (modulePtr->IsRunnable())
+			m_runnableModules.emplace_back(modulePtr);
+
+		modulePtr->Initialize(m_spaceship);
+	}
+
 	LuaVec3 SpaceshipCore::GetAngularVelocity() const
 	{
 		auto& nodeComponent = m_spaceship->GetComponent<Ndk::PhysicsComponent3D>();
@@ -61,6 +71,12 @@ namespace ewn
 			modulePtr->Register(lua);
 
 		lua.PushField("Core", this);
+	}
+
+	void SpaceshipCore::Run()
+	{
+		for (const auto& modulePtr : m_runnableModules)
+			modulePtr->Run();
 	}
 
 	std::optional<Nz::LuaClass<SpaceshipCoreHandle>> SpaceshipCore::s_binding;

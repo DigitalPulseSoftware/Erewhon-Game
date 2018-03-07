@@ -17,24 +17,30 @@ namespace ewn
 	class SpaceshipModule
 	{
 		public:
-			inline SpaceshipModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
+			inline SpaceshipModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship, bool runnable = false);
 			virtual ~SpaceshipModule();
 
 			inline void Disable();
 			inline void Enable(bool enable = true);
 
+			virtual void Initialize(Ndk::Entity* spaceship);
+
 			inline bool IsEnabled() const;
+			inline bool IsRunnable() const;
 
 			virtual void Register(Nz::LuaState& lua) = 0;
+			virtual void Run();
 
 		protected:
 			inline const Ndk::EntityHandle& GetSpaceship();
+			inline const Ndk::EntityHandle& GetSpaceship() const;
 			template<typename... Args> void PushCallback(Args&&... args);
 
 		private:
 			Ndk::EntityHandle m_spaceship;
 			SpaceshipCoreHandle m_core;
 			bool m_enabled;
+			bool m_isRunnable;
 	};
 }
 

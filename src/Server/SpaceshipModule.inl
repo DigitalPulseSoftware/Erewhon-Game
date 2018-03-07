@@ -6,10 +6,11 @@
 
 namespace ewn
 {
-	inline SpaceshipModule::SpaceshipModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship) :
+	inline SpaceshipModule::SpaceshipModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship, bool runnable) :
 	m_spaceship(spaceship),
 	m_core(core),
-	m_enabled(true)
+	m_enabled(true),
+	m_isRunnable(runnable)
 	{
 	}
 
@@ -28,7 +29,17 @@ namespace ewn
 		return m_enabled;
 	}
 
+	inline bool SpaceshipModule::IsRunnable() const
+	{
+		return m_isRunnable;
+	}
+
 	inline const Ndk::EntityHandle& SpaceshipModule::GetSpaceship()
+	{
+		return m_spaceship;
+	}
+
+	inline const Ndk::EntityHandle& SpaceshipModule::GetSpaceship() const
 	{
 		return m_spaceship;
 	}
@@ -36,6 +47,6 @@ namespace ewn
 	template<typename... Args>
 	void SpaceshipModule::PushCallback(Args&&... args)
 	{
-		m_core->PushCallback(std::forward<Args>(args)...)
+		m_core->PushCallback(std::forward<Args>(args)...);
 	}
 }

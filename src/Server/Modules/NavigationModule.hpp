@@ -37,6 +37,8 @@ namespace ewn
 			void Register(Nz::LuaState& lua) override;
 
 		private:
+			void Initialize(Ndk::Entity* spaceship) override;
+
 			static std::optional<Nz::LuaClass<NavigationModuleHandle>> s_binding;
 	};
 }

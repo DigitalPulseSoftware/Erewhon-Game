@@ -6,11 +6,27 @@
 
 namespace ewn
 {
-	inline RadarModule::RadarModule(SpaceshipCore* core, const Ndk::EntityHandle & spaceship) :
-	SpaceshipModule(core, spaceship),
-	m_lastConeScanTime(0),
-	m_lastTargetScanTime(0)
+	inline RadarModule::RadarModule(SpaceshipCore* core, const Ndk::EntityHandle & spaceship, float detectionRadius, std::size_t maxLockableTarget) :
+	SpaceshipModule(core, spaceship, true),
+	m_maxLockableTargets(maxLockableTarget),
+	m_detectionRadius(detectionRadius),
+	m_isPassiveScanEnabled(true)
 	{
+	}
+
+	inline void RadarModule::EnablePassiveScan(bool enable)
+	{
+		m_isPassiveScanEnabled = enable;
+	}
+
+	inline bool RadarModule::IsPassiveScanEnabled() const
+	{
+		return m_isPassiveScanEnabled;
+	}
+
+	inline void RadarModule::RemoveEntityFromRadius(Ndk::Entity* entity)
+	{
+		m_entitiesInRadius.Remove(entity);
 	}
 }
 
@@ -22,24 +38,10 @@ namespace Nz
 		return 1;
 	}
 
-	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::ConeScanResult&& result, TypeTag<ewn::RadarModule::ConeScanResult>)
+	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::TargetInfo&& result, TypeTag<ewn::RadarModule::TargetInfo>)
 	{
-		state.PushTable(0, 3);
+		state.PushTable(0, 4);
 		{
-			state.PushField("id", result.id);
-			state.PushField("type", std::move(result.type));
-			state.PushField("pos", result.pos);
-		}
-
-		return 1;
-	}
-
-	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::ScanResult&& result, TypeTag<ewn::RadarModule::ScanResult>)
-	{
-		state.PushTable(0, 6);
-		{
-			state.PushField("name", std::move(result.name));
-			state.PushField("type", std::move(result.type));
 			state.PushField("angularVelocity", result.angularVelocity);
 			state.PushField("linearVelocity", result.linearVelocity);
 			state.PushField("position", result.position);

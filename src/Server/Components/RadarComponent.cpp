@@ -10,31 +10,31 @@ namespace ewn
 	RadarComponent::RadarComponent(const RadarComponent& radar) :
 	Component(radar)
 	{
-		for (const auto&[targetId, targetData] : m_watchedTargets)
+		for (const auto& [targetId, targetData] : m_lockedTargets)
 		{
 			NazaraUnused(targetId);
 
-			WatchEntity(targetData.target, targetData.destructionCallback, targetData.rangeLeaveCallback);
+			LockEntity(targetData.target, targetData.destructionCallback, targetData.rangeLeaveCallback);
 		}
 	}
 
-	void RadarComponent::ClearWatchedTargets()
+	void RadarComponent::ClearLockedTargets()
 	{
-		m_watchedTargets.clear();
+		m_lockedTargets.clear();
 	}
 
 	void RadarComponent::CheckTargetRange(const Nz::Vector3f& position, float maxRange)
 	{
 		float maxRangeSq = maxRange * maxRange;
-		for (auto it = m_watchedTargets.begin(); it != m_watchedTargets.end(); ++it)
+		for (auto it = m_lockedTargets.begin(); it != m_lockedTargets.end();)
 		{
-			WatchedTarget& targetData = it->second;
+			LockedTarget& targetData = it->second;
 
 			Ndk::NodeComponent& targetNode = targetData.target->GetComponent<Ndk::NodeComponent>();
 			if (targetNode.GetPosition().SquaredDistance(position) > maxRangeSq)
 			{
 				targetData.rangeLeaveCallback(targetData.target);
-				it = m_watchedTargets.erase(it);
+				it = m_lockedTargets.erase(it);
 			}
 			else
 				++it;
@@ -43,7 +43,11 @@ namespace ewn
 
 	void RadarComponent::OnWatchedEntityDestroyed(Ndk::Entity* entity)
 	{
-		UnwatchEntity(entity);
+		auto it = m_lockedTargets.find(entity->GetId());
+		assert(it != m_lockedTargets.end());
+
+		it->second.destructionCallback(entity);
+		m_lockedTargets.erase(it);
 	}
 
 	Ndk::ComponentIndex RadarComponent::componentIndex;

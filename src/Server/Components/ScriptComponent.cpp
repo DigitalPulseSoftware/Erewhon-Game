@@ -90,6 +90,8 @@ namespace ewn
 		if (!HasValidScript())
 			return true;
 
+		m_core->Run();
+
 		std::string callbackName;
 		SpaceshipCore::CallbackArgFunction argFunction;
 
@@ -111,9 +113,12 @@ namespace ewn
 		}
 		else
 		{
-			auto [callbackName, argFunction] = m_core->PopCallback().value_or(std::string());
-			if (callbackName.empty())
+			auto callback = m_core->PopCallback();
+			if (!callback)
 				return true;
+
+			callbackName = std::move(callback->first);
+			argFunction = std::move(callback->second);
 		}
 
 		incrementTickCount.CallAndReset();
@@ -148,8 +153,8 @@ namespace ewn
 	void ScriptComponent::SendMessage(BotMessageType messageType, Nz::String message)
 	{
 		Nz::UInt64 now = Nz::GetElapsedMilliseconds();
-		if (messageType != BotMessageType::Error && now - m_lastMessageTime < 100)
-			return;
+		//if (messageType != BotMessageType::Error && now - m_lastMessageTime < 100)
+		//	return;
 
 		m_lastMessageTime = now;
 
@@ -179,7 +184,7 @@ namespace ewn
 		m_core.emplace(m_entity);
 		m_core->AddModule(std::make_shared<EngineModule>(&m_core.value(), m_entity));
 		m_core->AddModule(std::make_shared<NavigationModule>(&m_core.value(), m_entity));
-		m_core->AddModule(std::make_shared<RadarModule>(&m_core.value(), m_entity));
+		m_core->AddModule(std::make_shared<RadarModule>(&m_core.value(), m_entity, 200.f, 5));
 		m_core->AddModule(std::make_shared<WeaponModule>(&m_core.value(), m_entity));
 
 		m_instance.PushTable();

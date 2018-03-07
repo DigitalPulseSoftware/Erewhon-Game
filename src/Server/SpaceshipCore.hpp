@@ -33,7 +33,7 @@ namespace ewn
 			SpaceshipCore(const SpaceshipCore&) = delete;
 			~SpaceshipCore();
 
-			inline void AddModule(std::shared_ptr<SpaceshipModule> modulePtr);
+			void AddModule(std::shared_ptr<SpaceshipModule> newModule);
 
 			LuaVec3 GetAngularVelocity() const;
 			float GetIntegrity() const;
@@ -42,9 +42,10 @@ namespace ewn
 			LuaQuaternion GetRotation() const;
 
 			void Register(Nz::LuaState& lua);
+			void Run();
 
-			inline void PushCallback(std::string callbackName, CallbackArgFunction argFunc = nullptr);
-			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc = nullptr);
+			inline void PushCallback(std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
+			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
 			inline std::optional<std::pair<std::string, CallbackArgFunction>> PopCallback();
 
 			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
@@ -59,6 +60,7 @@ namespace ewn
 
 			std::unordered_map<std::string, bool> m_pushedCallbacks;
 			std::vector<std::shared_ptr<SpaceshipModule>> m_modules;
+			std::vector<std::shared_ptr<SpaceshipModule>> m_runnableModules;
 			std::vector<Callback> m_callbacks;
 			Ndk::EntityHandle m_spaceship;
 

@@ -5,6 +5,7 @@
 #include <Server/Modules/NavigationModule.hpp>
 #include <NDK/LuaAPI.hpp>
 #include <Server/Components/NavigationComponent.hpp>
+#include <Server/Components/RadarComponent.hpp>
 #include <iostream>
 
 namespace ewn
@@ -13,6 +14,11 @@ namespace ewn
 	{
 		const Ndk::EntityHandle& spaceship = GetSpaceship();
 		Ndk::World* world = spaceship->GetWorld();
+
+		// FIXME: This should use the radar module instead of the radar component (to keep gameplay stuff inside gameplay classes)
+		RadarComponent& spaceshipRadar = spaceship->GetComponent<RadarComponent>();
+		if (!spaceshipRadar.IsEntityLocked(targetId))
+			return;
 
 		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
 
@@ -131,6 +137,11 @@ namespace ewn
 		s_binding->Register(lua);
 
 		lua.PushField("Navigation", this);
+	}
+
+	void NavigationModule::Initialize(Ndk::Entity* spaceship)
+	{
+		spaceship->AddComponent<NavigationComponent>();
 	}
 
 	std::optional<Nz::LuaClass<NavigationModuleHandle>> NavigationModule::s_binding;

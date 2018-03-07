@@ -6,23 +6,29 @@
 
 namespace ewn
 {
-	inline RadarComponent::RadarComponent()
+	inline std::size_t ewn::RadarComponent::GetLockedEntityCount() const
 	{
+		return m_lockedTargets.size();
 	}
 
-	inline void RadarComponent::UnwatchEntity(Ndk::Entity* entity)
+	inline bool RadarComponent::IsEntityLocked(Ndk::EntityId entityId)
 	{
-		m_watchedTargets.erase(entity->GetId());
+		return m_lockedTargets.find(entityId) != m_lockedTargets.end();
 	}
 
-	inline void RadarComponent::WatchEntity(Ndk::Entity* entity, OnDestructionCallback destructionCallback, OnLeaveCallback leaveCallback)
+	inline void RadarComponent::LockEntity(Ndk::Entity* entity, OnDestructionCallback destructionCallback, OnLeaveCallback leaveCallback)
 	{
-		WatchedTarget targetData;
+		LockedTarget targetData;
 		targetData.destructionCallback = std::move(destructionCallback);
 		targetData.rangeLeaveCallback = std::move(leaveCallback);
 		targetData.target = entity;
 		targetData.onEntityDestroyed.Connect(entity->OnEntityDestruction, this, &RadarComponent::OnWatchedEntityDestroyed);
 
-		m_watchedTargets.emplace(entity->GetId(), std::move(targetData));
+		m_lockedTargets.emplace(entity->GetId(), std::move(targetData));
+	}
+
+	inline void RadarComponent::UnlockEntity(Ndk::Entity* entity)
+	{
+		m_lockedTargets.erase(entity->GetId());
 	}
 }

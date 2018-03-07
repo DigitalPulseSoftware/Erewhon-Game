@@ -24,34 +24,30 @@ namespace ewn
 	class RadarModule : public SpaceshipModule, public Nz::HandledObject<RadarModule>
 	{
 		public:
-			struct ConeScanResult;
-			using ConeScanResults = std::vector<ConeScanResult>;
-			struct ScanResult;
+			struct TargetInfo;
 
-			inline RadarModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
+			inline RadarModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship, float detectionRadius, std::size_t maxLockableTarget);
 			~RadarModule() = default;
 
 			// Script functions
-			bool IsConeScanReady() const;
-			bool IsTargetScanReady() const;
+			void ClearLockedTargets();
 
-			std::optional<ConeScanResults> ScanInCone(Nz::Vector3f direction);
-			std::optional<ScanResult> ScanTarget(Ndk::EntityId targetId);
+			inline void EnablePassiveScan(bool enable);
+
+			std::optional<TargetInfo> GetTargetInfo(Ndk::EntityId targetId);
+
+			inline bool IsPassiveScanEnabled() const;
+			bool IsTargetLocked(Ndk::EntityId targetId) const;
+
+			bool LockTarget(Ndk::EntityId targetId);
+			void UnlockTarget(Ndk::EntityId targetId);
 
 			// C++ functions
 			void Register(Nz::LuaState& lua) override;
+			void Run() override;
 
-			struct ConeScanResult
+			struct TargetInfo
 			{
-				Ndk::EntityId id;
-				std::string type;
-				ewn::LuaVec3 pos;
-			};
-
-			struct ScanResult
-			{
-				std::string name;
-				std::string type;
 				ewn::LuaVec3 position;
 				ewn::LuaQuaternion rotation;
 				ewn::LuaVec3 angularVelocity;
@@ -59,9 +55,15 @@ namespace ewn
 			};
 
 		private:
-			Ndk::EntityList m_visibleEntities;
-			Nz::UInt64 m_lastConeScanTime;
-			Nz::UInt64 m_lastTargetScanTime;
+			void Initialize(Ndk::Entity* spaceship) override;
+			void PerformScan();
+			inline void RemoveEntityFromRadius(Ndk::Entity* entity);
+
+			std::size_t m_maxLockableTargets;
+			Ndk::EntityList m_entitiesInRadius;
+			Nz::UInt64 m_lastPassiveScanTime;
+			float m_detectionRadius;
+			bool m_isPassiveScanEnabled;
 
 			static std::optional<Nz::LuaClass<RadarModuleHandle>> s_binding;
 	};

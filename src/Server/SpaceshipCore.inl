@@ -12,17 +12,12 @@ namespace ewn
 	{
 	}
 
-	inline void SpaceshipCore::AddModule(std::shared_ptr<SpaceshipModule> modulePtr)
+	inline void SpaceshipCore::PushCallback(std::string callbackName, CallbackArgFunction argFunc, bool unique)
 	{
-		m_modules.emplace_back(std::move(modulePtr));
+		PushCallback(ServerApplication::GetAppTime(), std::move(callbackName), std::move(argFunc), unique);
 	}
 
-	inline void SpaceshipCore::PushCallback(std::string callbackName, CallbackArgFunction argFunc)
-	{
-		PushCallback(ServerApplication::GetAppTime(), std::move(callbackName), std::move(argFunc));
-	}
-
-	inline void SpaceshipCore::PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc)
+	inline void SpaceshipCore::PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc, bool unique)
 	{
 		auto SortCallbacks = [](const Callback& lhs, const Callback& rhs)
 		{
@@ -30,25 +25,28 @@ namespace ewn
 		};
 
 		// Check if callback is already in the waiting queue
-		auto it = m_pushedCallbacks.find(callbackName);
-		if (it == m_pushedCallbacks.end())
-			it = m_pushedCallbacks.emplace(callbackName, false).first;
-		else if (it->second)
+		if (unique)
 		{
-			// If callback is already present, update its trigger time and resort callback
-			for (auto callbackIt = m_callbacks.begin(); callbackIt != m_callbacks.end(); ++callbackIt)
+			auto it = m_pushedCallbacks.find(callbackName);
+			if (it == m_pushedCallbacks.end())
+				it = m_pushedCallbacks.emplace(callbackName, true).first;
+			else if (it->second)
 			{
-				if (callbackIt->callbackName == callbackName)
+				// If callback is already present, update its trigger time and resort callback
+				for (auto callbackIt = m_callbacks.begin(); callbackIt != m_callbacks.end(); ++callbackIt)
 				{
-					callbackIt->argFunc = std::move(argFunc);
-					callbackIt->triggerTime = triggerTime;
-					std::sort(m_callbacks.begin(), m_callbacks.end(), SortCallbacks);
-					return;
+					if (callbackIt->callbackName == callbackName)
+					{
+						callbackIt->argFunc = std::move(argFunc);
+						callbackIt->triggerTime = triggerTime;
+						std::sort(m_callbacks.begin(), m_callbacks.end(), SortCallbacks);
+						return;
+					}
 				}
 			}
+			else
+				it->second = true;
 		}
-
-		it->second = true;
 
 		// Insert a new callback in the queue
 		Callback callback;
@@ -61,7 +59,7 @@ namespace ewn
 		m_callbacks.emplace(callbackIt, std::move(callback));
 	}
 
-	inline std::optional<std::string> SpaceshipCore::PopCallback()
+	inline std::optional<std::pair<std::string, SpaceshipCore::CallbackArgFunction>> SpaceshipCore::PopCallback()
 	{
 		if (m_callbacks.empty())
 			return {};
@@ -74,12 +72,15 @@ namespace ewn
 		m_callbacks.pop_back();
 
 		auto it = m_pushedCallbacks.find(callback.callbackName);
-		assert(it != m_pushedCallbacks.end() && it->second);
-		it->second = false;
+		if (it != m_pushedCallbacks.end())
+		{
+			assert(it->second);
+			it->second = false;
+		}
 
 		std::cout << "Executing " << callback.callbackName << " (late by " << (now - callback.triggerTime) << "ms)" << std::endl;
 
-		return callback.callbackName;
+		return std::make_pair(callback.callbackName, std::move(callback.argFunc));
 	}
 }
 

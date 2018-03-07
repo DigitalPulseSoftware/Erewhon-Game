@@ -8,4 +8,12 @@
 namespace ewn
 {
 	SpaceshipModule::~SpaceshipModule() = default;
+
+	void SpaceshipModule::Initialize(Ndk::Entity* spaceship)
+	{
+	}
+
+	void SpaceshipModule::Run()
+	{
+	}
 }

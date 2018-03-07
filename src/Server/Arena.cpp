@@ -18,6 +18,7 @@
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
+#include <Server/Components/RadarComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
@@ -223,7 +224,6 @@ namespace ewn
 			});
 
 			newEntity->AddComponent<InputComponent>();
-			newEntity->AddComponent<NavigationComponent>();
 			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 5);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
