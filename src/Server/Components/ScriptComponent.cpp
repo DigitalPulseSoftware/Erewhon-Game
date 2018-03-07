@@ -184,7 +184,7 @@ namespace ewn
 		m_core.emplace(m_entity);
 		m_core->AddModule(std::make_shared<EngineModule>(&m_core.value(), m_entity));
 		m_core->AddModule(std::make_shared<NavigationModule>(&m_core.value(), m_entity));
-		m_core->AddModule(std::make_shared<RadarModule>(&m_core.value(), m_entity, 200.f, 5));
+		m_core->AddModule(std::make_shared<RadarModule>(&m_core.value(), m_entity, 1000.f, 5));
 		m_core->AddModule(std::make_shared<WeaponModule>(&m_core.value(), m_entity));
 
 		m_instance.PushTable();
