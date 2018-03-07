@@ -29,11 +29,7 @@ namespace ewn
 		const Ndk::EntityHandle& spaceship = GetSpaceship();
 		Ndk::World* world = spaceship->GetWorld();
 
-		RadarComponent& radar = spaceship->GetComponent<RadarComponent>();
-		if (!radar.IsEntityLocked(targetId))
-			return {};
-
-		if (!world->IsEntityIdValid(targetId))
+		if (!m_entitiesInRadius.Has(targetId))
 			return {};
 
 		const Ndk::EntityHandle& targetEntity = world->GetEntity(targetId);
@@ -71,6 +67,9 @@ namespace ewn
 		Ndk::World* world = spaceship->GetWorld();
 
 		if (!world->IsEntityIdValid(targetId))
+			return false;
+
+		if (!m_entitiesInRadius.Has(targetId))
 			return false;
 
 		RadarComponent& radar = spaceship->GetComponent<RadarComponent>();
