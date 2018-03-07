@@ -103,6 +103,12 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleUpdatePermission(ServerApplication* app, Player* player, Player* target, Nz::UInt16 permissionLevel)
 	{
+		if (permissionLevel >= player->GetPermissionLevel())
+		{
+			player->PrintMessage("You're not allowed to do that");
+			return false;
+		}
+
 		if (target->GetPermissionLevel() >= player->GetPermissionLevel())
 		{
 			player->PrintMessage("You're not allowed to do that");
