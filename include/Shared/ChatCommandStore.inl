@@ -166,6 +166,9 @@ namespace ewn
 	template<typename Client>
 	bool ChatCommandProcessArg(Client* /*client*/, std::string_view& cmdArgs, bool* arg, Nz::TypeTag<bool>)
 	{
+		if (cmdArgs.empty())
+			return false;
+
 		if (cmdArgs == "1" || cmdArgs == "true")
 		{
 			*arg = true;
@@ -183,6 +186,9 @@ namespace ewn
 	template<typename Client, typename T>
 	std::enable_if_t<std::is_integral_v<T> && std::is_signed_v<T>, bool> ChatCommandProcessArg(Client* /*client*/, std::string_view& cmdArgs, T* arg, Nz::TypeTag<T>)
 	{
+		if (cmdArgs.empty())
+			return false;
+
 		char* endPtr;
 		long long value = std::strtoll(cmdArgs.data(), &endPtr, 0);
 		if (endPtr == cmdArgs.data())
@@ -203,6 +209,9 @@ namespace ewn
 	template<typename Client, typename T>
 	std::enable_if_t<std::is_integral_v<T> && std::is_unsigned_v<T>, bool> ChatCommandProcessArg(Client* /*client*/, std::string_view& cmdArgs, T* arg, Nz::TypeTag<T>)
 	{
+		if (cmdArgs.empty())
+			return false;
+
 		char* endPtr;
 		unsigned long long value = std::strtoull(cmdArgs.data(), &endPtr, 0);
 		if (endPtr == cmdArgs.data())
@@ -223,6 +232,9 @@ namespace ewn
 	template<typename Client, typename T>
 	std::enable_if_t<std::is_floating_point_v<T>, bool> ChatCommandProcessArg(Client* /*client*/, std::string_view& cmdArgs, T* arg, Nz::TypeTag<T>)
 	{
+		if (cmdArgs.empty())
+			return false;
+
 		char* endPtr;
 		T value;
 		if constexpr (std::is_same_v<T, float>)
@@ -245,6 +257,9 @@ namespace ewn
 	template<typename Client>
 	bool ChatCommandProcessArg(Client* /*client*/, std::string_view& cmdArgs, std::string* arg, Nz::TypeTag<std::string>)
 	{
+		if (cmdArgs.empty())
+			return false;
+
 		std::size_t startPos = 0;
 		std::size_t endPos;
 		std::size_t processedCharacters;
