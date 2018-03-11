@@ -40,6 +40,12 @@ namespace ewn
 			case DatabaseType::Int64:
 				return 20;
 
+			case DatabaseType::Json:
+				return 114;
+
+			/*case DatabaseType::JsonBinary:
+				return 3802;*/
+
 			case DatabaseType::Single:
 				return 700;
 
@@ -102,6 +108,12 @@ namespace ewn
 	constexpr DatabaseType GetDatabaseType<Nz::Int64>()
 	{
 		return DatabaseType::Int64;
+	}
+
+	template<>
+	constexpr DatabaseType GetDatabaseType<nlohmann::json>()
+	{
+		return DatabaseType::Json;
 	}
 
 	template<>

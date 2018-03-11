@@ -7,6 +7,7 @@
 #include <Nazara/Network/Algorithm.hpp>
 #include <Shared/Utils.hpp>
 #include <Server/Database/DatabaseResult.hpp>
+#include <json/json.hpp>
 #include <postgresql/libpq-fe.h>
 #include <array>
 #include <cassert>
@@ -76,9 +77,39 @@ namespace ewn
 		Nz::Int8 boolTrue = 1;
 		Nz::Int8 boolFalse = 0;
 
-		// Allocate a raw memory array to store temporary big endian representations of types
-		Nz::StackArray<Nz::UInt8> bigEndianFormats = NazaraStackAllocationNoInit(Nz::UInt8, 8 * parameterCount);
-		std::size_t bigEndianFormatUsedSize = 0;
+		// Allocate a raw memory array to store temporary representations of types
+		std::size_t memSize = 0;
+		for (std::size_t i = 0; i < parameterCount; ++i)
+		{
+			std::visit([&](auto&& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+
+				if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, char> || std::is_same_v<T, const char*> ||
+				              std::is_same_v<T, std::string> || std::is_same_v<T, std::vector<Nz::UInt8>>)
+				{
+					// Nothing to do
+				}
+				else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double> ||
+				                   std::is_same_v<T, Nz::Int16> || std::is_same_v<T, Nz::Int32> ||
+				                   std::is_same_v<T, Nz::Int64>)
+				{
+					// Primitives types requiring big endian representation
+					memSize += sizeof(T);
+				}
+				else if constexpr (std::is_same_v<T, nlohmann::json>)
+				{
+					//FIXME: Dump JSon only once
+					memSize += arg.dump().size();
+				}
+				else
+					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+
+			}, parameters[i]);
+		}
+
+		Nz::StackArray<Nz::UInt8> internalRepresentations = NazaraStackAllocationNoInit(Nz::UInt8, memSize);
+		std::size_t internalRepresentationOffset = 0;
 
 		for (std::size_t i = 0; i < parameterCount; ++i)
 		{
@@ -96,69 +127,21 @@ namespace ewn
 				}
 				else if constexpr (std::is_same_v<T, char>)
 				{
-					static_assert(sizeof(char) == 1);
-
 					valuePtr = &arg;
 					valueSize = sizeof(char);
 				}
-				else if constexpr (std::is_same_v<T, float>)
+				else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double> ||
+				                   std::is_same_v<T, Nz::Int16> || std::is_same_v<T, Nz::Int32> ||
+				                   std::is_same_v<T, Nz::Int64>)
 				{
-					static_assert(sizeof(float) == 4);
-
-					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
+					void* bigEndianPtr = &internalRepresentations[internalRepresentationOffset];
 
 					valuePtr = bigEndianPtr;
-					valueSize = 4;
+					valueSize = sizeof(T);
 
-					float bigEndianValue = Nz::HostToNet(arg);
+					T bigEndianValue = Nz::HostToNet(arg);
 					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
-					bigEndianFormatUsedSize += valueSize;
-				}
-				else if constexpr (std::is_same_v<T, double>)
-				{
-					static_assert(sizeof(double) == 8);
-
-					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
-
-					valuePtr = bigEndianPtr;
-					valueSize = 8;
-
-					double bigEndianValue = Nz::HostToNet(arg);
-					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
-					bigEndianFormatUsedSize += valueSize;
-				}
-				else if constexpr (std::is_same_v<T, Nz::Int16>)
-				{
-					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
-
-					valuePtr = bigEndianPtr;
-					valueSize = 2;
-
-					Nz::Int16 bigEndianValue = Nz::HostToNet(arg);
-					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
-					bigEndianFormatUsedSize += valueSize;
-				}
-				else if constexpr (std::is_same_v<T, Nz::Int32>)
-				{
-					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
-
-					valuePtr = bigEndianPtr;
-					valueSize = 4;
-
-					Nz::Int32 bigEndianValue = Nz::HostToNet(arg);
-					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
-					bigEndianFormatUsedSize += valueSize;
-				}
-				else if constexpr (std::is_same_v<T, Nz::Int64>)
-				{
-					void* bigEndianPtr = &bigEndianFormats[bigEndianFormatUsedSize];
-
-					valuePtr = bigEndianPtr;
-					valueSize = 8;
-
-					Nz::Int64 bigEndianValue = Nz::HostToNet(arg);
-					std::memcpy(bigEndianPtr, &bigEndianValue, sizeof(bigEndianValue));
-					bigEndianFormatUsedSize += valueSize;
+					internalRepresentationOffset += valueSize;
 				}
 				else if constexpr (std::is_same_v<T, const char*>)
 				{
@@ -174,6 +157,17 @@ namespace ewn
 				{
 					valuePtr = arg.data();
 					valueSize = arg.size();
+				}
+				else if constexpr (std::is_same_v<T, nlohmann::json>)
+				{
+					std::string jsonDump = arg.dump();
+					void* internalPtr = &internalRepresentations[internalRepresentationOffset];
+					std::memcpy(internalPtr, jsonDump.data(), jsonDump.size());
+
+					valuePtr = internalPtr;
+					valueSize = jsonDump.size();
+
+					internalRepresentationOffset += jsonDump.size();
 				}
 				else
 					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");

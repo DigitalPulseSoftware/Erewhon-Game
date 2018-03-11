@@ -93,6 +93,12 @@ namespace ewn
 					assert(dataSize == 8);
 					return Nz::NetToHost(*reinterpret_cast<const Nz::Int64*>(dataPtr));
 
+				case GetDatabaseOid(DatabaseType::Json):
+				{
+					const char* data = reinterpret_cast<const char*>(dataPtr);
+					return nlohmann::json::parse(data);
+				}
+
 				case GetDatabaseOid(DatabaseType::Single):
 				{
 					static_assert(sizeof(float) == 4);
@@ -178,6 +184,10 @@ namespace ewn
 						              std::is_same_v<T, std::string>)
 						{
 							ss << arg;
+						}
+						else if constexpr (std::is_same_v<T, nlohmann::json>)
+						{
+							ss << "<json>";
 						}
 						else if constexpr (std::is_same_v<T, std::vector<Nz::UInt8>>)
 						{

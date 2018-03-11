@@ -29,9 +29,9 @@ namespace ewn
 			const char* GetColumnName(std::size_t columnIndex) const;
 			std::string GetLastErrorMessage() const;
 			std::size_t GetRowCount() const;
-			DatabaseValue GetValue(std::size_t columnIndex, std::size_t rowIndex) const;
+			DatabaseValue GetValue(std::size_t columnIndex, std::size_t rowIndex = 0) const;
 
-			bool IsNull(std::size_t columnIndex, std::size_t rowIndex) const;
+			bool IsNull(std::size_t columnIndex, std::size_t rowIndex = 0) const;
 			bool IsValid() const;
 
 			std::string ToString() const;

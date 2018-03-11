@@ -8,6 +8,7 @@
 #define EREWHON_SERVER_DATABASETYPE_HPP
 
 #include <Nazara/Prerequisites.hpp>
+#include <json/json.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -25,6 +26,7 @@ namespace ewn
 		Int16,
 		Int32,
 		Int64,
+		Json,
 		Single,
 		Text,
 		Time,
@@ -34,7 +36,7 @@ namespace ewn
 	constexpr unsigned int GetDatabaseOid(DatabaseType type);
 	template<typename T> constexpr DatabaseType GetDatabaseType();
 
-	using DatabaseValue = std::variant<std::vector<Nz::UInt8>, bool, char, double, Nz::Int16, Nz::Int32, Nz::Int64, float, const char*, std::string>;
+	using DatabaseValue = std::variant<std::vector<Nz::UInt8>, bool, char, double, Nz::Int16, Nz::Int32, Nz::Int64, float, const char*, std::string, nlohmann::json>;
 }
 
 #include <Server/Database/DatabaseTypes.inl>
