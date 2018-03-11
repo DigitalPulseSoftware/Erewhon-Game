@@ -56,6 +56,39 @@ ALTER SEQUENCE account_id_seq OWNED BY account.id;
 
 
 --
+-- Name: modules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE modules (
+    id integer NOT NULL,
+    class_name character varying(64) NOT NULL,
+    class_info json NOT NULL,
+    name character varying(64) NOT NULL,
+    description text
+);
+
+
+--
+-- Name: modules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE modules_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: modules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE modules_id_seq OWNED BY modules.id;
+
+
+--
 -- Name: spaceship; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -89,10 +122,27 @@ ALTER SEQUENCE spaceship_id_seq OWNED BY spaceship.id;
 
 
 --
+-- Name: spaceship_modules; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE spaceship_modules (
+    spaceship_id integer NOT NULL,
+    module_id integer NOT NULL
+);
+
+
+--
 -- Name: account id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY account ALTER COLUMN id SET DEFAULT nextval('account_id_seq'::regclass);
+
+
+--
+-- Name: modules id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY modules ALTER COLUMN id SET DEFAULT nextval('modules_id_seq'::regclass);
 
 
 --
@@ -127,11 +177,43 @@ ALTER TABLE ONLY account
 
 
 --
+-- Name: modules modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY modules
+    ADD CONSTRAINT modules_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: spaceship_modules spaceship_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship_modules
+    ADD CONSTRAINT spaceship_modules_pkey PRIMARY KEY (spaceship_id, module_id);
+
+
+--
 -- Name: spaceship spaceship_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY spaceship
     ADD CONSTRAINT spaceship_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: spaceship_modules spaceship_modules_module_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship_modules
+    ADD CONSTRAINT spaceship_modules_module_id_fkey FOREIGN KEY (module_id) REFERENCES modules(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: spaceship_modules spaceship_modules_spaceship_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship_modules
+    ADD CONSTRAINT spaceship_modules_spaceship_id_fkey FOREIGN KEY (spaceship_id) REFERENCES spaceship(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
