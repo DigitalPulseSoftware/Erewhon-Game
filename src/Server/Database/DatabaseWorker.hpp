@@ -30,7 +30,7 @@ namespace ewn
 			DatabaseWorker& operator=(DatabaseWorker&&) = delete;
 
 		private:
-			DatabaseResult HandleTransactionStatement(DatabaseConnection& connection, const DatabaseTransaction::Statement& transactionStatement);
+			DatabaseResult HandleTransactionStatement(DatabaseConnection& connection, DatabaseTransaction& transaction, const DatabaseTransaction::Statement& transactionStatement);
 			void WorkerThread();
 
 			std::atomic_bool m_running;

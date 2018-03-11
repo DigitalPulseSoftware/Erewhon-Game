@@ -9,24 +9,30 @@
 
 namespace ewn
 {
-	DatabaseResult DatabaseWorker::HandleTransactionStatement(DatabaseConnection& connection, const DatabaseTransaction::Statement& transactionStatement)
+	ewn::DatabaseResult DatabaseWorker::HandleTransactionStatement(DatabaseConnection& connection, DatabaseTransaction& transaction, const DatabaseTransaction::Statement& transactionStatement)
 	{
 		return std::visit([&](auto&& statement)
 		{
 			using T = std::decay_t<decltype(statement)>;
 
+			ewn::DatabaseResult result;
 			if constexpr (std::is_same_v<T, DatabaseTransaction::PreparedStatement>)
 			{
-				return connection.ExecPreparedStatement(statement.statementName, statement.parameters);
+				result = connection.ExecPreparedStatement(statement.statementName, statement.parameters);
 			}
 			else if constexpr (std::is_same_v<T, DatabaseTransaction::QueryStatement>)
 			{
-				return connection.Exec(statement.query);
+				result = connection.Exec(statement.query);
 			}
 			else
 				static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
-		}, transactionStatement);
+			if (!transactionStatement.operatorFunc)
+				return result;
+
+			return transactionStatement.operatorFunc(transaction, std::move(result));
+
+		}, transactionStatement.statement);
 	}
 
 	void DatabaseWorker::WorkerThread()
@@ -81,9 +87,9 @@ namespace ewn
 						if (beginResult)
 						{
 							bool failure = false;
-							for (const auto& transactionStatement : request.transaction)
+							for (std::size_t i = 0; i < request.transaction.size(); ++i)
 							{
-								DatabaseResult& statementResult = result.results.emplace_back(HandleTransactionStatement(connection, transactionStatement));
+								DatabaseResult& statementResult = result.results.emplace_back(HandleTransactionStatement(connection, request.transaction, request.transaction[i]));
 
 								if (!statementResult)
 								{

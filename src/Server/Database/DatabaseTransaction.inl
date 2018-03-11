@@ -6,33 +6,41 @@
 
 namespace ewn
 {
-	inline std::size_t DatabaseTransaction::AppendQuery(std::string query)
+	inline std::size_t DatabaseTransaction::AppendQuery(std::string query, TransactionOperator transactionOperator)
 	{
-		QueryStatement statement;
-		statement.query = std::move(query);
+		QueryStatement queryStatement;
+		queryStatement.query = std::move(query);
+
+		Statement statement;
+		statement.operatorFunc = std::move(transactionOperator);
+		statement.statement = std::move(queryStatement);
 
 		m_statements.emplace_back(std::move(statement));
 		return m_statements.size();
 	}
 
-	inline std::size_t DatabaseTransaction::AppendPreparedStatement(std::string statementName, std::initializer_list<DatabaseValue> parameters)
+	inline std::size_t DatabaseTransaction::AppendPreparedStatement(std::string statementName, std::initializer_list<DatabaseValue> parameters, TransactionOperator transactionOperator)
 	{
-		return AppendPreparedStatement(std::move(statementName), &*parameters.begin(), parameters.size());
+		return AppendPreparedStatement(std::move(statementName), &*parameters.begin(), parameters.size(), std::move(transactionOperator));
 	}
 
-	inline std::size_t DatabaseTransaction::AppendPreparedStatement(std::string statementName, std::vector<DatabaseValue> parameters)
+	inline std::size_t DatabaseTransaction::AppendPreparedStatement(std::string statementName, std::vector<DatabaseValue> parameters, TransactionOperator transactionOperator)
 	{
-		PreparedStatement statement;
-		statement.statementName = std::move(statementName);
-		statement.parameters = std::move(parameters);
+		PreparedStatement preparedStatement;
+		preparedStatement.parameters = std::move(parameters);
+		preparedStatement.statementName = std::move(statementName);
+
+		Statement statement;
+		statement.operatorFunc = std::move(transactionOperator);
+		statement.statement = std::move(preparedStatement);
 
 		m_statements.emplace_back(std::move(statement));
 		return m_statements.size();
 	}
 
-	inline std::size_t DatabaseTransaction::AppendPreparedStatement(std::string statementName, const DatabaseValue* parameters, std::size_t parameterCount)
+	inline std::size_t DatabaseTransaction::AppendPreparedStatement(std::string statementName, const DatabaseValue* parameters, std::size_t parameterCount, TransactionOperator transactionOperator)
 	{
-		return AppendPreparedStatement(std::move(statementName), std::vector<DatabaseValue>(parameters, parameters + parameterCount));
+		return AppendPreparedStatement(std::move(statementName), std::vector<DatabaseValue>(parameters, parameters + parameterCount), std::move(transactionOperator));
 	}
 
 	inline std::size_t DatabaseTransaction::GetBeginResultIndex()
@@ -63,5 +71,15 @@ namespace ewn
 	inline DatabaseTransaction::size_type DatabaseTransaction::size() const
 	{
 		return m_statements.size();
+	}
+
+	inline DatabaseTransaction::Statement& DatabaseTransaction::operator[](std::size_t i)
+	{
+		return m_statements[i];
+	}
+
+	inline const DatabaseTransaction::Statement& DatabaseTransaction::operator[](std::size_t i) const
+	{
+		return m_statements[i];
 	}
 }
