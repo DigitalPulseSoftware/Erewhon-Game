@@ -53,6 +53,12 @@ int main()
 		return EXIT_FAILURE;
 	}
 
+	if (!app.LoadDatabase())
+	{
+		std::cerr << "Failed to load database" << std::endl;
+		return EXIT_FAILURE;
+	}
+
 	const ewn::ConfigFile& config = app.GetConfig();
 
 	Nz::IpAddress listenAddress = Nz::IpAddress::AnyIpV4;

@@ -43,7 +43,7 @@ namespace ewn
 			inline const std::string& GetName() const;
 			inline std::size_t GetPeerId() const;
 
-			const Ndk::EntityHandle& InstantiateOrGetBot();
+			const Ndk::EntityHandle& InstantiateBot();
 
 			inline bool IsAuthenticated() const;
 

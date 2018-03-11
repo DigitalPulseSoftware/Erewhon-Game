@@ -52,10 +52,21 @@ namespace ewn
 		}
 	}
 
-	Database& ServerApplication::GetGlobalDatabase()
+	bool ServerApplication::LoadDatabase()
 	{
-		assert(m_globalDatabase.has_value());
-		return *m_globalDatabase;
+		Database& globalDatabase = GetGlobalDatabase();
+
+		// Submit some work
+		m_moduleStore.LoadFromDatabase(globalDatabase);
+
+		// Wait until work is done
+		globalDatabase.WaitForCompletion();
+
+		// Treat results
+		if (!m_moduleStore.IsLoaded())
+			return false;
+
+		return true;
 	}
 
 	bool ServerApplication::Run()
@@ -79,7 +90,20 @@ namespace ewn
 
 		DatabaseTransaction trans;
 		trans.AppendPreparedStatement("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName });
-		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code });
+		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code }, [](DatabaseTransaction& transaction, DatabaseResult result)
+		{
+			if (!result)
+				return result;
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+
+			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 1 });
+			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 2 });
+			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 3 });
+			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 4 });
+
+			return result;
+		});
 
 		m_globalDatabase->ExecuteTransaction(std::move(trans), [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
 		{
@@ -213,9 +237,9 @@ namespace ewn
 
 			const std::string& globalSalt = m_config.GetStringOption("Security.PasswordSalt");
 
-			Nz::Int32 dbId = std::get<Nz::Int32>(result.GetValue(0, 0));
-			std::string dbPassword = std::get<std::string>(result.GetValue(1, 0));
-			std::string dbSalt = std::get<std::string>(result.GetValue(2, 0));
+			Nz::Int32 dbId = std::get<Nz::Int32>(result.GetValue(0));
+			std::string dbPassword = std::get<std::string>(result.GetValue(1));
+			std::string dbSalt = std::get<std::string>(result.GetValue(2));
 			std::string salt = globalSalt + dbSalt;
 
 			int iCost = m_config.GetIntegerOption<int>("Security.Argon2.IterationCost");
@@ -507,7 +531,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
@@ -515,29 +539,66 @@ namespace ewn
 			if (!ply)
 				return;
 
-			if (result)
+			if (!result)
 			{
-				if (result.GetRowCount() == 0)
+				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
+				return;
+			}
+
+			if (result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
+				return;
+			}
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+			std::string code = std::get<std::string>(result.GetValue(1));
+
+			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, ply, spaceshipCode = std::move(code)](DatabaseResult& result)
+			{
+				if (!result)
+					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
+
+				if (!ply)
+					return;
+
+				if (!result)
 				{
-					ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
+					ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
 					return;
 				}
 
-				std::string code = std::get<std::string>(result.GetValue(0, 0));
+				std::size_t moduleCount = result.GetRowCount();
 
-				const Ndk::EntityHandle& playerBot = ply->InstantiateOrGetBot();
+				std::vector<std::size_t> moduleIds(moduleCount);
+				try
+				{
+					for (std::size_t i = 0; i < moduleCount; ++i)
+						moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+				}
+				catch (const std::exception& e)
+				{
+					std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+
+					ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+					return;
+				}
+
+				const Ndk::EntityHandle& playerBot = ply->InstantiateBot();
 				ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
+				if (!botScript.Initialize(this, moduleIds))
+				{
+					ply->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
+					return;
+				}
 
 				Nz::String lastError;
-				if (botScript.Execute(code, &lastError))
+				if (botScript.Execute(spaceshipCode, &lastError))
 					ply->PrintMessage("Server: Script loaded with success");
 				else
 					ply->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
-			}
-			else
-				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
+			});
 		});
-
 	}
 
 	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)

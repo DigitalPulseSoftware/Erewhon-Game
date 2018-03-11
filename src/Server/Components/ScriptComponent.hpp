@@ -26,6 +26,8 @@ namespace ewn
 
 			bool Execute(Nz::String script, Nz::String* lastError);
 
+			bool Initialize(ServerApplication* app, const std::vector<std::size_t>& moduleIds);
+
 			inline bool HasValidScript() const;
 
 			bool Run(ServerApplication* app, float elapsedTime, Nz::String* lastError = nullptr);
@@ -35,7 +37,6 @@ namespace ewn
 			static Ndk::ComponentIndex componentIndex;
 
 		private:
-			void OnAttached() override;
 			void OnDetached() override;
 
 			std::optional<SpaceshipCore> m_core;

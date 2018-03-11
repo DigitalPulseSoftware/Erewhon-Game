@@ -26,6 +26,7 @@ namespace ewn
 			static bool HandleCrashServer(ServerApplication* app, Player* player);
 			static bool HandleKickPlayer(ServerApplication* app, Player* player, Player* target);
 			static bool HandleKillBot(ServerApplication* app, Player* player);
+			static bool HandleReloadModules(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
 			static bool HandleSuicide(ServerApplication* app, Player* player);
 			static bool HandleStopServer(ServerApplication* app, Player* player);

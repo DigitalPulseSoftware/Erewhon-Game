@@ -31,6 +31,7 @@ namespace ewn
 		RegisterCommand("kamikaze", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("kick", &ServerChatCommandStore::HandleKickPlayer);
 		RegisterCommand("killbot", &ServerChatCommandStore::HandleKillBot);
+		RegisterCommand("reloadmodules", &ServerChatCommandStore::HandleReloadModules);
 		RegisterCommand("resetarena", &ServerChatCommandStore::HandleResetArena);
 		RegisterCommand("suicide", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("stopserver", &ServerChatCommandStore::HandleStopServer);
@@ -66,6 +67,23 @@ namespace ewn
 	{
 		if (const Ndk::EntityHandle& botEntity = player->GetBotEntity())
 			botEntity->Kill();
+
+		return true;
+	}
+
+	bool ServerChatCommandStore::HandleReloadModules(ServerApplication* app, Player* player)
+	{
+		if (player->GetPermissionLevel() < 30)
+			return false;
+
+		ModuleStore& moduleStore = app->GetModuleStore();
+		moduleStore.LoadFromDatabase(app->GetGlobalDatabase(), [ply = player->CreateHandle()](bool updateSucceeded)
+		{
+			if (updateSucceeded)
+				ply->PrintMessage("Module reloaded");
+			else
+				ply->PrintMessage("Failed to reload modules");
+		});
 
 		return true;
 	}

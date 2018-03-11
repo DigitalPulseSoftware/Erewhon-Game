@@ -12,6 +12,7 @@
 #include <Server/Arena.hpp>
 #include <Server/GameWorker.hpp>
 #include <Server/GlobalDatabase.hpp>
+#include <Server/ModuleStore.hpp>
 #include <Server/ServerCommandStore.hpp>
 #include <Server/ServerChatCommandStore.hpp>
 #include <optional>
@@ -34,7 +35,11 @@ namespace ewn
 
 			inline void DispatchWork(WorkerFunction workFunc);
 
-			Database& GetGlobalDatabase();
+			inline Database& GetGlobalDatabase();
+			inline ModuleStore& GetModuleStore();
+			inline const ModuleStore& GetModuleStore() const;
+
+			bool LoadDatabase();
 
 			bool Run() override;
 
@@ -70,6 +75,7 @@ namespace ewn
 			Nz::MemoryPool m_playerPool;
 			Arena m_arena;
 			CallbackQueue m_callbackQueue;
+			ModuleStore m_moduleStore;
 			ServerChatCommandStore m_chatCommandStore;
 			WorkerQueue m_workerQueue;
 			std::optional<GlobalDatabase> m_globalDatabase;

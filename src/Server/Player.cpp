@@ -54,9 +54,9 @@ namespace ewn
 			}
 			else
 			{
-				std::string login = std::get<std::string>(result.GetValue(0, 0));
-				std::string displayName = std::get<std::string>(result.GetValue(1, 0));
-				Nz::Int16 permissionLevel = std::get<Nz::Int16>(result.GetValue(2, 0));
+				std::string login = std::get<std::string>(result.GetValue(0));
+				std::string displayName = std::get<std::string>(result.GetValue(1));
+				Nz::Int16 permissionLevel = std::get<Nz::Int16>(result.GetValue(2));
 				if (permissionLevel < 0)
 					permissionLevel = 0;
 
@@ -73,14 +73,11 @@ namespace ewn
 		});
 	}
 
-	const Ndk::EntityHandle& Player::InstantiateOrGetBot()
+	const Ndk::EntityHandle& Player::InstantiateBot()
 	{
-		if (!m_botEntity)
-		{
-			auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
-			m_botEntity = m_arena->CreateEntity("spaceship", "Bot (" + m_login + ')', this, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());
-		}
+		m_botEntity = m_arena->CreateEntity("spaceship", "Bot (" + m_login + ')', this, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());
 
 		return m_botEntity;
 	}

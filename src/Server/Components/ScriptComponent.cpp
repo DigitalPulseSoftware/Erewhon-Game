@@ -8,6 +8,7 @@
 #include <Nazara/Lua/LuaInstance.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <NDK/LuaAPI.hpp>
+#include <Server/ModuleStore.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
@@ -85,8 +86,35 @@ namespace ewn
 		return true;
 	}
 
+	bool ScriptComponent::Initialize(ServerApplication* app, const std::vector<std::size_t>& moduleIds)
+	{
+		m_core.emplace(m_entity);
+
+		const ModuleStore& moduleStore = app->GetModuleStore();
+		for (std::size_t moduleId : moduleIds)
+		{
+			auto modulePtr = moduleStore.BuildModule(moduleId, &m_core.value(), m_entity);
+			if (!modulePtr)
+				return false;
+
+			m_core->AddModule(std::move(modulePtr));
+		}
+
+		m_instance.PushTable();
+		{
+			m_core->Register(m_instance);
+		}
+		m_instance.SetGlobal("Spaceship");
+
+		m_core->PushCallback(0, "OnStart");
+
+		return true;
+	}
+
 	bool ScriptComponent::Run(ServerApplication* app, float elapsedTime, Nz::String* lastError)
 	{
+		assert(m_core);
+
 		if (!HasValidScript())
 			return true;
 
@@ -177,23 +205,6 @@ namespace ewn
 				owner->SendPacket(messagePacket);
 			}
 		}
-	}
-
-	void ScriptComponent::OnAttached()
-	{
-		m_core.emplace(m_entity);
-		m_core->AddModule(std::make_shared<EngineModule>(&m_core.value(), m_entity));
-		m_core->AddModule(std::make_shared<NavigationModule>(&m_core.value(), m_entity));
-		m_core->AddModule(std::make_shared<RadarModule>(&m_core.value(), m_entity, 1000.f, 5));
-		m_core->AddModule(std::make_shared<WeaponModule>(&m_core.value(), m_entity));
-
-		m_instance.PushTable();
-		{
-			m_core->Register(m_instance);
-		}
-		m_instance.SetGlobal("Spaceship");
-
-		m_core->PushCallback(0, "OnStart");
 	}
 
 	void ScriptComponent::OnDetached()
