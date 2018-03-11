@@ -40,6 +40,26 @@ namespace ewn
 		return m_requestQueue;
 	}
 
+	inline void Database::HandleResult(Result& result)
+	{
+		std::visit([&](auto&& arg)
+		{
+			using T = std::decay_t<decltype(arg)>;
+
+			if constexpr (std::is_same_v<T, QueryResult>)
+			{
+				arg.callback(arg.result);
+			}
+			else if constexpr (std::is_same_v<T, TransactionResult>)
+			{
+				arg.callback(arg.transactionSucceeded, arg.results);
+			}
+			else
+				static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+
+		}, result);
+	}
+
 	inline void Database::SubmitResult(Result&& result)
 	{
 		m_resultQueue.enqueue(std::move(result));

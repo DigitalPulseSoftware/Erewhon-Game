@@ -12,7 +12,6 @@
 #include <Server/Database/DatabaseTransaction.hpp>
 #include <Server/Database/DatabaseWorker.hpp>
 #include <concurrentqueue/blockingconcurrentqueue.h>
-#include <concurrentqueue/concurrentqueue.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,6 +37,8 @@ namespace ewn
 			void Poll();
 
 			void SpawnWorkers(std::size_t workerCount);
+
+			void WaitForCompletion();
 
 		protected:
 			void PrepareStatement(DatabaseConnection& connection, const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes);
@@ -75,9 +76,10 @@ namespace ewn
 			using Result = std::variant<QueryResult, TransactionResult>;
 
 			using RequestQueue = moodycamel::BlockingConcurrentQueue<Request>;
-			using ResultQueue = moodycamel::ConcurrentQueue<Result>;
+			using ResultQueue = moodycamel::BlockingConcurrentQueue<Result>;
 
 			inline RequestQueue& GetRequestQueue();
+			inline void HandleResult(Result& result);
 			inline void SubmitResult(Result&& result);
 
 			RequestQueue m_requestQueue;

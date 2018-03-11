@@ -19,30 +19,24 @@ namespace ewn
 	{
 		Result result;
 		while (m_resultQueue.try_dequeue(result))
-		{
-			std::visit([&](auto&& arg)
-			{
-				using T = std::decay_t<decltype(arg)>;
-
-				if constexpr (std::is_same_v<T, QueryResult>)
-				{
-					arg.callback(arg.result);
-				}
-				else if constexpr (std::is_same_v<T, TransactionResult>)
-				{
-					arg.callback(arg.transactionSucceeded, arg.results);
-				}
-				else
-					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
-
-			}, result);
-		}
+			HandleResult(result);
 	}
 
 	void Database::SpawnWorkers(std::size_t workerCount)
 	{
 		for (std::size_t i = 0; i < workerCount; ++i)
 			m_workers.emplace_back(std::make_unique<DatabaseWorker>(*this));
+	}
+
+	void Database::WaitForCompletion()
+	{
+		while (m_requestQueue.size_approx() > 0)
+		{
+			Result result;
+			m_resultQueue.wait_dequeue(result);
+
+			HandleResult(result);
+		}
 	}
 
 	void Database::PrepareStatement(DatabaseConnection& connection, const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes)
