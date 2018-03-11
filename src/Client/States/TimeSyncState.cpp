@@ -141,7 +141,15 @@ namespace ewn
 
 			m_stateData.server->UpdateServerTimeDelta((m_isClientYounger) ? meanDiff : std::numeric_limits<Nz::UInt64>::max() - meanDiff);
 
-			UpdateStatus("Clock synchronized with server\n(mean ping: " + Nz::String::Number(m_pingAccumulator / m_results.size()) + " +- " + Nz::String::Number(std::sqrt(variance)) + "ms)");
+
+			Nz::String standardDeviationStr;
+			float standardDeviation = std::sqrt(float(variance));
+			if (std::fmod(standardDeviation, 1.f) == 0.f)
+				standardDeviationStr = Nz::String::Number(standardDeviation);
+			else
+				standardDeviationStr = "sqrt(" + Nz::String::Number(variance) + ')';
+
+			UpdateStatus("Clock synchronized with server\n(mean ping: " + Nz::String::Number(m_pingAccumulator / m_results.size()) + " ± " + standardDeviationStr + "ms)");
 
 			m_finished = true;
 			m_nextStepTime = m_accumulator + 2.f;
