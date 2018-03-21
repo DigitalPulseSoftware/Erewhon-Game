@@ -30,7 +30,13 @@ namespace ewn
 
 	void Database::WaitForCompletion()
 	{
-		while (m_requestQueue.size_approx() > 0)
+		for (const auto& workerPtr : m_workers)
+			workerPtr->ResetIdle();
+
+		for (const auto& workerPtr : m_workers)
+			workerPtr->WaitForIdle();
+
+		while (m_resultQueue.size_approx() > 0)
 		{
 			Result result;
 			m_resultQueue.wait_dequeue(result);

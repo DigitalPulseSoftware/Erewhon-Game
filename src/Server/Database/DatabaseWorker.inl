@@ -7,6 +7,7 @@
 namespace ewn
 {
 	inline DatabaseWorker::DatabaseWorker(Database& database) :
+	m_idle(false),
 	m_running(true),
 	m_database(database)
 	{

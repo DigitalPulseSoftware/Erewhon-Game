@@ -12,6 +12,8 @@
 #include <Server/Database/DatabaseConnection.hpp>
 #include <Server/Database/DatabaseTransaction.hpp>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 #include <string>
 
 namespace ewn
@@ -26,6 +28,10 @@ namespace ewn
 			DatabaseWorker(DatabaseWorker&&) = delete;
 			inline ~DatabaseWorker();
 
+			void ResetIdle();
+
+			void WaitForIdle();
+
 			DatabaseWorker& operator=(const DatabaseWorker&) = delete;
 			DatabaseWorker& operator=(DatabaseWorker&&) = delete;
 
@@ -33,7 +39,10 @@ namespace ewn
 			DatabaseResult HandleTransactionStatement(DatabaseConnection& connection, DatabaseTransaction& transaction, const DatabaseTransaction::Statement& transactionStatement);
 			void WorkerThread();
 
+			std::atomic_bool m_idle;
 			std::atomic_bool m_running;
+			std::condition_variable m_idleConditionVariable;
+			std::mutex m_idleMutex;
 			Nz::Thread m_thread;
 			Database& m_database;
 	};

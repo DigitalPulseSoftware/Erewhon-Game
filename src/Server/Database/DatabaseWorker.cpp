@@ -9,13 +9,24 @@
 
 namespace ewn
 {
-	ewn::DatabaseResult DatabaseWorker::HandleTransactionStatement(DatabaseConnection& connection, DatabaseTransaction& transaction, const DatabaseTransaction::Statement& transactionStatement)
+	void DatabaseWorker::ResetIdle()
+	{
+		m_idle.store(false, std::memory_order_relaxed);
+	}
+
+	void DatabaseWorker::WaitForIdle()
+	{
+		std::unique_lock<std::mutex> lock(m_idleMutex);
+		m_idleConditionVariable.wait(lock, [this] { return m_idle.load(std::memory_order_acquire); });
+	}
+
+	DatabaseResult DatabaseWorker::HandleTransactionStatement(DatabaseConnection& connection, DatabaseTransaction& transaction, const DatabaseTransaction::Statement& transactionStatement)
 	{
 		return std::visit([&](auto&& statement)
 		{
 			using T = std::decay_t<decltype(statement)>;
 
-			ewn::DatabaseResult result;
+			DatabaseResult result;
 			if constexpr (std::is_same_v<T, DatabaseTransaction::PreparedStatement>)
 			{
 				result = connection.ExecPreparedStatement(statement.statementName, statement.parameters);
@@ -65,6 +76,8 @@ namespace ewn
 
 			if (queue.wait_dequeue_timed(consumerToken, request, std::chrono::milliseconds(100)))
 			{
+				m_idle.store(false, std::memory_order_release);
+
 				std::visit([&](auto&& request)
 				{
 					using T = std::decay_t<decltype(request)>;
@@ -118,6 +131,11 @@ namespace ewn
 						static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
 				}, request);
+			}
+			else
+			{
+				m_idle.store(true, std::memory_order_release);
+				m_idleConditionVariable.notify_all();
 			}
 		}
 	}
