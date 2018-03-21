@@ -27,6 +27,7 @@
 #include <NDK/StateMachine.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionLostState.hpp>
+#include <Client/States/MenuState.hpp>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -37,6 +38,8 @@ namespace ewn
 {
 	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		m_isEnteringMenu = false;
+
 		if (Nz::Texture* background = Nz::TextureLibrary::Get("Background"); background && background->IsValid())
 			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::SkyboxBackground::New(background));
 		else
@@ -72,6 +75,14 @@ namespace ewn
 			fsm.ResetState(std::make_shared<BackgroundState>(m_stateData));
 			fsm.PushState(std::make_shared<ConnectionLostState>(m_stateData));
 			return false;
+		}
+
+		if (m_isEnteringMenu)
+		{
+			if (fsm.IsTopState(this))
+				fsm.PushState(std::make_shared<MenuState>(m_stateData));
+
+			m_isEnteringMenu = false;
 		}
 
 		m_matchEntities->Update(elapsedTime);
@@ -155,5 +166,7 @@ namespace ewn
 			else
 				m_chatbox->PrintMessage("INFO: Sync disabled");
 		}
+		else if (event.code == Nz::Keyboard::Escape)
+			m_isEnteringMenu = true;
 	}
 }

@@ -30,6 +30,7 @@ namespace ewn
 			void OnConnected(ServerConnection* server, Nz::UInt32 data);
 			void OnConnectionPressed();
 			void OnDisconnected(ServerConnection* server, Nz::UInt32 data);
+			void OnQuitPressed();
 			void OnOptionPressed();
 			void OnRegisterPressed();
 
@@ -47,6 +48,7 @@ namespace ewn
 			StateData& m_stateData;
 			Ndk::ButtonWidget* m_connectionButton;
 			Ndk::ButtonWidget* m_optionButton;
+			Ndk::ButtonWidget* m_quitButton;
 			Ndk::ButtonWidget* m_registerButton;
 			Ndk::CheckboxWidget* m_rememberCheckbox;
 			Ndk::LabelWidget* m_loginLabel;

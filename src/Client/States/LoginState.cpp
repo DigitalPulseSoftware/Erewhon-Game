@@ -73,6 +73,14 @@ namespace ewn
 			OnOptionPressed();
 		});
 
+		m_quitButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_quitButton->UpdateText(Nz::SimpleTextDrawer::Draw("Quit", 24));
+		m_quitButton->ResizeToContent();
+		m_quitButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		{
+			OnQuitPressed();
+		});
+
 		m_registerButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
 		m_registerButton->ResizeToContent();
@@ -83,10 +91,11 @@ namespace ewn
 
 		// Set both connection and register button of the same width
 		constexpr float buttonPadding = 10.f;
-		float regConnWidth = std::max({ m_connectionButton->GetSize().x, m_optionButton->GetSize().x, m_registerButton->GetSize().x }) + buttonPadding;
-		m_connectionButton->SetSize({ regConnWidth, m_connectionButton->GetSize().y + buttonPadding });
-		m_optionButton->SetSize({ regConnWidth, m_optionButton->GetSize().y + buttonPadding });
-		m_registerButton->SetSize({ regConnWidth, m_registerButton->GetSize().y + buttonPadding });
+		float maxButtonWidth = std::max({ m_connectionButton->GetSize().x, m_optionButton->GetSize().x, m_quitButton->GetSize().x, m_registerButton->GetSize().x }) + buttonPadding;
+		m_connectionButton->SetSize({ maxButtonWidth, m_connectionButton->GetSize().y + buttonPadding });
+		m_optionButton->SetSize({ maxButtonWidth, m_optionButton->GetSize().y + buttonPadding });
+		m_quitButton->SetSize({ maxButtonWidth, m_quitButton->GetSize().y + buttonPadding });
+		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y + buttonPadding });
 
 		m_onLoginFailureSlot.Connect(m_stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
@@ -144,6 +153,7 @@ namespace ewn
 		m_loginLabel->Destroy();
 		m_loginArea->Destroy();
 		m_optionButton->Destroy();
+		m_quitButton->Destroy();
 		m_passwordLabel->Destroy();
 		m_passwordArea->Destroy();
 		m_rememberCheckbox->Destroy();
@@ -252,6 +262,11 @@ namespace ewn
 		UpdateStatus("Error: failed to connect to server", Nz::Color::Red);
 	}
 
+	void LoginState::OnQuitPressed()
+	{
+		m_stateData.app->Quit();
+	}
+
 	void LoginState::OnOptionPressed()
 	{
 		m_isUsingOption = true;
@@ -317,6 +332,7 @@ namespace ewn
 
 		constexpr float optionButtonPadding = 20.f;
 		m_optionButton->SetPosition(optionButtonPadding, canvasSize.y - m_optionButton->GetSize().y - optionButtonPadding);
+		m_quitButton->SetPosition(canvasSize.x - m_quitButton->GetSize().x - optionButtonPadding, canvasSize.y - m_quitButton->GetSize().y - optionButtonPadding);
 	}
 
 	void LoginState::ComputePassword()

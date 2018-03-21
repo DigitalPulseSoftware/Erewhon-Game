@@ -52,6 +52,7 @@ namespace ewn
 			std::optional<SpaceshipController> m_spaceshipController;
 			std::size_t m_controlledEntity;
 			bool m_isDisconnected;
+			bool m_isEnteringMenu;
 	};
 }
 
