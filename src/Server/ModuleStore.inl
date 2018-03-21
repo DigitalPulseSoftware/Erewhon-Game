@@ -7,12 +7,13 @@
 
 namespace ewn
 {
-	inline ModuleStore::ModuleStore()
+	inline ModuleStore::ModuleStore() :
+	m_isLoaded(false)
 	{
 		BuildFactory();
 	}
 
-	inline bool ewn::ModuleStore::IsLoaded() const
+	inline bool ModuleStore::IsLoaded() const
 	{
 		return m_isLoaded;
 	}
