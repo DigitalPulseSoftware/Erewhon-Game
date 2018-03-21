@@ -35,7 +35,11 @@ int main()
 	const ewn::ConfigFile& config = app.GetConfig();
 
 	app.EnableFPSCounter(true);
-	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
+	if (!app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4))
+	{
+		std::cerr << "Failed to setup network" << std::endl;
+		return EXIT_FAILURE;
+	}
 
 	ewn::ServerConnection serverConnection(app);
 

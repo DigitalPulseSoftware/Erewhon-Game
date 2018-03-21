@@ -21,11 +21,20 @@ namespace ewn
 		return Application::Run();
 	}
 
-	void BaseApplication::SetupNetwork(std::size_t peerPerReactor, const Nz::IpAddress& ipAddress)
+	bool BaseApplication::SetupNetwork(std::size_t clientPerReactor, const Nz::IpAddress& ipAddress)
 	{
-		m_peerPerReactor = peerPerReactor;
+		m_peerPerReactor = clientPerReactor;
 
-		m_reactors.emplace_back(std::make_unique<NetworkReactor>(0, ipAddress, peerPerReactor));
+		try
+		{
+			m_reactors.emplace_back(std::make_unique<NetworkReactor>(0, ipAddress, clientPerReactor));
+			return true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Failed to start network reactors: " << e.what() << std::endl;
+			return false;
+		}
 	}
 
 	void BaseApplication::OnConfigLoaded(const ConfigFile& /*config*/)
