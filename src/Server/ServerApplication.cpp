@@ -58,12 +58,16 @@ namespace ewn
 
 		// Submit some work
 		m_moduleStore.LoadFromDatabase(globalDatabase);
+		m_spaceshipHullStore.LoadFromDatabase(globalDatabase);
 
 		// Wait until work is done
 		globalDatabase.WaitForCompletion();
 
 		// Treat results
 		if (!m_moduleStore.IsLoaded())
+			return false;
+
+		if (!m_spaceshipHullStore.IsLoaded())
 			return false;
 
 		return true;

@@ -15,6 +15,7 @@
 #include <Server/ModuleStore.hpp>
 #include <Server/ServerCommandStore.hpp>
 #include <Server/ServerChatCommandStore.hpp>
+#include <Server/SpaceshipHullStore.hpp>
 #include <optional>
 #include <vector>
 
@@ -77,6 +78,7 @@ namespace ewn
 			CallbackQueue m_callbackQueue;
 			ModuleStore m_moduleStore;
 			ServerChatCommandStore m_chatCommandStore;
+			SpaceshipHullStore m_spaceshipHullStore;
 			WorkerQueue m_workerQueue;
 			std::optional<GlobalDatabase> m_globalDatabase;
 			std::vector<std::unique_ptr<GameWorker>> m_workers;
