@@ -13,12 +13,29 @@
 namespace ewn
 {
 	template<typename T>
+	class CompressedSigned
+	{
+		static_assert(std::is_signed_v<T>);
+
+		public:
+			explicit CompressedSigned(T value = 0);
+			~CompressedSigned() = default;
+
+			operator T() const;
+
+			CompressedSigned& operator=(T value);
+
+		private:
+			T m_value;
+	};
+
+	template<typename T>
 	class CompressedUnsigned
 	{
 		static_assert(std::is_unsigned_v<T>);
 
 		public:
-			CompressedUnsigned(T value = 0);
+			explicit CompressedUnsigned(T value = 0);
 			~CompressedUnsigned() = default;
 
 			operator T() const;
@@ -32,8 +49,10 @@ namespace ewn
 
 namespace Nz
 {
-	template<typename T> bool Serialize(SerializationContext& context, ewn::CompressedUnsigned<T> value);
-	template<typename T> bool Unserialize(SerializationContext& context, ewn::CompressedUnsigned<T>* value);
+	template<typename T> bool Serialize(SerializationContext& context, ewn::CompressedSigned<T> value, TypeTag<ewn::CompressedSigned<T>>);
+	template<typename T> bool Serialize(SerializationContext& context, ewn::CompressedUnsigned<T> value, TypeTag<ewn::CompressedUnsigned<T>>);
+	template<typename T> bool Unserialize(SerializationContext& context, ewn::CompressedSigned<T>* value, TypeTag<ewn::CompressedSigned<T>>);
+	template<typename T> bool Unserialize(SerializationContext& context, ewn::CompressedUnsigned<T>* value, TypeTag<ewn::CompressedUnsigned<T>>);
 }
 
 #include <Shared/Protocol/CompressedInteger.inl>
