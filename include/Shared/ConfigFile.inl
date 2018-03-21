@@ -90,6 +90,38 @@ namespace ewn
 		RegisterOption(std::move(optionName), StringOption{});
 	}
 
+	inline void ConfigFile::SetBoolOption(const std::string& optionName, bool value)
+	{
+		auto it = m_options.find(optionName);
+		NazaraAssert(it != m_options.end(), "Options does not exist");
+
+		std::get<BoolOption>(it->second).value = value;
+	}
+
+	inline void ConfigFile::SetFloatOption(const std::string & optionName, double value)
+	{
+		auto it = m_options.find(optionName);
+		NazaraAssert(it != m_options.end(), "Options does not exist");
+
+		std::get<FloatOption>(it->second).value = value;
+	}
+
+	inline void ConfigFile::SetIntegerOption(const std::string & optionName, long long value)
+	{
+		auto it = m_options.find(optionName);
+		NazaraAssert(it != m_options.end(), "Options does not exist");
+
+		std::get<IntegerOption>(it->second).value = value;
+	}
+
+	inline void ConfigFile::SetStringOption(const std::string & optionName, std::string value)
+	{
+		auto it = m_options.find(optionName);
+		NazaraAssert(it != m_options.end(), "Options does not exist");
+
+		std::get<StringOption>(it->second).value = value;
+	}
+
 	inline void ConfigFile::RegisterOption(std::string optionName, ConfigOption option)
 	{
 		NazaraAssert(m_options.find(optionName) == m_options.end(), "Option already exists");

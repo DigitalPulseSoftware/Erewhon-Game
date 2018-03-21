@@ -32,6 +32,11 @@ namespace ewn
 			inline void RegisterIntegerOption(std::string optionName, long long minBounds, long long maxBounds);
 			inline void RegisterStringOption(std::string optionName);
 
+			inline void SetBoolOption(const std::string& optionName, bool value);
+			inline void SetFloatOption(const std::string& optionName, double value);
+			inline void SetIntegerOption(const std::string& optionName, long long value);
+			inline void SetStringOption(const std::string& optionName, std::string value);
+
 		private:
 			struct BoolOption
 			{

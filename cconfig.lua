@@ -1,3 +1,5 @@
+dofile("coptions.lua")
+
 Server = {
 	Address = "localhost",
 	Port    = 2049

@@ -32,13 +32,17 @@ int main()
 		return EXIT_FAILURE;
 	}
 
+	const ewn::ConfigFile& config = app.GetConfig();
+
 	app.EnableFPSCounter(true);
 	app.SetupNetwork(1, Nz::IpAddress::LoopbackIpV4);
 
 	ewn::ServerConnection serverConnection(app);
 
-	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>(Nz::VideoMode(1280, 720), "Utopia");
+	bool fullscreen = config.GetBoolOption("Options.Fullscreen");
+	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>((fullscreen) ? Nz::VideoMode::GetFullscreenModes()[0] : Nz::VideoMode(1280, 720), "Utopia", (fullscreen) ? Nz::WindowStyle_Fullscreen : Nz::WindowStyle_Default);
 	window.EnableCloseOnQuit(false);
+	window.EnableVerticalSync(config.GetBoolOption("Options.VerticalSync"));
 
 	// 3D Scene
 	Ndk::World& world3D = app.AddWorld();

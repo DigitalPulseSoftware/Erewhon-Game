@@ -15,6 +15,9 @@ namespace ewn
 		m_config.RegisterStringOption("ClientScript.Filename");
 		m_config.RegisterStringOption("ServerScript.Filename");
 
+		m_config.RegisterBoolOption("Options.Fullscreen");
+		m_config.RegisterBoolOption("Options.VerticalSync");
+
 		m_config.RegisterIntegerOption("Security.Argon2.IterationCost");
 		m_config.RegisterIntegerOption("Security.Argon2.MemoryCost");
 		m_config.RegisterIntegerOption("Security.Argon2.ThreadCost");

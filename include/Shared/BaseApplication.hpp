@@ -21,6 +21,7 @@ namespace ewn
 			BaseApplication() = default;
 			virtual ~BaseApplication();
 
+			inline ConfigFile& GetConfig();
 			inline const ConfigFile& GetConfig() const;
 			inline std::size_t GetPeerPerReactor() const;
 			inline std::size_t GetReactorCount() const;

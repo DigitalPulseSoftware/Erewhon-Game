@@ -6,6 +6,11 @@
 
 namespace ewn
 {
+	inline ConfigFile& BaseApplication::GetConfig()
+	{
+		return m_config;
+	}
+
 	inline const ConfigFile& BaseApplication::GetConfig() const
 	{
 		return m_config;

@@ -10,6 +10,7 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <Client/States/OptionState.hpp>
 #include <Client/States/RegisterState.hpp>
 #include <Client/States/TimeSyncState.hpp>
 #include <argon2/argon2.h>
@@ -23,6 +24,7 @@ namespace ewn
 		m_isLoggingIn = false;
 		m_loginSucceeded = false;
 		m_isRegistering = false;
+		m_isUsingOption = false;
 
 		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
@@ -63,6 +65,14 @@ namespace ewn
 			OnConnectionPressed();
 		});
 
+		m_optionButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_optionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Option", 24));
+		m_optionButton->ResizeToContent();
+		m_optionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		{
+			OnOptionPressed();
+		});
+
 		m_registerButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
 		m_registerButton->ResizeToContent();
@@ -73,8 +83,9 @@ namespace ewn
 
 		// Set both connection and register button of the same width
 		constexpr float buttonPadding = 10.f;
-		float regConnWidth = std::max(m_connectionButton->GetSize().x, m_registerButton->GetSize().x) + buttonPadding;
+		float regConnWidth = std::max({ m_connectionButton->GetSize().x, m_optionButton->GetSize().x, m_registerButton->GetSize().x }) + buttonPadding;
 		m_connectionButton->SetSize({ regConnWidth, m_connectionButton->GetSize().y + buttonPadding });
+		m_optionButton->SetSize({ regConnWidth, m_optionButton->GetSize().y + buttonPadding });
 		m_registerButton->SetSize({ regConnWidth, m_registerButton->GetSize().y + buttonPadding });
 
 		m_onLoginFailureSlot.Connect(m_stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
@@ -132,6 +143,7 @@ namespace ewn
 		m_connectionButton->Destroy();
 		m_loginLabel->Destroy();
 		m_loginArea->Destroy();
+		m_optionButton->Destroy();
 		m_passwordLabel->Destroy();
 		m_passwordArea->Destroy();
 		m_rememberCheckbox->Destroy();
@@ -154,6 +166,8 @@ namespace ewn
 		}
 		else if (m_isRegistering)
 			fsm.ChangeState(std::make_shared<RegisterState>(m_stateData));
+		else if (m_isUsingOption)
+			fsm.ChangeState(std::make_shared<OptionState>(m_stateData));
 		else if (m_isLoggingIn)
 		{
 			// Computing password, wait for it
@@ -238,6 +252,11 @@ namespace ewn
 		UpdateStatus("Error: failed to connect to server", Nz::Color::Red);
 	}
 
+	void LoginState::OnOptionPressed()
+	{
+		m_isUsingOption = true;
+	}
+
 	void LoginState::OnRegisterPressed()
 	{
 		if (m_isLoggingIn)
@@ -248,7 +267,8 @@ namespace ewn
 
 	void LoginState::LayoutWidgets()
 	{
-		Nz::Vector2f center = m_stateData.canvas->GetSize() / 2.f;
+		Nz::Vector2f canvasSize = m_stateData.canvas->GetSize();
+		Nz::Vector2f center = canvasSize / 2.f;
 
 		constexpr float padding = 10.f;
 
@@ -294,6 +314,9 @@ namespace ewn
 		m_registerButton->SetPosition({ 0.f, cursor.y, 0.f });
 		m_registerButton->CenterHorizontal();
 		cursor.y += m_registerButton->GetSize().y + padding;
+
+		constexpr float optionButtonPadding = 20.f;
+		m_optionButton->SetPosition(optionButtonPadding, canvasSize.y - m_optionButton->GetSize().y - optionButtonPadding);
 	}
 
 	void LoginState::ComputePassword()
