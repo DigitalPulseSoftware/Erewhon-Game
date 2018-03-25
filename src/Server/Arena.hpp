@@ -37,7 +37,8 @@ namespace ewn
 			~Arena();
 
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
-			const Ndk::EntityHandle& CreateProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			const Ndk::EntityHandle& CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			const Ndk::EntityHandle& CreateTorpedo(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 
 			void DispatchChatMessage(const Nz::String& message);
 
@@ -53,7 +54,8 @@ namespace ewn
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
 
-			bool HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
+			bool HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
+			bool HandleTorpedoProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 
 			void OnBroadcastEntityCreation(const BroadcastSystem* system, const Packets::CreateEntity& packet);
 			void OnBroadcastEntityDestruction(const BroadcastSystem* system, const Packets::DeleteEntity& packet);
@@ -68,7 +70,8 @@ namespace ewn
 			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;
 			float m_stateBroadcastAccumulator;
-			int m_projectileMaterial;
+			int m_plasmaMaterial;
+			int m_torpedoMaterial;
 	};
 }
 

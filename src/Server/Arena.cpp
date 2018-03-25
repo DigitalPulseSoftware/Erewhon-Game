@@ -51,11 +51,17 @@ namespace ewn
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
 		int defaultMaterial = world.GetMaterial("default");
-		m_projectileMaterial = world.CreateMaterial("laser");
+		m_plasmaMaterial = world.CreateMaterial("plasma");
+		m_torpedoMaterial = world.CreateMaterial("torpedo");
 
-		world.SetMaterialCollisionCallback(defaultMaterial, m_projectileMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		world.SetMaterialCollisionCallback(defaultMaterial, m_plasmaMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 		{
-			return HandleProjectileCollision(firstBody, secondBody);
+			return HandlePlasmaProjectileCollision(firstBody, secondBody);
+		});
+
+		world.SetMaterialCollisionCallback(defaultMaterial, m_torpedoMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return HandleTorpedoProjectileCollision(firstBody, secondBody);
 		});
 
 
@@ -85,13 +91,24 @@ namespace ewn
 		return spaceship;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	const Ndk::EntityHandle& Arena::CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		const Ndk::EntityHandle& projectile = CreateEntity("projectile", {}, owner, position, rotation);
+		const Ndk::EntityHandle& projectile = CreateEntity("plasmabeam", {}, owner, position, rotation);
 		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
 
 		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
 		projectilePhys.SetLinearVelocity(emitter->GetComponent<Ndk::NodeComponent>().GetForward() * 250.f);
+
+		return projectile;
+	}
+
+	const Ndk::EntityHandle & Arena::CreateTorpedo(Player * owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
+	{
+		const Ndk::EntityHandle& projectile = CreateEntity("torpedo", {}, owner, position, rotation);
+		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
+
+		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
+		projectilePhys.SetLinearVelocity(emitter->GetComponent<Ndk::NodeComponent>().GetForward() * 50.f);
 
 		return projectile;
 	}
@@ -248,7 +265,7 @@ namespace ewn
 			physComponent.SetPosition(position);
 			physComponent.SetRotation(rotation);
 		}
-		else if (type == "projectile")
+		else if (type == "plasmabeam")
 		{
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
@@ -263,7 +280,26 @@ namespace ewn
 			physComponent.SetAngularDamping(Nz::Vector3f::Zero());
 			physComponent.SetLinearDamping(0.f);
 			physComponent.SetMass(1.f);
-			physComponent.SetMaterial("laser");
+			physComponent.SetMaterial("plasma");
+			physComponent.SetPosition(position);
+			physComponent.SetRotation(rotation);
+		}
+		else if (type == "torpedo")
+		{
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(3.f));
+			newEntity->AddComponent<LifeTimeComponent>(30.f);
+			newEntity->AddComponent<ProjectileComponent>(200);
+			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 0);
+
+			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
+			node.SetPosition(position);
+			node.SetRotation(rotation);
+
+			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.SetAngularDamping(Nz::Vector3f::Zero());
+			physComponent.SetLinearDamping(0.f);
+			physComponent.SetMass(1.f);
+			physComponent.SetMaterial("torpedo");
 			physComponent.SetPosition(position);
 			physComponent.SetRotation(rotation);
 		}
@@ -345,6 +381,11 @@ namespace ewn
 		node.SetPosition(position);
 		node.SetRotation(rotation);
 
+		newEntity->AddComponent<ArenaComponent>(*this);
+
+		if (owner)
+			newEntity->AddComponent<OwnerComponent>(owner);
+
 		return newEntity;
 	}
 
@@ -372,14 +413,14 @@ namespace ewn
 		DispatchChatMessage(player->GetName() + " has joined");
 	}
 
-	bool Arena::HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 	{
 		Ndk::EntityId laserEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(firstBody.GetUserdata()));
 		Ndk::EntityId hitEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(secondBody.GetUserdata()));
 
-		if (secondBody.GetMaterial() == m_projectileMaterial)
+		if (secondBody.GetMaterial() == m_plasmaMaterial)
 		{
-			assert(firstBody.GetMaterial() != m_projectileMaterial);
+			assert(firstBody.GetMaterial() != m_plasmaMaterial);
 			std::swap(laserEntityId, hitEntityId);
 		}
 
@@ -414,6 +455,71 @@ namespace ewn
 
 			hitEntityPhys.AddForce(projectileForce);
 		}
+
+		projectile->Kill(); //< Remember entity destruction is not immediate, we can still use it safely
+
+		return false;
+	}
+
+	bool Arena::HandleTorpedoProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+	{
+		Ndk::EntityId torpedoEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(firstBody.GetUserdata()));
+		Ndk::EntityId hitEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(secondBody.GetUserdata()));
+
+		if (secondBody.GetMaterial() == m_torpedoMaterial)
+		{
+			assert(firstBody.GetMaterial() != m_plasmaMaterial);
+			std::swap(torpedoEntityId, hitEntityId);
+		}
+
+		const Ndk::EntityHandle& projectile = m_world.GetEntity(torpedoEntityId);
+		const Ndk::EntityHandle& hitEntity = m_world.GetEntity(hitEntityId);
+
+		assert(projectile->HasComponent<ProjectileComponent>());
+
+		ProjectileComponent& projectileComponent = projectile->GetComponent<ProjectileComponent>();
+		if (projectileComponent.HasBeenHit(hitEntity))
+			return false;
+
+		projectileComponent.MarkAsHit(hitEntity);
+
+		// Deal damage if entity has a health value
+
+		// Apply physics force
+		auto& projectilePhys = projectile->GetComponent<Ndk::PhysicsComponent3D>();
+
+		Nz::PhysWorld3D& physWorld = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
+
+		float explosionRadius = 50.f;
+		Nz::Vector3f torpedoPosition = projectilePhys.GetPosition();
+		Nz::Boxf detectionBox = Nz::Boxf(torpedoPosition - Nz::Vector3f(explosionRadius), torpedoPosition + Nz::Vector3f(explosionRadius));
+
+		float maxSquaredRadius = explosionRadius * explosionRadius;
+		physWorld.ForEachBodyInAABB(detectionBox, [&](Nz::RigidBody3D& body)
+		{
+			Nz::Vector3f bodyPosition = body.GetPosition();
+			if (bodyPosition.SquaredDistance(torpedoPosition) < maxSquaredRadius)
+			{
+				Ndk::EntityId bodyId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(body.GetUserdata()));
+				const Ndk::EntityHandle& bodyEntity = m_world.GetEntity(bodyId);
+
+				float fade = std::clamp(bodyPosition.Distance(torpedoPosition) / explosionRadius, 0.f, 1.f);
+
+				if (bodyEntity->HasComponent<HealthComponent>())
+				{
+					auto& health = bodyEntity->GetComponent<HealthComponent>();
+					health.Damage(static_cast<Nz::UInt16>(projectileComponent.GetDamageValue() / fade), projectile);
+				}
+
+				Nz::Vector3f force = bodyPosition - torpedoPosition;
+				force.Normalize();
+				force *= 500'000.f / fade;
+
+				body.AddForce(force);
+			}
+
+			return true;
+		});
 
 		projectile->Kill(); //< Remember entity destruction is not immediate, we can still use it safely
 

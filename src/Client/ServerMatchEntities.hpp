@@ -105,7 +105,8 @@ namespace ewn
 			Ndk::EntityHandle m_ballTemplateEntity;
 			Ndk::EntityHandle m_earthTemplateEntity;
 			Ndk::EntityHandle m_debugTemplateEntity;
-			Ndk::EntityHandle m_projectileTemplateEntity;
+			Ndk::EntityHandle m_plasmaProjectileTemplateEntity;
+			Ndk::EntityHandle m_torpedoProjectileTemplateEntity;
 			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::WorldHandle m_world;
 			Nz::UdpSocket m_debugStateSocket;

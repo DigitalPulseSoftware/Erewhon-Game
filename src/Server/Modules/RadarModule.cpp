@@ -206,7 +206,7 @@ namespace ewn
 		Ndk::World* world = spaceship->GetWorld();
 		Nz::PhysWorld3D& physWorld = world->GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
 		float maxSquaredRadius = m_detectionRadius * m_detectionRadius;
-		physWorld.ForEachBodyInAABB(detectionBox, [&](const Nz::RigidBody3D& body)
+		physWorld.ForEachBodyInAABB(detectionBox, [&](Nz::RigidBody3D& body)
 		{
 			Nz::Vector3f bodyPosition = body.GetPosition();
 			if (bodyPosition.SquaredDistance(position) < maxSquaredRadius)

@@ -5,6 +5,7 @@
 #include <Client/ServerMatchEntities.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Core/Primitive.hpp>
+#include <Nazara/Graphics/Billboard.hpp>
 #include <Nazara/Graphics/Model.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
@@ -225,17 +226,17 @@ namespace ewn
 
 			Nz::SpriteRef laserSprite2 = Nz::Sprite::New(*laserSprite1);
 
-			m_projectileTemplateEntity = m_world->CreateEntity();
-			auto& gfxComponent = m_projectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
+			m_plasmaProjectileTemplateEntity = m_world->CreateEntity();
+			auto& gfxComponent = m_plasmaProjectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
 			
 			gfxComponent.Attach(laserSprite1, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			gfxComponent.Attach(laserSprite2, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(90.f, 90.f, 0.f)));
 
 			//m_projectileTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
-			m_projectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			m_projectileTemplateEntity->Disable();
+			m_plasmaProjectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
+			m_plasmaProjectileTemplateEntity->Disable();
 
-			auto& physComponent = m_projectileTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			auto& physComponent = m_plasmaProjectileTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.EnableNodeSynchronization(false);
 			physComponent.SetMass(1.f);
 			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
@@ -293,6 +294,31 @@ namespace ewn
 			debugModel->SetMaterial(0, debugMat);
 
 			gfxComponent.Attach(debugModel);*/
+		}
+
+		// Projectile (torpedo)
+		{
+			m_torpedoProjectileTemplateEntity = m_world->CreateEntity();
+			auto& gfxComponent = m_torpedoProjectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
+
+			Nz::MaterialRef flareMaterial = Nz::Material::New("Translucent3D");
+			flareMaterial->SetShader("Basic");
+			flareMaterial->SetDiffuseMap("Assets/weapons/flare1.png");
+
+			Nz::BillboardRef billboard = Nz::Billboard::New();
+			billboard->SetMaterial(flareMaterial);
+			billboard->SetSize(billboard->GetSize() * 0.025f);
+
+			gfxComponent.Attach(billboard);
+
+			m_torpedoProjectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
+			m_torpedoProjectileTemplateEntity->Disable();
+
+			auto& physComponent = m_torpedoProjectileTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
+			physComponent.SetMass(1.f);
+			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
 		}
 
 		// Spaceship
@@ -378,9 +404,14 @@ namespace ewn
 			data.entity = m_ballTemplateEntity->Clone();
 			data.type = Type::Ball; //< Remove asap
 		}
-		else if (createPacket.entityType == "projectile")
+		else if (createPacket.entityType == "plasmabeam")
 		{
-			data.entity = m_projectileTemplateEntity->Clone();
+			data.entity = m_plasmaProjectileTemplateEntity->Clone();
+			data.type = Type::Projectile; //< Remove asap
+		}
+		else if (createPacket.entityType == "torpedo")
+		{
+			data.entity = m_torpedoProjectileTemplateEntity->Clone();
 			data.type = Type::Projectile; //< Remove asap
 		}
 		else
