@@ -49,11 +49,11 @@ namespace ewn
 
 		private:
 			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			const Ndk::EntityHandle& CreateSpaceship(std::string name, Player* owner, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
 
 			bool HandleProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
-			bool HandleRadarCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 
 			void OnBroadcastEntityCreation(const BroadcastSystem* system, const Packets::CreateEntity& packet);
 			void OnBroadcastEntityDestruction(const BroadcastSystem* system, const Packets::DeleteEntity& packet);
@@ -69,7 +69,6 @@ namespace ewn
 			ServerApplication* m_app;
 			float m_stateBroadcastAccumulator;
 			int m_projectileMaterial;
-			int m_radarMaterial;
 	};
 }
 

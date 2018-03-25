@@ -8,7 +8,7 @@
 #define EREWHON_SERVER_COLLISIONMESHSTORE_HPP
 
 #include <Server/DatabaseStore.hpp>
-#include <Nazara/Utility/Mesh.hpp>
+#include <Nazara/Physics3D/Collider3D.hpp>
 #include <NDK/Entity.hpp>
 #include <string>
 #include <vector>
@@ -24,6 +24,7 @@ namespace ewn
 			inline CollisionMeshStore();
 			~CollisionMeshStore() = default;
 
+			inline Nz::Collider3DRef GetEntryCollider(std::size_t entryId) const;
 			inline bool IsEntryLoaded(std::size_t entryId) const;
 
 		private:
@@ -31,7 +32,7 @@ namespace ewn
 
 			struct CollisionMeshInfo 
 			{
-				Nz::MeshRef collisionMesh;
+				Nz::Collider3DRef collider;
 				bool doesExist = false;
 				bool isLoaded = false;
 			};

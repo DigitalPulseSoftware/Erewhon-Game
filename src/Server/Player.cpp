@@ -73,11 +73,11 @@ namespace ewn
 		});
 	}
 
-	const Ndk::EntityHandle& Player::InstantiateBot()
-	{
+	const Ndk::EntityHandle& Player::InstantiateBot(std::size_t spaceshipHullId)
+{
 		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
-		m_botEntity = m_arena->CreateEntity("spaceship", "Bot (" + m_login + ')', this, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());
+		m_botEntity = m_arena->CreateSpaceship("Bot (" + m_login + ')', this, spaceshipHullId, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());
 
 		return m_botEntity;
 	}

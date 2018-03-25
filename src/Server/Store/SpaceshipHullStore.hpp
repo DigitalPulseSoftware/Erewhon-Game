@@ -23,6 +23,9 @@ namespace ewn
 			inline SpaceshipHullStore();
 			~SpaceshipHullStore() = default;
 
+			inline std::size_t GetEntryCollisionMeshId(std::size_t entryId) const;
+			inline bool IsEntryLoaded(std::size_t entryId) const;
+
 		private:
 			bool FillStore(ServerApplication* app, DatabaseResult& result) override;
 

@@ -12,6 +12,12 @@ namespace ewn
 	{
 	}
 
+	inline Nz::Collider3DRef CollisionMeshStore::GetEntryCollider(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_collisionInfos[entryId].collider;
+	}
+
 	inline bool CollisionMeshStore::IsEntryLoaded(std::size_t entryId) const
 	{
 		assert(entryId < m_collisionInfos.size());

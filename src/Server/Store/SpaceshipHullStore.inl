@@ -11,4 +11,16 @@ namespace ewn
 	DatabaseStore("LoadSpaceshipHulls")
 	{
 	}
+
+	inline std::size_t SpaceshipHullStore::GetEntryCollisionMeshId(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_hullInfos[entryId].collisionMeshId;
+	}
+
+	inline bool SpaceshipHullStore::IsEntryLoaded(std::size_t entryId) const
+	{
+		assert(entryId < m_hullInfos.size());
+		return m_hullInfos[entryId].isLoaded;
+	}
 }

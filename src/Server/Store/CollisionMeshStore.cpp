@@ -3,6 +3,10 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Store/CollisionMeshStore.hpp>
+#include <Nazara/Utility/Mesh.hpp>
+#include <Nazara/Utility/StaticMesh.hpp>
+#include <Nazara/Utility/VertexDeclaration.hpp>
+#include <Nazara/Utility/VertexMapper.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Database/DatabaseResult.hpp>
 #include <iostream>
@@ -22,6 +26,7 @@ namespace ewn
 		Nz::MeshParams params;
 		params.animated = false;
 		params.center = true;
+		params.matrix = Nz::Matrix4f::Transform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(0.01f));
 		params.optimizeIndexBuffers = false;
 		params.storage = Nz::DataStorage_Software;
 		//params.vertexDeclaration = Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ);
@@ -38,9 +43,34 @@ namespace ewn
 
 				std::string meshPath = std::get<std::string>(result.GetValue(1, i));
 
-				collisionInfo.collisionMesh = Nz::Mesh::New();
-				if (!collisionInfo.collisionMesh->LoadFromFile("Assets/" + meshPath, params))
+				Nz::Mesh mesh;
+				if (!mesh.LoadFromFile("Assets/" + meshPath, params))
 					throw std::runtime_error("Failed to load " + meshPath);
+
+				std::size_t subMeshCount = mesh.GetSubMeshCount();
+				if (subMeshCount > 1)
+				{
+					// Multiple submeshes, build a compound collider
+
+					std::vector<Nz::Collider3DRef> colliders;
+					for (std::size_t i = 0; i < subMeshCount; ++i)
+					{
+						Nz::VertexMapper vertexMapper(mesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
+						Nz::SparsePtr<Nz::Vector3f> vertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
+
+						colliders.emplace_back(Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount()));
+					}
+
+					collisionInfo.collider = Nz::CompoundCollider3D::New(std::move(colliders));
+				}
+				else
+				{
+					// One submesh, build one convex collider
+					Nz::VertexMapper vertexMapper(mesh.GetSubMesh(0), Nz::BufferAccess_ReadOnly);
+					Nz::SparsePtr<Nz::Vector3f> vertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
+
+					collisionInfo.collider = Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount());
+				}
 
 				collisionInfo.isLoaded = true;
 				meshLoaded++;

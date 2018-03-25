@@ -43,7 +43,7 @@ namespace ewn
 			inline const std::string& GetName() const;
 			inline std::size_t GetPeerId() const;
 
-			const Ndk::EntityHandle& InstantiateBot();
+			const Ndk::EntityHandle& InstantiateBot(std::size_t spaceshipHullId);
 
 			inline bool IsAuthenticated() const;
 

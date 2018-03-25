@@ -549,8 +549,9 @@ namespace ewn
 
 			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
 			std::string code = std::get<std::string>(result.GetValue(1));
+			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
 
-			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, ply, spaceshipCode = std::move(code)](DatabaseResult& result)
+			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, ply, spaceshipHullId, spaceshipCode = std::move(code)](DatabaseResult& result)
 			{
 				if (!result)
 					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
@@ -580,7 +581,7 @@ namespace ewn
 					return;
 				}
 
-				const Ndk::EntityHandle& playerBot = ply->InstantiateBot();
+				const Ndk::EntityHandle& playerBot = ply->InstantiateBot(spaceshipHullId);
 				ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
 				if (!botScript.Initialize(this, moduleIds))
 				{
