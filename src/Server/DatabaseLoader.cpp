@@ -41,6 +41,8 @@ namespace ewn
 		for (std::size_t storeId : m_sortedStore)
 		{
 			StoreData& data = m_stores[storeId];
+
+			std::cout << "Loading " << data.storeName << "..." << std::endl;
 			if (!data.store->FillStoreFromDatabase(app, data.pendingResult))
 			{
 				std::cerr << "Failed to fill " << data.storeName << " store" << std::endl;
