@@ -8,7 +8,6 @@
 #include <Nazara/Lua/LuaInstance.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <NDK/LuaAPI.hpp>
-#include <Server/ModuleStore.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/OwnerComponent.hpp>
@@ -16,6 +15,7 @@
 #include <Server/Modules/NavigationModule.hpp>
 #include <Server/Modules/RadarModule.hpp>
 #include <Server/Modules/WeaponModule.hpp>
+#include <Server/Store/ModuleStore.hpp>
 #include <iostream>
 
 namespace ewn

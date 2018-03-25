@@ -7,9 +7,8 @@
 #ifndef EREWHON_SERVER_SPACESHIPHULLSTORE_HPP
 #define EREWHON_SERVER_SPACESHIPHULLSTORE_HPP
 
-#include <Nazara/Utility/Mesh.hpp>
+#include <Server/DatabaseStore.hpp>
 #include <NDK/Entity.hpp>
-#include <json/json.hpp>
 #include <string>
 #include <vector>
 
@@ -18,22 +17,18 @@ namespace ewn
 	class Database;
 	class DatabaseResult;
 
-	class SpaceshipHullStore
+	class SpaceshipHullStore final : public DatabaseStore
 	{
 		public:
 			inline SpaceshipHullStore();
 			~SpaceshipHullStore() = default;
 
-			inline bool IsLoaded() const;
-
-			void LoadFromDatabase(Database& database, std::function<void(bool succeeded)> callback = nullptr);
-
 		private:
-			bool HandleDatabaseResult(DatabaseResult& result);
+			bool FillStore(ServerApplication* app, DatabaseResult& result) override;
 
 			struct HullInfo 
 			{
-				Nz::MeshRef collisionMesh;
+				std::size_t collisionMeshId;
 				std::string name;
 				std::string description;
 				bool doesExist = false;
@@ -45,6 +40,6 @@ namespace ewn
 	};
 }
 
-#include <Server/SpaceshipHullStore.inl>
+#include <Server/Store/SpaceshipHullStore.inl>
 
 #endif // EREWHON_SERVER_SPACESHIPHULLSTORE_HPP

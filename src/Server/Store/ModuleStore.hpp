@@ -7,6 +7,7 @@
 #ifndef EREWHON_SERVER_MODULESTORE_HPP
 #define EREWHON_SERVER_MODULESTORE_HPP
 
+#include <Server/DatabaseStore.hpp>
 #include <NDK/Entity.hpp>
 #include <json/json.hpp>
 #include <any>
@@ -21,7 +22,7 @@ namespace ewn
 	class SpaceshipCore;
 	class SpaceshipModule;
 
-	class ModuleStore
+	class ModuleStore final : public DatabaseStore
 	{
 		public:
 			inline ModuleStore();
@@ -29,16 +30,12 @@ namespace ewn
 
 			std::shared_ptr<SpaceshipModule> BuildModule(std::size_t moduleId, SpaceshipCore* core, const Ndk::EntityHandle& spaceship) const;
 
-			inline bool IsLoaded() const;
-
-			void LoadFromDatabase(Database& database, std::function<void(bool succeeded)> callback = nullptr);
-
 		private:
 			using DecodeClassInfoFunction = std::function<std::any(const nlohmann::json& classInfo)>;
 			using FactoryFunction = std::function<std::shared_ptr<SpaceshipModule>(SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& classInfo)>;
 
 			void BuildFactory();
-			bool HandleLoadModules(DatabaseResult& result);
+			bool FillStore(ServerApplication* app, DatabaseResult& result) override;
 
 			inline void RegisterModule(std::string className, DecodeClassInfoFunction decodeFunc, FactoryFunction factoryFunc);
 
@@ -60,10 +57,9 @@ namespace ewn
 
 			std::unordered_map<std::string, FactoryData> m_factory;
 			std::vector<ModuleInfo> m_moduleInfos;
-			bool m_isLoaded;
 	};
 }
 
-#include <Server/ModuleStore.inl>
+#include <Server/Store/ModuleStore.inl>
 
 #endif // EREWHON_SERVER_MODULESTORE_HPP

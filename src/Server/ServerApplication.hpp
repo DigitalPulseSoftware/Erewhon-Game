@@ -12,10 +12,11 @@
 #include <Server/Arena.hpp>
 #include <Server/GameWorker.hpp>
 #include <Server/GlobalDatabase.hpp>
-#include <Server/ModuleStore.hpp>
 #include <Server/ServerCommandStore.hpp>
 #include <Server/ServerChatCommandStore.hpp>
-#include <Server/SpaceshipHullStore.hpp>
+#include <Server/Store/CollisionMeshStore.hpp>
+#include <Server/Store/ModuleStore.hpp>
+#include <Server/Store/SpaceshipHullStore.hpp>
 #include <optional>
 #include <vector>
 
@@ -37,8 +38,12 @@ namespace ewn
 			inline void DispatchWork(WorkerFunction workFunc);
 
 			inline Database& GetGlobalDatabase();
+			inline CollisionMeshStore& GetCollisionMeshStore();
+			inline const CollisionMeshStore& GetCollisionMeshStore() const;
 			inline ModuleStore& GetModuleStore();
 			inline const ModuleStore& GetModuleStore() const;
+			inline SpaceshipHullStore& GetSpaceshipHullStore();
+			inline const SpaceshipHullStore& GetSpaceshipHullStore() const;
 
 			bool LoadDatabase();
 
@@ -76,6 +81,7 @@ namespace ewn
 			Nz::MemoryPool m_playerPool;
 			Arena m_arena;
 			CallbackQueue m_callbackQueue;
+			CollisionMeshStore m_collisionMeshStore;
 			ModuleStore m_moduleStore;
 			ServerChatCommandStore m_chatCommandStore;
 			SpaceshipHullStore m_spaceshipHullStore;

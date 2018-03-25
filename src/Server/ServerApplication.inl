@@ -17,6 +17,16 @@ namespace ewn
 		return *m_globalDatabase;
 	}
 
+	inline CollisionMeshStore& ServerApplication::GetCollisionMeshStore()
+	{
+		return m_collisionMeshStore;
+	}
+
+	inline const CollisionMeshStore& ServerApplication::GetCollisionMeshStore() const
+	{
+		return m_collisionMeshStore;
+	}
+
 	inline ModuleStore& ServerApplication::GetModuleStore()
 	{
 		return m_moduleStore;
@@ -25,6 +35,16 @@ namespace ewn
 	inline const ModuleStore& ServerApplication::GetModuleStore() const
 	{
 		return m_moduleStore;
+	}
+
+	inline SpaceshipHullStore& ServerApplication::GetSpaceshipHullStore()
+	{
+		return m_spaceshipHullStore;
+	}
+
+	inline const SpaceshipHullStore& ServerApplication::GetSpaceshipHullStore() const
+	{
+		return m_spaceshipHullStore;
 	}
 
 	inline void ServerApplication::RegisterCallback(ServerCallback callback)

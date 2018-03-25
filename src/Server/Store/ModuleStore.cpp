@@ -2,7 +2,7 @@
 // This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Server/ModuleStore.hpp>
+#include <Server/Store/ModuleStore.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Database/DatabaseResult.hpp>
 #include <Server/Modules/EngineModule.hpp>
@@ -47,16 +47,6 @@ namespace ewn
 		return modulePtr;
 	}
 
-	void ModuleStore::LoadFromDatabase(Database& database, std::function<void(bool succeeded)> callback)
-	{
-		database.ExecuteQuery("LoadModules", {}, [this, cb = std::move(callback)](DatabaseResult& result)
-		{
-			bool succeeded = HandleLoadModules(result);
-			if (cb)
-				cb(succeeded);
-		});
-	}
-
 	void ModuleStore::BuildFactory()
 	{
 		struct RadarInfo
@@ -98,13 +88,9 @@ namespace ewn
 		});
 	}
 
-	bool ModuleStore::HandleLoadModules(DatabaseResult& result)
+	bool ModuleStore::FillStore(ServerApplication* app, DatabaseResult& result)
 	{
-		if (!result.IsValid())
-		{
-			std::cerr << "Load modules query failed: " << result.GetLastErrorMessage() << std::endl;
-			return false;
-		}
+		assert(result.IsValid());
 
 		std::size_t moduleCount = result.GetRowCount();
 		Nz::Int32 highestModuleId = std::get<Nz::Int32>(result.GetValue(0, moduleCount - 1));
@@ -145,7 +131,6 @@ namespace ewn
 
 		std::cout << "Loaded " << moduleLoaded << " modules (" << (moduleCount - moduleLoaded) << " errored)" << std::endl;
 
-		m_isLoaded = true;
 		return true;
 	}
 }

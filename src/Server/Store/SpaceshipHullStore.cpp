@@ -2,30 +2,18 @@
 // This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Server/SpaceshipHullStore.hpp>
+#include <Server/Store/SpaceshipHullStore.hpp>
+#include <Server/ServerApplication.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Database/DatabaseResult.hpp>
+#include <Server/Store/CollisionMeshStore.hpp>
 #include <iostream>
 
 namespace ewn
 {
-	void SpaceshipHullStore::LoadFromDatabase(Database& database, std::function<void(bool succeeded)> callback)
+	bool SpaceshipHullStore::FillStore(ServerApplication* app, DatabaseResult& result)
 	{
-		database.ExecuteQuery("LoadSpaceshipHulls", {}, [this, cb = std::move(callback)](DatabaseResult& result)
-		{
-			bool succeeded = HandleDatabaseResult(result);
-			if (cb)
-				cb(succeeded);
-		});
-	}
-
-	bool SpaceshipHullStore::HandleDatabaseResult(DatabaseResult& result)
-	{
-		if (!result.IsValid())
-		{
-			std::cerr << "Load spaceship hull query failed: " << result.GetLastErrorMessage() << std::endl;
-			return false;
-		}
+		assert(result.IsValid());
 
 		std::size_t hullCount = result.GetRowCount();
 		Nz::Int32 highestModuleId = std::get<Nz::Int32>(result.GetValue(0, hullCount - 1));
@@ -33,11 +21,8 @@ namespace ewn
 		m_hullInfos.clear();
 		m_hullInfos.resize(highestModuleId + 1);
 
-		Nz::MeshParams params;
-		params.animated = false;
-		params.center = true;
-		params.optimizeIndexBuffers = false;
-		params.storage = Nz::DataStorage_Software;
+		CollisionMeshStore& collisionMeshStore = app->GetCollisionMeshStore();
+		assert(collisionMeshStore.IsLoaded());
 
 		std::size_t hullLoaded = 0;
 		for (std::size_t i = 0; i < hullCount; ++i)
@@ -51,12 +36,10 @@ namespace ewn
 
 				hullInfo.name = std::get<std::string>(result.GetValue(1, i));
 				hullInfo.description = std::get<std::string>(result.GetValue(2, i));
+				hullInfo.collisionMeshId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(3, i)));
 
-				std::string meshPath = std::get<std::string>(result.GetValue(3, i));
-
-				hullInfo.collisionMesh = Nz::Mesh::New();
-				if (!hullInfo.collisionMesh->LoadFromFile("Assets/" + meshPath, params))
-					throw std::runtime_error("Failed to load " + meshPath);
+				if (!collisionMeshStore.IsEntryLoaded(hullInfo.collisionMeshId))
+					throw std::runtime_error("Hull depends on collision mesh #" + std::to_string(hullInfo.collisionMeshId) + " which is not loaded");
 
 				hullInfo.isLoaded = true;
 				hullLoaded++;
@@ -69,7 +52,6 @@ namespace ewn
 
 		std::cout << "Loaded " << hullLoaded << " spaceship hulls (" << (hullCount - hullLoaded) << " errored)" << std::endl;
 
-		m_isLoaded = true;
 		return true;
 	}
 }

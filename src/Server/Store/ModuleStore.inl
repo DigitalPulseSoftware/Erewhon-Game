@@ -2,20 +2,15 @@
 // This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Server/ModuleStore.hpp>
+#include <Server/Store/ModuleStore.hpp>
 #include <cassert>
 
 namespace ewn
 {
 	inline ModuleStore::ModuleStore() :
-	m_isLoaded(false)
+	DatabaseStore("LoadModules")
 	{
 		BuildFactory();
-	}
-
-	inline bool ModuleStore::IsLoaded() const
-	{
-		return m_isLoaded;
 	}
 
 	inline void ModuleStore::RegisterModule(std::string className, DecodeClassInfoFunction decodeFunc, FactoryFunction factoryFunc)

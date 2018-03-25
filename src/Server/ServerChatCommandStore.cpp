@@ -77,7 +77,7 @@ namespace ewn
 			return false;
 
 		ModuleStore& moduleStore = app->GetModuleStore();
-		moduleStore.LoadFromDatabase(app->GetGlobalDatabase(), [ply = player->CreateHandle()](bool updateSucceeded)
+		moduleStore.LoadFromDatabase(app, app->GetGlobalDatabase(), [ply = player->CreateHandle()](bool updateSucceeded)
 		{
 			if (updateSucceeded)
 				ply->PrintMessage("Module reloaded");

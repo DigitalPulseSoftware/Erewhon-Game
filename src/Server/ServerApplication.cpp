@@ -6,6 +6,7 @@
 #include <Nazara/Core/MemoryHelper.hpp>
 #include <Shared/SecureRandomGenerator.hpp>
 #include <Server/Components/ScriptComponent.hpp>
+#include <Server/DatabaseLoader.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Player.hpp>
 #include <argon2/argon2.h>
@@ -56,21 +57,12 @@ namespace ewn
 	{
 		Database& globalDatabase = GetGlobalDatabase();
 
-		// Submit some work
-		m_moduleStore.LoadFromDatabase(globalDatabase);
-		m_spaceshipHullStore.LoadFromDatabase(globalDatabase);
+		DatabaseLoader loader;
+		loader.RegisterStore("CollisionMeshes", &m_collisionMeshStore, {});
+		loader.RegisterStore("Modules", &m_moduleStore, {});
+		loader.RegisterStore("SpaceshipHulls", &m_spaceshipHullStore, {"CollisionMeshes"});
 
-		// Wait until work is done
-		globalDatabase.WaitForCompletion();
-
-		// Treat results
-		if (!m_moduleStore.IsLoaded())
-			return false;
-
-		if (!m_spaceshipHullStore.IsLoaded())
-			return false;
-
-		return true;
+		return loader.LoadFromDatabase(this, globalDatabase);
 	}
 
 	bool ServerApplication::Run()
