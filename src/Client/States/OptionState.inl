@@ -6,8 +6,9 @@
 
 namespace ewn
 {
-	inline OptionState::OptionState(StateData& stateData) :
-	m_stateData(stateData)
+	inline OptionState::OptionState(StateData& stateData, std::shared_ptr<Ndk::State> previousState) :
+	AbstractState(stateData),
+	m_previousState(std::move(previousState))
 	{
 	}
 }

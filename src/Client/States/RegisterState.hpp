@@ -7,17 +7,17 @@
 #ifndef EREWHON_CLIENT_STATES_REGISTERSTATE_HPP
 #define EREWHON_CLIENT_STATES_REGISTERSTATE_HPP
 
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
 #include <future>
 
 namespace ewn
 {
-	class RegisterState final : public Ndk::State
+	class RegisterState final : public AbstractState
 	{
 		public:
-			inline RegisterState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~RegisterState() = default;
 
 		private:
@@ -43,7 +43,6 @@ namespace ewn
 			NazaraSlot(ServerConnection, OnRegisterSuccess, m_onRegisterSuccess);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
-			StateData& m_stateData;
 			Ndk::ButtonWidget* m_registerButton;
 			Ndk::ButtonWidget* m_cancelButton;
 			Ndk::LabelWidget* m_emailLabel;

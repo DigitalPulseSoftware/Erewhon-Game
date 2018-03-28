@@ -7,16 +7,20 @@
 #include <Client/ClientApplication.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/DisconnectionState.hpp>
+#include <Client/States/OptionState.hpp>
 #include <iostream>
 
 namespace ewn
 {
 	void MenuState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_isDisconnecting = false;
 		m_isLeavingMenu = false;
+		m_isUsingOption = false;
 
-		m_disconnectButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
 		m_disconnectButton->UpdateText(Nz::SimpleTextDrawer::Draw("Disconnect", 24));
 		m_disconnectButton->ResizeToContent();
 		m_disconnectButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -24,7 +28,7 @@ namespace ewn
 			OnDisconnectionPressed();
 		});
 
-		m_optionsButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_optionsButton = CreateWidget<Ndk::ButtonWidget>();
 		m_optionsButton->UpdateText(Nz::SimpleTextDrawer::Draw("Options", 24));
 		m_optionsButton->ResizeToContent();
 		m_optionsButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -39,32 +43,30 @@ namespace ewn
 		m_optionsButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y + buttonPadding });
 
 		LayoutWidgets();
-		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &MenuState::OnKeyPressed);
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-	}
-
-	void MenuState::Leave(Ndk::StateMachine& /*fsm*/)
-	{
-		m_disconnectButton->Destroy();
-		m_optionsButton->Destroy();
+		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &MenuState::OnKeyPressed);
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 	}
 
 	bool MenuState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
+		StateData& stateData = GetStateData();
+
 		if (m_isDisconnecting)
 		{
-			fsm.ResetState(std::make_shared<BackgroundState>(m_stateData));
-			fsm.PushState(std::make_shared<DisconnectionState>(m_stateData));
+			fsm.ResetState(std::make_shared<BackgroundState>(stateData));
+			fsm.PushState(std::make_shared<DisconnectionState>(stateData));
 		}
 		else if (m_isLeavingMenu)
 			fsm.PopState();
+		else if (m_isUsingOption)
+			fsm.ChangeState(std::make_shared<OptionState>(stateData, std::make_shared<MenuState>(stateData)));
 
 		return true;
 	}
 
 	void MenuState::LayoutWidgets()
 	{
-		Nz::Vector2f center = m_stateData.canvas->GetSize() / 2.f;
+		Nz::Vector2f center = GetStateData().canvas->GetSize() / 2.f;
 
 		constexpr float padding = 10.f;
 
@@ -105,6 +107,6 @@ namespace ewn
 
 	void MenuState::OnOptionsPressed()
 	{
-		std::cout << "Option menu is not implemented yet" << std::endl;
+		m_isUsingOption = true;
 	}
 }

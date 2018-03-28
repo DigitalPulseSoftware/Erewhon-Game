@@ -20,59 +20,61 @@ namespace ewn
 {
 	void RegisterState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_isRegistering = false;
 		m_finished = false;
 
-		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
 
-		m_titleLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_titleLabel = CreateWidget<Ndk::LabelWidget>();
 		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Register form:", 24));
 		m_titleLabel->ResizeToContent();
 
-		m_loginLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_loginLabel = CreateWidget<Ndk::LabelWidget>();
 		m_loginLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login: ", 24));
 		m_loginLabel->ResizeToContent();
 
-		m_loginArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_loginArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_loginArea->EnableBackground(true);
 		m_loginArea->SetBackgroundColor(Nz::Color::White);
 		m_loginArea->SetSize({ 300.f, 36.f });
 		m_loginArea->SetTextColor(Nz::Color::Black);
 
-		m_emailLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_emailLabel = CreateWidget<Ndk::LabelWidget>();
 		m_emailLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Email: ", 24));
 		m_emailLabel->ResizeToContent();
 
-		m_emailArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_emailArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_emailArea->EnableBackground(true);
 		m_emailArea->SetBackgroundColor(Nz::Color::White);
 		m_emailArea->SetSize({ 300.f, 36.f });
 		m_emailArea->SetTextColor(Nz::Color::Black);
 
-		m_passwordLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_passwordLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password: ", 24));
 		m_passwordLabel->ResizeToContent();
 
-		m_passwordArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_passwordArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordArea->EnableBackground(true);
 		m_passwordArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordArea->SetEchoMode(Ndk::EchoMode_Password);
 		m_passwordArea->SetSize({ 300.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
-		m_passwordCheckLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_passwordCheckLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordCheckLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password check: ", 24));
 		m_passwordCheckLabel->ResizeToContent();
 
-		m_passwordCheckArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_passwordCheckArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordCheckArea->EnableBackground(true);
 		m_passwordCheckArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordCheckArea->SetEchoMode(Ndk::EchoMode_Password);
 		m_passwordCheckArea->SetSize({ 300.f, 36.f });
 		m_passwordCheckArea->SetTextColor(Nz::Color::Black);
 
-		m_registerButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_registerButton = CreateWidget<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
 		m_registerButton->ResizeToContent();
 		m_registerButton->SetSize(m_registerButton->GetSize() + Nz::Vector2f(10.f));
@@ -81,7 +83,7 @@ namespace ewn
 			OnRegisterPressed();
 		});
 
-		m_cancelButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_cancelButton = CreateWidget<Ndk::ButtonWidget>();
 		m_cancelButton->UpdateText(Nz::SimpleTextDrawer::Draw("Cancel", 24));
 		m_cancelButton->ResizeToContent();
 		m_cancelButton->SetSize(m_cancelButton->GetSize() + Nz::Vector2f(10.f));
@@ -98,13 +100,13 @@ namespace ewn
 
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
 		// Slots
-		m_onConnectedSlot.Connect(m_stateData.server->OnConnected, this, &RegisterState::OnConnected);
-		m_onDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &RegisterState::OnDisconnected);
+		m_onConnectedSlot.Connect(stateData.server->OnConnected, this, &RegisterState::OnConnected);
+		m_onDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &RegisterState::OnDisconnected);
 
-		m_onRegisterFailureSlot.Connect(m_stateData.server->OnRegisterFailure, [this](ServerConnection* connection, const Packets::RegisterFailure& registerFailure)
+		m_onRegisterFailureSlot.Connect(stateData.server->OnRegisterFailure, [this](ServerConnection* connection, const Packets::RegisterFailure& registerFailure)
 		{
 			std::string reason;
 			switch (registerFailure.reason)
@@ -130,7 +132,7 @@ namespace ewn
 			m_isRegistering = false;
 		});
 
-		m_onRegisterSuccess.Connect(m_stateData.server->OnRegisterSuccess, [this](ServerConnection* connection, const Packets::RegisterSuccess&)
+		m_onRegisterSuccess.Connect(stateData.server->OnRegisterSuccess, [this](ServerConnection* connection, const Packets::RegisterSuccess&)
 		{
 			UpdateStatus("Registration succeeded", Nz::Color::Green);
 
@@ -139,20 +141,10 @@ namespace ewn
 		});
 	}
 
-	void RegisterState::Leave(Ndk::StateMachine& /*fsm*/)
+	void RegisterState::Leave(Ndk::StateMachine& fsm)
 	{
-		m_cancelButton->Destroy();
-		m_loginLabel->Destroy();
-		m_loginArea->Destroy();
-		m_emailLabel->Destroy();
-		m_emailArea->Destroy();
-		m_passwordLabel->Destroy();
-		m_passwordArea->Destroy();
-		m_passwordCheckLabel->Destroy();
-		m_passwordCheckArea->Destroy();
-		m_registerButton->Destroy();
-		m_statusLabel->Destroy();
-		m_titleLabel->Destroy();
+		AbstractState::Leave(fsm);
+
 		m_onConnectedSlot.Disconnect();
 		m_onDisconnectedSlot.Disconnect();
 		m_onRegisterFailureSlot.Disconnect();
@@ -162,18 +154,20 @@ namespace ewn
 
 	bool RegisterState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
+		StateData& stateData = GetStateData();
+
 		if (m_finished)
 		{
 			m_waitTime -= elapsedTime;
 			if (m_waitTime <= 0.f)
-				fsm.ChangeState(std::make_shared<LoginState>(m_stateData));
+				fsm.ChangeState(std::make_shared<LoginState>(stateData));
 		}
 		else if (m_isRegistering)
 		{
 			// Computing password, wait for it
 			if (m_passwordFuture.valid() && m_passwordFuture.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
 			{
-				if (m_stateData.server->IsConnected())
+				if (stateData.server->IsConnected())
 					SendRegisterPacket();
 			}
 		}
@@ -200,6 +194,8 @@ namespace ewn
 
 	void RegisterState::OnRegisterPressed()
 	{
+		StateData& stateData = GetStateData();
+
 		if (m_isRegistering)
 			return;
 
@@ -264,10 +260,10 @@ namespace ewn
 
 		ComputePassword();
 
-		if (!m_stateData.server->IsConnected())
+		if (!stateData.server->IsConnected())
 		{
 			// Connect to server
-			if (m_stateData.server->Connect(m_stateData.app->GetConfig().GetStringOption("Server.Address")))
+			if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
 			{
 				UpdateStatus("Connecting...");
 				m_isRegistering = true;
@@ -284,7 +280,7 @@ namespace ewn
 
 	void RegisterState::LayoutWidgets()
 	{
-		Nz::Vector2f center = m_stateData.canvas->GetSize() / 2.f;
+		Nz::Vector2f center = GetStateData().canvas->GetSize() / 2.f;
 
 		constexpr float padding = 10.f;
 
@@ -356,7 +352,7 @@ namespace ewn
 	void RegisterState::ComputePassword()
 	{
 		// Salt password before hashing it
-		const ConfigFile& config = m_stateData.app->GetConfig();
+		const ConfigFile& config = GetStateData().app->GetConfig();
 
 		int iCost = config.GetIntegerOption<int>("Security.Argon2.IterationCost");
 		int mCost = config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
@@ -392,7 +388,7 @@ namespace ewn
 
 		registerPacket.passwordHash = hashedPassword;
 
-		m_stateData.server->SendPacket(registerPacket);
+		GetStateData().server->SendPacket(registerPacket);
 	}
 
 	void RegisterState::UpdateStatus(const Nz::String& status, const Nz::Color& color)

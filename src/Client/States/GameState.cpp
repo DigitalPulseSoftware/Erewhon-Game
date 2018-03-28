@@ -38,29 +38,33 @@ namespace ewn
 {
 	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_isEnteringMenu = false;
 
 		if (Nz::Texture* background = Nz::TextureLibrary::Get("Background"); background && background->IsValid())
-			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::SkyboxBackground::New(background));
+			stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::SkyboxBackground::New(background));
 		else
-			m_stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
+			stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
 
 		m_controlledEntity = std::numeric_limits<decltype(m_controlledEntity)>::max();
-		m_isDisconnected = !m_stateData.server->IsConnected();
+		m_isDisconnected = !stateData.server->IsConnected();
 
-		m_onControlEntitySlot.Connect(m_stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
-		m_onKeyPressedSlot.Connect(m_stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
+		m_onControlEntitySlot.Connect(stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
+		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
 
-		m_chatbox.emplace(m_stateData.server, *m_stateData.window, m_stateData.canvas);
-		m_matchEntities.emplace(m_stateData.app, m_stateData.server, m_stateData.world3D);
+		m_chatbox.emplace(stateData.server, *stateData.window, stateData.canvas);
+		m_matchEntities.emplace(stateData.app, stateData.server, stateData.world3D);
 		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &GameState::OnEntityCreated);
 		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
 
-		m_stateData.server->SendPacket(Packets::JoinArena());
+		stateData.server->SendPacket(Packets::JoinArena());
 	}
 
-	void GameState::Leave(Ndk::StateMachine& /*fsm*/)
+	void GameState::Leave(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Leave(fsm);
+
 		m_onControlEntitySlot.Disconnect();
 		m_onKeyPressedSlot.Disconnect();
 
@@ -70,17 +74,19 @@ namespace ewn
 
 	bool GameState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
-		if (!m_stateData.server->IsConnected())
+		StateData& stateData = GetStateData();
+
+		if (!stateData.server->IsConnected())
 		{
-			fsm.ResetState(std::make_shared<BackgroundState>(m_stateData));
-			fsm.PushState(std::make_shared<ConnectionLostState>(m_stateData));
+			fsm.ResetState(std::make_shared<BackgroundState>(stateData));
+			fsm.PushState(std::make_shared<ConnectionLostState>(stateData));
 			return false;
 		}
 
 		if (m_isEnteringMenu)
 		{
 			if (fsm.IsTopState(this))
-				fsm.PushState(std::make_shared<MenuState>(m_stateData));
+				fsm.PushState(std::make_shared<MenuState>(stateData));
 
 			m_isEnteringMenu = false;
 		}
@@ -89,7 +95,7 @@ namespace ewn
 		if (m_spaceshipController)
 			m_spaceshipController->Update(elapsedTime);
 
-		auto& cameraNode = m_stateData.camera3D->GetComponent<Ndk::NodeComponent>();
+		auto& cameraNode = stateData.camera3D->GetComponent<Ndk::NodeComponent>();
 		Nz::Quaternionf camRot = cameraNode.GetRotation();
 
 		for (std::size_t i = 0; i < m_matchEntities->GetServerEntityCount(); ++i)
@@ -116,6 +122,8 @@ namespace ewn
 
 	void GameState::ControlEntity(std::size_t entityId)
 	{
+		StateData& stateData = GetStateData();
+
 		if (m_controlledEntity != entityId && m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
 			auto& oldData = m_matchEntities->GetServerEntity(m_controlledEntity);
@@ -133,7 +141,7 @@ namespace ewn
 			if (data.textEntity)
 				data.textEntity->Disable();
 
-			m_spaceshipController.emplace(m_stateData.app, m_stateData.server, *m_stateData.window, *m_stateData.world2D, *m_chatbox, *m_matchEntities, m_stateData.camera3D, data.entity);
+			m_spaceshipController.emplace(stateData.app, stateData.server, *stateData.window, *stateData.world2D, *m_chatbox, *m_matchEntities, stateData.camera3D, data.entity);
 		}
 
 		m_controlledEntity = entityId;

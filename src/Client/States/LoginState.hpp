@@ -7,17 +7,17 @@
 #ifndef EREWHON_CLIENT_STATES_LOGINSTATE_HPP
 #define EREWHON_CLIENT_STATES_LOGINSTATE_HPP
 
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
 #include <future>
 
 namespace ewn
 {
-	class LoginState final : public Ndk::State
+	class LoginState final : public AbstractState
 	{
 		public:
-			inline LoginState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~LoginState() = default;
 
 		private:
@@ -45,7 +45,6 @@ namespace ewn
 			NazaraSlot(ServerConnection, OnLoginSuccess, m_onLoginSuccess);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
-			StateData& m_stateData;
 			Ndk::ButtonWidget* m_connectionButton;
 			Ndk::ButtonWidget* m_optionButton;
 			Ndk::ButtonWidget* m_quitButton;

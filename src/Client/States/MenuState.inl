@@ -6,8 +6,4 @@
 
 namespace ewn
 {
-	inline MenuState::MenuState(StateData& stateData) :
-	m_stateData(stateData)
-	{
-	}
 }

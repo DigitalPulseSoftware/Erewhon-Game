@@ -13,20 +13,22 @@ namespace ewn
 {
 	void OptionState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_isReturningBack = false;
 
-		m_fullscreenCheckbox = m_stateData.canvas->Add<Ndk::CheckboxWidget>();
+		m_fullscreenCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_fullscreenCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Fullscreen mode (need restart)", 24));
 		m_fullscreenCheckbox->ResizeToContent();
 
-		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
 
-		m_vsyncCheckbox = m_stateData.canvas->Add<Ndk::CheckboxWidget>();
+		m_vsyncCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_vsyncCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Vertical sync", 24));
 		m_vsyncCheckbox->ResizeToContent();
 
-		m_applyButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_applyButton = CreateWidget<Ndk::ButtonWidget>();
 		m_applyButton->UpdateText(Nz::SimpleTextDrawer::Draw("Apply", 24));
 		m_applyButton->ResizeToContent();
 		m_applyButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -34,7 +36,7 @@ namespace ewn
 			OnApplyPressed();
 		});
 
-		m_backButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_backButton = CreateWidget<Ndk::ButtonWidget>();
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
 		m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -49,31 +51,24 @@ namespace ewn
 		m_backButton->SetSize({ regConnWidth, m_backButton->GetSize().y + buttonPadding });
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
 		LoadOptions();
-	}
-
-	void OptionState::Leave(Ndk::StateMachine& /*fsm*/)
-	{
-		m_applyButton->Destroy();
-		m_backButton->Destroy();
-		m_fullscreenCheckbox->Destroy();
-		m_statusLabel->Destroy();
-		m_vsyncCheckbox->Destroy();
 	}
 
 	bool OptionState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		if (m_isReturningBack)
-			fsm.ChangeState(std::make_shared<LoginState>(m_stateData));
+			fsm.ChangeState(std::move(m_previousState));
 
 		return true;
 	}
 
 	void OptionState::LayoutWidgets()
 	{
-		Nz::Vector2f center = m_stateData.canvas->GetSize() / 2.f;
+		StateData& stateData = GetStateData();
+
+		Nz::Vector2f center = stateData.canvas->GetSize() / 2.f;
 
 		constexpr float padding = 10.f;
 
@@ -126,17 +121,20 @@ namespace ewn
 
 	void OptionState::ApplyOptions()
 	{
-		ConfigFile& configFile = m_stateData.app->GetConfig();
+		StateData& stateData = GetStateData();
+
+		ConfigFile& configFile = stateData.app->GetConfig();
 
 		configFile.SetBoolOption("Options.Fullscreen", m_fullscreenCheckbox->GetState() == Ndk::CheckboxState_Checked);
 		configFile.SetBoolOption("Options.VerticalSync", m_vsyncCheckbox->GetState() == Ndk::CheckboxState_Checked);
 
-		m_stateData.window->EnableVerticalSync(m_vsyncCheckbox->GetState() == Ndk::CheckboxState_Checked);
+		stateData.window->EnableVerticalSync(m_vsyncCheckbox->GetState() == Ndk::CheckboxState_Checked);
 	}
 
 	void OptionState::LoadOptions()
 	{
-		const ConfigFile& configFile = m_stateData.app->GetConfig();
+		StateData& stateData = GetStateData();
+		const ConfigFile& configFile = stateData.app->GetConfig();
 
 		m_fullscreenCheckbox->SetState((configFile.GetBoolOption("Options.Fullscreen")) ? Ndk::CheckboxState_Checked : Ndk::CheckboxState_Unchecked);
 		m_vsyncCheckbox->SetState((configFile.GetBoolOption("Options.VerticalSync")) ? Ndk::CheckboxState_Checked : Ndk::CheckboxState_Unchecked);
@@ -144,6 +142,8 @@ namespace ewn
 
 	void OptionState::SaveOptions()
 	{
+		StateData& stateData = GetStateData();
+
 		Nz::File optionFile("coptions.lua", Nz::OpenMode_Truncate | Nz::OpenMode_WriteOnly);
 		if (!optionFile.IsOpen())
 		{
@@ -151,7 +151,7 @@ namespace ewn
 			return;
 		}
 
-		const ConfigFile& configFile = m_stateData.app->GetConfig();
+		const ConfigFile& configFile = stateData.app->GetConfig();
 
 		std::array<std::string, 2> boolOptions =
 		{

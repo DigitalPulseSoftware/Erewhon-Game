@@ -14,34 +14,38 @@ namespace ewn
 {
 	void DisconnectionState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_accumulator = 0.f;
 		m_dotCounter = 0;
 		m_disconnected = false;
 		m_statusSprite = Nz::TextSprite::New();
 		m_timeout = 5.f;
 
-		m_statusText = m_stateData.world2D->CreateEntity();
+		m_statusText = stateData.world2D->CreateEntity();
 		m_statusText->AddComponent<Ndk::NodeComponent>();
 
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
 		graphicsComponent.Attach(m_statusSprite);
 
-		if (m_stateData.server->IsConnected())
+		if (stateData.server->IsConnected())
 		{
 			UpdateStatus("Disconnecting");
 
-			m_onServerDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &DisconnectionState::OnServerDisconnected);
+			m_onServerDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &DisconnectionState::OnServerDisconnected);
 
-			m_stateData.server->Disconnect();
+			stateData.server->Disconnect();
 		}
 		else
-			OnServerDisconnected(m_stateData.server, 0); //< Data is unused anyway
+			OnServerDisconnected(stateData.server, 0); //< Data is unused anyway
 
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
 	}
 
-	void DisconnectionState::Leave(Ndk::StateMachine& /*fsm*/)
+	void DisconnectionState::Leave(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Leave(fsm);
+
 		m_onServerDisconnectedSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
@@ -56,7 +60,7 @@ namespace ewn
 		{
 			constexpr float messageTime = 0.2f;
 			if (m_accumulator > messageTime)
-				m_stateData.app->Quit();
+				GetStateData().app->Quit();
 		}
 		else
 		{
@@ -80,7 +84,7 @@ namespace ewn
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
 
 		Nz::Boxf textBox = graphicsComponent.GetBoundingVolume().obb.localBox;
-		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
+		Nz::Vector2ui windowSize = GetStateData().window->GetSize();
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
 

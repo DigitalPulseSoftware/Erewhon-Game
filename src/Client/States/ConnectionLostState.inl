@@ -6,8 +6,4 @@
 
 namespace ewn
 {
-	inline ConnectionLostState::ConnectionLostState(StateData& stateData) :
-	m_stateData(stateData)
-	{
-	}
 }

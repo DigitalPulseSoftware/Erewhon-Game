@@ -21,43 +21,45 @@ namespace ewn
 {
 	void LoginState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_isLoggingIn = false;
 		m_loginSucceeded = false;
 		m_isRegistering = false;
 		m_isUsingOption = false;
 
-		m_statusLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
 
-		m_loginLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_loginLabel = CreateWidget<Ndk::LabelWidget>();
 		m_loginLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login: ", 24));
 		m_loginLabel->ResizeToContent();
 
-		m_loginArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_loginArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_loginArea->EnableBackground(true);
 		m_loginArea->SetBackgroundColor(Nz::Color::White);
 		m_loginArea->SetSize({ 200.f, 36.f });
 		m_loginArea->SetTextColor(Nz::Color::Black);
 
-		m_passwordLabel = m_stateData.canvas->Add<Ndk::LabelWidget>();
+		m_passwordLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password: ", 24));
 		m_passwordLabel->ResizeToContent();
 
-		m_passwordArea = m_stateData.canvas->Add<Ndk::TextAreaWidget>();
+		m_passwordArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordArea->EnableBackground(true);
 		m_passwordArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordArea->SetEchoMode(Ndk::EchoMode_Password);
 		m_passwordArea->SetSize({ 200.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
-		m_rememberCheckbox = m_stateData.canvas->Add<Ndk::CheckboxWidget>();
+		m_rememberCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_rememberCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Remember me", 24));
 		m_rememberCheckbox->ResizeToContent();
 
-		m_onConnectedSlot.Connect(m_stateData.server->OnConnected, this, &LoginState::OnConnected);
-		m_onDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
+		m_onConnectedSlot.Connect(stateData.server->OnConnected, this, &LoginState::OnConnected);
+		m_onDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
 
-		m_connectionButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_connectionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
 		m_connectionButton->ResizeToContent();
 		m_connectionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -65,7 +67,7 @@ namespace ewn
 			OnConnectionPressed();
 		});
 
-		m_optionButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_optionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_optionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Option", 24));
 		m_optionButton->ResizeToContent();
 		m_optionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -73,7 +75,7 @@ namespace ewn
 			OnOptionPressed();
 		});
 
-		m_quitButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_quitButton = CreateWidget<Ndk::ButtonWidget>();
 		m_quitButton->UpdateText(Nz::SimpleTextDrawer::Draw("Quit", 24));
 		m_quitButton->ResizeToContent();
 		m_quitButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -81,7 +83,7 @@ namespace ewn
 			OnQuitPressed();
 		});
 
-		m_registerButton = m_stateData.canvas->Add<Ndk::ButtonWidget>();
+		m_registerButton = CreateWidget<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
 		m_registerButton->ResizeToContent();
 		m_registerButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
@@ -97,7 +99,7 @@ namespace ewn
 		m_quitButton->SetSize({ maxButtonWidth, m_quitButton->GetSize().y + buttonPadding });
 		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y + buttonPadding });
 
-		m_onLoginFailureSlot.Connect(m_stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
+		m_onLoginFailureSlot.Connect(stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
 			std::string reason;
 			switch (loginFailure.reason)
@@ -123,7 +125,7 @@ namespace ewn
 			m_isLoggingIn = false;
 		});
 
-		m_onLoginSuccess.Connect(m_stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
+		m_onLoginSuccess.Connect(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
 		{
 			UpdateStatus("Login succeeded", Nz::Color::Green);
 
@@ -132,7 +134,7 @@ namespace ewn
 		});
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
 		// Fill with data from lastlogin.rememberme if present
 		Nz::File loginFile("lastlogin.rememberme");
@@ -147,18 +149,10 @@ namespace ewn
 		}
 	}
 
-	void LoginState::Leave(Ndk::StateMachine& /*fsm*/)
+	void LoginState::Leave(Ndk::StateMachine& fsm)
 	{
-		m_connectionButton->Destroy();
-		m_loginLabel->Destroy();
-		m_loginArea->Destroy();
-		m_optionButton->Destroy();
-		m_quitButton->Destroy();
-		m_passwordLabel->Destroy();
-		m_passwordArea->Destroy();
-		m_rememberCheckbox->Destroy();
-		m_registerButton->Destroy();
-		m_statusLabel->Destroy();
+		AbstractState::Leave(fsm);
+
 		m_onConnectedSlot.Disconnect();
 		m_onDisconnectedSlot.Disconnect();
 		m_onLoginFailureSlot.Disconnect();
@@ -168,22 +162,24 @@ namespace ewn
 
 	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
+		StateData& stateData = GetStateData();
+
 		if (m_loginSucceeded)
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.ChangeState(std::make_shared<TimeSyncState>(m_stateData));
+				fsm.ChangeState(std::make_shared<TimeSyncState>(stateData));
 		}
 		else if (m_isRegistering)
-			fsm.ChangeState(std::make_shared<RegisterState>(m_stateData));
+			fsm.ChangeState(std::make_shared<RegisterState>(stateData));
 		else if (m_isUsingOption)
-			fsm.ChangeState(std::make_shared<OptionState>(m_stateData));
+			fsm.ChangeState(std::make_shared<OptionState>(stateData, std::make_shared<LoginState>(stateData)));
 		else if (m_isLoggingIn)
 		{
 			// Computing password, wait for it
 			if (m_passwordFuture.valid() && m_passwordFuture.wait_for(std::chrono::milliseconds(5)) == std::future_status::ready)
 			{
-				if (m_stateData.server->IsConnected())
+				if (stateData.server->IsConnected())
 					SendLoginPacket();
 			}
 		}
@@ -193,6 +189,8 @@ namespace ewn
 
 	void LoginState::OnConnectionPressed()
 	{
+		StateData& stateData = GetStateData();
+
 		if (m_isLoggingIn)
 			return;
 
@@ -229,12 +227,12 @@ namespace ewn
 
 		ComputePassword();
 
-		if (!m_stateData.server->IsConnected())
+		if (!stateData.server->IsConnected())
 		{
 			m_isLoggingIn = true;
 
 			// Connect to server
-			if (m_stateData.server->Connect(m_stateData.app->GetConfig().GetStringOption("Server.Address")))
+			if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
 			{
 				UpdateStatus("Connecting...");
 				m_isLoggingIn = true;
@@ -264,7 +262,7 @@ namespace ewn
 
 	void LoginState::OnQuitPressed()
 	{
-		m_stateData.app->Quit();
+		GetStateData().app->Quit();
 	}
 
 	void LoginState::OnOptionPressed()
@@ -282,7 +280,7 @@ namespace ewn
 
 	void LoginState::LayoutWidgets()
 	{
-		Nz::Vector2f canvasSize = m_stateData.canvas->GetSize();
+		Nz::Vector2f canvasSize = GetStateData().canvas->GetSize();
 		Nz::Vector2f center = canvasSize / 2.f;
 
 		constexpr float padding = 10.f;
@@ -338,7 +336,7 @@ namespace ewn
 	void LoginState::ComputePassword()
 	{
 		// Salt password before hashing it
-		const ConfigFile& config = m_stateData.app->GetConfig();
+		const ConfigFile& config = GetStateData().app->GetConfig();
 
 		int iCost = config.GetIntegerOption<int>("Security.Argon2.IterationCost");
 		int mCost = config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
@@ -372,7 +370,7 @@ namespace ewn
 		loginPacket.login = m_loginArea->GetText().ToStdString();
 		loginPacket.passwordHash = hashedPassword;
 
-		m_stateData.server->SendPacket(loginPacket);
+		GetStateData().server->SendPacket(loginPacket);
 	}
 
 	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)

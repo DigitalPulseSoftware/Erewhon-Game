@@ -10,7 +10,7 @@
 #include <Client/MatchChatbox.hpp>
 #include <Client/ServerMatchEntities.hpp>
 #include <Client/SpaceshipController.hpp>
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <Nazara/Audio/Sound.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/Sprite.hpp>
@@ -23,10 +23,10 @@
 
 namespace ewn
 {
-	class GameState final : public Ndk::State
+	class GameState final : public AbstractState
 	{
 		public:
-			inline GameState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~GameState() = default;
 
 		private:
@@ -46,7 +46,6 @@ namespace ewn
 			NazaraSlot(ServerMatchEntities, OnEntityDelete, m_onEntityDeletionSlot);
 			NazaraSlot(Nz::EventHandler,    OnKeyPressed, m_onKeyPressedSlot);
 
-			StateData& m_stateData;
 			std::optional<MatchChatbox> m_chatbox;
 			std::optional<ServerMatchEntities> m_matchEntities;
 			std::optional<SpaceshipController> m_spaceshipController;

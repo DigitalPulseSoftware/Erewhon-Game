@@ -6,8 +6,4 @@
 
 namespace ewn
 {
-	inline TimeSyncState::TimeSyncState(StateData& stateData) :
-	m_stateData(stateData)
-	{
-	}
 }

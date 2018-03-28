@@ -1,4 +1,4 @@
-// Copyright (C) 2017 Jérôme Leclercq
+// Copyright (C) 2017 JÃ©rÃ´me Leclercq
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
@@ -6,8 +6,4 @@
 
 namespace ewn
 {
-	inline LoginState::LoginState(StateData& stateData) :
-	m_stateData(stateData)
-	{
-	}
 }

@@ -16,29 +16,33 @@ namespace ewn
 {
 	void TimeSyncState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_accumulator = 0.f;
-		m_connected = m_stateData.server->IsConnected();
+		m_connected = stateData.server->IsConnected();
 		m_pingAccumulator = 0;
 		m_results.clear();
 		m_statusSprite = Nz::TextSprite::New();
 
-		m_statusText = m_stateData.world2D->CreateEntity();
+		m_statusText = stateData.world2D->CreateEntity();
 		m_statusText->AddComponent<Ndk::NodeComponent>();
 
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
 		graphicsComponent.Attach(m_statusSprite);
 
-		m_onServerDisconnectedSlot.Connect(m_stateData.server->OnDisconnected, this, &TimeSyncState::OnServerDisconnected);
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
-		m_onTimeSyncResponseSlot.Connect(m_stateData.server->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
+		m_onServerDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &TimeSyncState::OnServerDisconnected);
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
+		m_onTimeSyncResponseSlot.Connect(stateData.server->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
 
 		m_expectedRequestId = 0;
 		m_finished = false;
 		m_nextStepTime = 0.2f;
 	}
 
-	void TimeSyncState::Leave(Ndk::StateMachine& /*fsm*/)
+	void TimeSyncState::Leave(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Leave(fsm);
+
 		m_onServerDisconnectedSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
@@ -47,10 +51,12 @@ namespace ewn
 
 	bool TimeSyncState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
+		StateData& stateData = GetStateData();
+
 		if (!m_connected)
 		{
 			if (m_accumulator > 2.f)
-				fsm.ChangeState(std::make_shared<LoginState>(m_stateData)); //< TODO: Put background state in a generic way
+				fsm.ChangeState(std::make_shared<LoginState>(stateData)); //< TODO: Put background state in a generic way
 
 			return true;
 		}
@@ -64,12 +70,12 @@ namespace ewn
 				timeSyncRequest.requestId = m_expectedRequestId;
 
 				m_requestTime = ClientApplication::GetAppTime();
-				m_stateData.server->SendPacket(timeSyncRequest);
+				stateData.server->SendPacket(timeSyncRequest);
 
 				m_nextStepTime += 1.f;
 			}
 			else
-				fsm.ResetState(std::make_shared<GameState>(m_stateData));
+				fsm.ResetState(std::make_shared<GameState>(stateData));
 		}
 
 		return true;
@@ -81,7 +87,7 @@ namespace ewn
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
 
 		Nz::Boxf textBox = graphicsComponent.GetBoundingVolume().obb.localBox;
-		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
+		Nz::Vector2ui windowSize = GetStateData().window->GetSize();
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
 
@@ -99,6 +105,8 @@ namespace ewn
 
 		if (response.requestId != m_expectedRequestId)
 			return;
+
+		StateData& stateData = GetStateData();
 
 		Nz::UInt64 appTime = ClientApplication::GetAppTime();
 		Nz::UInt64 pingTime = appTime - m_requestTime;
@@ -139,7 +147,7 @@ namespace ewn
 			});
 			variance /= m_results.size() - 1;
 
-			m_stateData.server->UpdateServerTimeDelta((m_isClientYounger) ? meanDiff : std::numeric_limits<Nz::UInt64>::max() - meanDiff);
+			stateData.server->UpdateServerTimeDelta((m_isClientYounger) ? meanDiff : std::numeric_limits<Nz::UInt64>::max() - meanDiff);
 
 
 			Nz::String standardDeviationStr;

@@ -7,7 +7,7 @@
 #ifndef EREWHON_CLIENT_STATES_BACKGROUNDSTATE_HPP
 #define EREWHON_CLIENT_STATES_BACKGROUNDSTATE_HPP
 
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <Nazara/Renderer/RenderTarget.hpp>
 #include <Nazara/Renderer/Texture.hpp>
 #include <NDK/State.hpp>
@@ -15,18 +15,16 @@
 
 namespace ewn
 {
-	class BackgroundState final : public Ndk::State
+	class BackgroundState final : public AbstractState
 	{
 		public:
-			BackgroundState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~BackgroundState() = default;
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			StateData m_stateData;
 			Nz::TextureRef m_backgroundCubemap;
 	};
 }

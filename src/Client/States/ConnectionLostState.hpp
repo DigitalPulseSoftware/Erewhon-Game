@@ -7,22 +7,22 @@
 #ifndef EREWHON_CLIENT_STATES_CONNECTIONLOSTSTATE_HPP
 #define EREWHON_CLIENT_STATES_CONNECTIONLOSTSTATE_HPP
 
+#include <Client/ClientApplication.hpp>
+#include <Client/ServerConnection.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Renderer/RenderTarget.hpp>
 #include <NDK/EntityOwner.hpp>
 #include <NDK/State.hpp>
 #include <NDK/World.hpp>
-#include <Client/ClientApplication.hpp>
-#include <Client/States/StateData.hpp>
-#include <Client/ServerConnection.hpp>
 
 namespace ewn
 {
-	class ConnectionLostState final : public Ndk::State
+	class ConnectionLostState final : public AbstractState
 	{
 		public:
-			inline ConnectionLostState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~ConnectionLostState() = default;
 
 		private:
@@ -35,7 +35,6 @@ namespace ewn
 
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
-			StateData& m_stateData;
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
 			float m_accumulator;

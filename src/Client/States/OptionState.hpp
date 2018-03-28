@@ -7,21 +7,20 @@
 #ifndef EREWHON_CLIENT_STATES_OPTIONSTATE_HPP
 #define EREWHON_CLIENT_STATES_OPTIONSTATE_HPP
 
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
 
 namespace ewn
 {
-	class OptionState final : public Ndk::State
+	class OptionState final : public AbstractState
 	{
 		public:
-			inline OptionState(StateData& stateData);
+			inline OptionState(StateData& stateData, std::shared_ptr<Ndk::State> previousState);
 			~OptionState() = default;
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
 			void LayoutWidgets();
@@ -37,7 +36,7 @@ namespace ewn
 
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
-			StateData& m_stateData;
+			std::shared_ptr<Ndk::State> m_previousState;
 			Ndk::ButtonWidget* m_applyButton;
 			Ndk::ButtonWidget* m_backButton;
 			Ndk::CheckboxWidget* m_fullscreenCheckbox;

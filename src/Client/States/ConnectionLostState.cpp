@@ -14,10 +14,12 @@ namespace ewn
 {
 	void ConnectionLostState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
+		StateData& stateData = GetStateData();
+
 		m_accumulator = 0.f;
 		m_statusSprite = Nz::TextSprite::New();
 
-		m_statusText = m_stateData.world2D->CreateEntity();
+		m_statusText = stateData.world2D->CreateEntity();
 		m_statusText->AddComponent<Ndk::NodeComponent>();
 
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
@@ -25,14 +27,16 @@ namespace ewn
 
 		UpdateStatus("Connection lost.");
 
-		m_onTargetChangeSizeSlot.Connect(m_stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
 	}
 
-	void ConnectionLostState::Leave(Ndk::StateMachine& /*fsm*/)
+	void ConnectionLostState::Leave(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Leave(fsm);
+
 		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
-		m_statusText->Kill();
+		m_statusText.Reset();
 	}
 
 	bool ConnectionLostState::Update(Ndk::StateMachine& fsm, float elapsedTime)
@@ -41,7 +45,7 @@ namespace ewn
 
 		m_accumulator += elapsedTime;
 		if (m_accumulator >= quitGameAfter)
-			fsm.ChangeState(std::make_shared<ewn::LoginState>(m_stateData));
+			fsm.ChangeState(std::make_shared<ewn::LoginState>(GetStateData()));
 
 		return true;
 	}
@@ -52,7 +56,7 @@ namespace ewn
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
 
 		Nz::Boxf textBox = graphicsComponent.GetBoundingVolume().obb.localBox;
-		Nz::Vector2ui windowSize = m_stateData.window->GetSize();
+		Nz::Vector2ui windowSize = GetStateData().window->GetSize();
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
 

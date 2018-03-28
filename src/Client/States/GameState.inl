@@ -6,8 +6,4 @@
 
 namespace ewn
 {
-	inline GameState::GameState(StateData& stateData) :
-	m_stateData(stateData)
-	{
-	}
 }

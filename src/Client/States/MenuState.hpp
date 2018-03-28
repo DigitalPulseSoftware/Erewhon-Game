@@ -7,21 +7,20 @@
 #ifndef EREWHON_CLIENT_STATES_MENUSTATE_HPP
 #define EREWHON_CLIENT_STATES_MENUSTATE_HPP
 
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
 
 namespace ewn
 {
-	class MenuState final : public Ndk::State
+	class MenuState final : public AbstractState
 	{
 		public:
-			inline MenuState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~MenuState() = default;
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
 			void LayoutWidgets();
@@ -33,13 +32,13 @@ namespace ewn
 			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
-			StateData& m_stateData;
 			Ndk::ButtonWidget* m_optionsButton;
 			Ndk::ButtonWidget* m_disconnectButton;
 			Ndk::CheckboxWidget* m_fullscreenCheckbox;
 			Ndk::CheckboxWidget* m_vsyncCheckbox;
 			bool m_isDisconnecting;
 			bool m_isLeavingMenu;
+			bool m_isUsingOption;
 	};
 }
 

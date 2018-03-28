@@ -8,7 +8,7 @@
 #define EREWHON_CLIENT_STATES_TIMESYNCSTATE_HPP
 
 #include <Client/ClientApplication.hpp>
-#include <Client/States/StateData.hpp>
+#include <Client/States/AbstractState.hpp>
 #include <Nazara/Core/Clock.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Renderer/RenderTarget.hpp>
@@ -19,10 +19,10 @@
 
 namespace ewn
 {
-	class TimeSyncState final : public Ndk::State
+	class TimeSyncState final : public AbstractState
 	{
 		public:
-			inline TimeSyncState(StateData& stateData);
+			using AbstractState::AbstractState;
 			~TimeSyncState() = default;
 
 		private:
@@ -39,7 +39,6 @@ namespace ewn
 			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
 			NazaraSlot(Nz::RenderTarget,  OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
-			StateData& m_stateData;
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
 			Nz::UInt8 m_expectedRequestId;

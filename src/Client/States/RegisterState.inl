@@ -6,8 +6,4 @@
 
 namespace ewn
 {
-	inline RegisterState::RegisterState(StateData& stateData) :
-	m_stateData(stateData)
-	{
-	}
 }
