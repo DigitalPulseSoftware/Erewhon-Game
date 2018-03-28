@@ -9,6 +9,8 @@
 #include <Nazara/Graphics/Model.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
+#include <Nazara/Utility/StaticMesh.hpp>
+#include <Nazara/Utility/VertexMapper.hpp>
 #include <NDK/Components.hpp>
 #include <Client/ClientApplication.hpp>
 #include <iostream>
@@ -199,9 +201,7 @@ namespace ewn
 			physComponent.SetLinearDamping(0.f);
 
 			auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			earthNode.SetPosition(Nz::Vector3f::Forward() * 50.f);
-			earthNode.SetRotation(Nz::EulerAnglesf(0.f, 180.f, 0.f));
-			earthNode.SetScale(20.f);
+			earthNode.SetScale(20'000.f);
 
 			m_earthTemplateEntity->Disable();
 		}
@@ -241,59 +241,6 @@ namespace ewn
 			physComponent.SetMass(1.f);
 			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
 			physComponent.SetLinearDamping(0.f);
-
-			/*std::vector<Nz::Vector3f> vertices;
-
-			Nz::CapsuleCollider3D capsuleMerde(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f));
-
-			auto ForEachPolygon = [](void* const userData, int vertexCount, const dFloat* const faceArray, int faceId)
-			{
-				std::vector<Nz::Vector3f>& linesTruc = *(static_cast<decltype(&vertices)>(userData));
-
-				auto Convert = [](Nz::Vector3f pos) -> Nz::Vector3f
-				{
-					return pos;
-				};
-
-				for (int i = 0; i < vertexCount - 1; ++i)
-				{
-					linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[i * 3])));
-					linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[(i + 1) * 3])));
-				}
-
-				linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[(vertexCount - 1) * 3])));
-				linesTruc.emplace_back(Convert(Nz::Vector3f(&faceArray[0])));
-			};
-
-			Nz::PhysWorld3D& physWorld = m_stateData.world3D->GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
-
-			Nz::Matrix4f identity = Nz::Matrix4f::Identity();
-			forEachPolygonInCollision(capsuleMerde.GetHandle(&physWorld), identity, ForEachPolygon, &vertices);
-
-
-			Nz::VertexBufferRef vb = Nz::VertexBuffer::New(Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ), vertices.size(), Nz::DataStorage_Hardware, 0U);
-			vb->Fill(vertices.data(), 0, vertices.size());
-
-			Nz::MeshRef debugMesh = Nz::Mesh::New();
-			debugMesh->CreateStatic();
-			debugMesh->SetMaterialCount(1);
-
-			Nz::StaticMeshRef staticMesh = Nz::StaticMesh::New(debugMesh);
-			staticMesh->Create(vb);
-			staticMesh->SetPrimitiveMode(Nz::PrimitiveMode_LineList);
-			staticMesh->SetMaterialIndex(0);
-			staticMesh->GenerateAABB();
-
-			debugMesh->AddSubMesh(staticMesh);
-
-			Nz::MaterialRef debugMat = Nz::Material::New();
-			debugMat->SetShader("Basic");
-
-			Nz::ModelRef debugModel = Nz::Model::New();
-			debugModel->SetMesh(debugMesh);
-			debugModel->SetMaterial(0, debugMat);
-
-			gfxComponent.Attach(debugModel);*/
 		}
 
 		// Projectile (torpedo)
@@ -341,6 +288,53 @@ namespace ewn
 			spaceshipPhys.SetMass(42.f);
 			spaceshipPhys.SetAngularDamping(Nz::Vector3f(0.f));
 			spaceshipPhys.SetLinearDamping(0.f);
+
+
+			/*Nz::MeshRef mesh = spaceshipModel->GetMesh();
+
+			Nz::VertexMapper vertexMapper(mesh->GetSubMesh(0), Nz::BufferAccess_ReadOnly);
+			Nz::SparsePtr<Nz::Vector3f> vertexPtr = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
+
+			auto collider = Nz::ConvexCollider3D::New(vertexPtr, vertexMapper.GetVertexCount(), 0.01f);
+
+			vertexMapper.Unmap();
+
+			std::vector<Nz::Vector3f> vertices;
+			collider->ForEachPolygon([&](const float* positions, std::size_t vertexCount)
+			{
+				for (std::size_t i = 0; i < vertexCount - 1; ++i)
+				{
+					vertices.emplace_back(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]);
+					vertices.emplace_back(positions[(i + 1) * 3 + 0], positions[(i + 1) * 3 + 1], positions[(i + 1) * 3 + 2]);
+				}
+
+				vertices.emplace_back(positions[(vertexCount - 1) * 3 + 0], positions[(vertexCount - 1) * 3 + 1], positions[(vertexCount - 1) * 3 + 2]);
+				vertices.emplace_back(positions[0], positions[1], positions[2]);
+			});
+
+			Nz::VertexBufferRef vb = Nz::VertexBuffer::New(Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ), verticesLol.size(), Nz::DataStorage_Hardware, 0U);
+			vb->Fill(vertices.data(), 0, vertices.size());
+
+			Nz::MeshRef debugMesh = Nz::Mesh::New();
+			debugMesh->CreateStatic();
+			debugMesh->SetMaterialCount(1);
+
+			Nz::StaticMeshRef staticMesh = Nz::StaticMesh::New(debugMesh);
+			staticMesh->Create(vb);
+			staticMesh->SetPrimitiveMode(Nz::PrimitiveMode_LineList);
+			staticMesh->SetMaterialIndex(0);
+			staticMesh->GenerateAABB();
+
+			debugMesh->AddSubMesh(staticMesh);
+
+			Nz::MaterialRef debugMat = Nz::Material::New();
+			debugMat->SetShader("Basic");
+
+			Nz::ModelRef debugModel = Nz::Model::New();
+			debugModel->SetMesh(debugMesh);
+			debugModel->SetMaterial(0, debugMat);
+
+			m_spaceshipTemplateEntity->GetComponent<Ndk::GraphicsComponent>().Attach(debugModel);*/
 
 			m_spaceshipTemplateEntity->Disable();
 		}
