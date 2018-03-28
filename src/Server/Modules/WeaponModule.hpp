@@ -29,6 +29,9 @@ namespace ewn
 
 			void Register(Nz::LuaState& lua) override;
 
+		protected:
+			virtual void DoShoot() = 0;
+
 		private:
 			Nz::UInt64 m_lastShootTime;
 

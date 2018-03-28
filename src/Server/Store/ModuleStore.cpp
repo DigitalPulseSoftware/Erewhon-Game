@@ -8,7 +8,8 @@
 #include <Server/Modules/EngineModule.hpp>
 #include <Server/Modules/NavigationModule.hpp>
 #include <Server/Modules/RadarModule.hpp>
-#include <Server/Modules/WeaponModule.hpp>
+#include <Server/Modules/PlasmaBeamWeaponModule.hpp>
+#include <Server/Modules/TorpedoWeaponModule.hpp>
 #include <iostream>
 
 namespace ewn
@@ -82,9 +83,14 @@ namespace ewn
 			return std::make_shared<RadarModule>(core, spaceship, radarInfo.detectionRadius, radarInfo.maxLockableTarget);
 		});
 
-		RegisterModule("weapon", NoInfo, [](SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& /*classInfo*/)
+		RegisterModule("weapon_plasmabeam", NoInfo, [](SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& /*classInfo*/)
 		{
-			return std::make_shared<WeaponModule>(core, spaceship);
+			return std::make_shared<PlasmaBeamWeaponModule>(core, spaceship);
+		});
+
+		RegisterModule("weapon_torpedo", NoInfo, [](SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& /*classInfo*/)
+		{
+			return std::make_shared<TorpedoWeaponModule>(core, spaceship);
 		});
 	}
 

@@ -4,8 +4,6 @@
 
 #include <Server/Modules/WeaponModule.hpp>
 #include <Nazara/Core/Clock.hpp>
-#include <NDK/Components/NodeComponent.hpp>
-#include <Server/Components/ArenaComponent.hpp>
 
 namespace ewn
 {
@@ -17,11 +15,7 @@ namespace ewn
 
 		m_lastShootTime = currentTime;
 
-		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
-		Arena& spaceshipArena = spaceship->GetComponent<ewn::ArenaComponent>();
-
-		spaceshipArena.CreateProjectile(nullptr, spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
+		DoShoot();
 	}
 
 	void WeaponModule::Register(Nz::LuaState& lua)
