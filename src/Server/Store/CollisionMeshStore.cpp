@@ -58,7 +58,7 @@ namespace ewn
 						Nz::VertexMapper vertexMapper(mesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
 						Nz::SparsePtr<Nz::Vector3f> vertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
 
-						colliders.emplace_back(Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount()));
+						colliders.emplace_back(Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount(), 0.01f));
 					}
 
 					collisionInfo.collider = Nz::CompoundCollider3D::New(std::move(colliders));
@@ -69,7 +69,7 @@ namespace ewn
 					Nz::VertexMapper vertexMapper(mesh.GetSubMesh(0), Nz::BufferAccess_ReadOnly);
 					Nz::SparsePtr<Nz::Vector3f> vertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
 
-					collisionInfo.collider = Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount());
+					collisionInfo.collider = Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount(), 0.01f);
 				}
 
 				collisionInfo.isLoaded = true;
