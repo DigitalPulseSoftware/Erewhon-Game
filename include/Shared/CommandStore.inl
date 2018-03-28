@@ -44,7 +44,9 @@ namespace ewn
 			T data;
 			try
 			{
-				Packets::Serialize(PacketSerializer(packet, false), data);
+				PacketSerializer serializer(packet, false);
+
+				Packets::Serialize(serializer, data);
 			}
 			catch (const std::exception&)
 			{
@@ -88,6 +90,8 @@ namespace ewn
 		// We need to cast the const away because our serialize functions require a non-const reference as they performs both reading and writing
 		// If you have a better idea...
 		T& dataRef = const_cast<T&>(data);
-		Packets::Serialize(PacketSerializer(packet, true), dataRef);
+
+		PacketSerializer serializer(packet, true);
+		Packets::Serialize(serializer, dataRef);
 	}
 }

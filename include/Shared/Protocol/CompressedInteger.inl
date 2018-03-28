@@ -51,12 +51,13 @@ namespace Nz
 	template<typename T>
 	bool Serialize(SerializationContext& context, ewn::CompressedSigned<T> value, TypeTag<ewn::CompressedSigned<T>>)
 	{
+		using UnsignedT = std::make_unsigned_t<T>;
+
 		T signedValue = value;
 		UnsignedT unsignedValue = reinterpret_cast<UnsignedT>(signedValue);
 
 		// ZigZag encoding:
 		// https://developers.google.com/protocol-buffers/docs/encoding
-		using UnsignedT = std::make_unsigned_t<T>;
 		unsignedValue = (unsignedValue << 1) ^ (unsignedValue >> (CHAR_BIT * sizeof(UnsignedT) - 1));
 
 		return Serialize(context, ewn::CompressedUnsigned<UnsignedT>(unsignedValue));

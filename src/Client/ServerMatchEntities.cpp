@@ -126,7 +126,8 @@ namespace ewn
 			if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
 			{
 				Packets::ArenaState arenaState;
-				Packets::Serialize(PacketSerializer(packet, false), arenaState);
+				PacketSerializer serializer(packet, false);
+				Packets::Serialize(serializer, arenaState);
 
 				for (auto& serverData : arenaState.entities)
 				{
