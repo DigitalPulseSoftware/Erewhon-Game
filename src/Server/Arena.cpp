@@ -102,7 +102,7 @@ namespace ewn
 		return projectile;
 	}
 
-	const Ndk::EntityHandle & Arena::CreateTorpedo(Player * owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
+	const Ndk::EntityHandle& Arena::CreateTorpedo(Player * owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
 	{
 		const Ndk::EntityHandle& projectile = CreateEntity("torpedo", {}, owner, position, rotation);
 		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
@@ -138,7 +138,7 @@ namespace ewn
 	void Arena::Reset()
 	{
 		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 50.f, Nz::Quaternionf::Identity());
+		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 25'000.f, Nz::Quaternionf::Identity());
 
 		// Space ball entity
 		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
@@ -244,7 +244,7 @@ namespace ewn
 		}
 		else if (type == "earth")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20'000.f));
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<SynchronizedComponent>(type, name, false, 0);
 		}
@@ -261,7 +261,7 @@ namespace ewn
 
 			auto& physComponent = newEntity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.SetLinearDamping(0.05f);
-			physComponent.SetMass(10.f);
+			physComponent.SetMass(100.f);
 			physComponent.SetPosition(position);
 			physComponent.SetRotation(rotation);
 		}
