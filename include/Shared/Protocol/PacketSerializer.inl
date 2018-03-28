@@ -3,7 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Shared/Protocol/PacketSerializer.hpp>
-#include <assert>
+#include <cassert>
 
 namespace ewn
 {
