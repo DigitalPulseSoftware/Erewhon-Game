@@ -136,6 +136,7 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, JoinArena& data)
 		{
+			serializer &= data.arenaIndex;
 		}
 
 		void Serialize(PacketSerializer& serializer, Login& data)

@@ -58,7 +58,10 @@ namespace ewn
 		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &GameState::OnEntityCreated);
 		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
 
-		stateData.server->SendPacket(Packets::JoinArena());
+		Packets::JoinArena arenaPacket;
+		arenaPacket.arenaIndex = 0;
+
+		stateData.server->SendPacket(arenaPacket);
 	}
 
 	void GameState::Leave(Ndk::StateMachine& fsm)

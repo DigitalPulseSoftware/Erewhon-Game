@@ -18,12 +18,13 @@ namespace ewn
 {
 	ServerApplication::ServerApplication() :
 	m_playerPool(sizeof(Player)),
-	m_arena(this),
 	m_chatCommandStore(this),
 	m_commandStore(this)
 	{
 		RegisterConfigOptions();
 		RegisterNetworkedStrings();
+
+		m_arenas.emplace_back(std::make_unique<Arena>(this));
 	}
 
 	ServerApplication::~ServerApplication()
@@ -69,7 +70,9 @@ namespace ewn
 
 	bool ServerApplication::Run()
 	{
-		m_arena.Update(GetUpdateTime());
+		float updateTime = GetUpdateTime();
+		for (const auto& arenaPtr : m_arenas)
+			arenaPtr->Update(updateTime);
 
 		m_globalDatabase->Poll();
 
@@ -355,7 +358,10 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		Arena* arena = &m_arena; //< One arena atm
+		if (data.arenaIndex > m_arenas.size())
+			return;
+
+		Arena* arena = m_arenas[data.arenaIndex].get();
 		if (player->GetArena() != arena)
 			player->MoveToArena(arena);
 	}

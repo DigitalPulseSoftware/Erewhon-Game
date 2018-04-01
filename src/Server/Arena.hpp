@@ -34,6 +34,8 @@ namespace ewn
 
 		public:
 			Arena(ServerApplication* app);
+			Arena(const Arena&) = delete;
+			Arena(Arena&&) = delete;
 			~Arena();
 
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
@@ -47,6 +49,9 @@ namespace ewn
 			void Reset();
 
 			void Update(float elapsedTime);
+
+			Arena& operator=(const Arena&) = delete;
+			Arena& operator=(Arena&&) = delete;
 
 		private:
 			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);

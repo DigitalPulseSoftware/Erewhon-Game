@@ -35,7 +35,6 @@ namespace ewn
 			using WorkerFunction = std::function<void()>;
 
 			ServerApplication();
-
 			virtual ~ServerApplication();
 
 			inline void DispatchWork(WorkerFunction workFunc);
@@ -85,8 +84,8 @@ namespace ewn
 			void RegisterNetworkedStrings();
 
 			std::vector<Player*> m_players;
+			std::vector<std::unique_ptr<Arena>> m_arenas;
 			Nz::MemoryPool m_playerPool;
-			Arena m_arena;
 			CallbackQueue m_callbackQueue;
 			CollisionMeshStore m_collisionMeshStore;
 			ModuleStore m_moduleStore;

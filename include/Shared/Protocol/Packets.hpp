@@ -159,6 +159,7 @@ namespace ewn
 
 		DeclarePacket(JoinArena)
 		{
+			Nz::UInt8 arenaIndex;
 		};
 
 		DeclarePacket(Login)
