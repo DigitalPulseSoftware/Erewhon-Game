@@ -60,7 +60,7 @@ int main()
 	}
 
 	const ewn::ConfigFile& config = app.GetConfig();
-	if (!app.SetupNetwork(config.GetIntegerOption<std::size_t>("Game.MaxClients"), config.GetIntegerOption<Nz::UInt16>("Game.Port")))
+	if (!app.SetupNetwork(config.GetIntegerOption<std::size_t>("Game.MaxClients"), Nz::NetProtocol_Any, config.GetIntegerOption<Nz::UInt16>("Game.Port")))
 	{
 		std::cerr << "Failed to setup network" << std::endl;
 		return EXIT_FAILURE;

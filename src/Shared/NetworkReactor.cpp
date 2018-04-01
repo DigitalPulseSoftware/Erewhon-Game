@@ -12,16 +12,16 @@
 
 namespace ewn
 {
-	NetworkReactor::NetworkReactor(std::size_t firstId, Nz::UInt16 port, std::size_t maxClient) :
+	NetworkReactor::NetworkReactor(std::size_t firstId, Nz::NetProtocol protocol, Nz::UInt16 port, std::size_t maxClient) :
 	m_firstId(firstId)
 	{
 		// Bind using dual-stack
 		if (port > 0)
 		{
-			if (!m_host.Create(Nz::NetProtocol_Any, port, maxClient, NetworkChannelCount))
+			if (!m_host.Create(protocol, port, maxClient, NetworkChannelCount))
 				throw std::runtime_error("Failed to start reactor");
 		}
-		else if (!m_host.Create(Nz::IpAddress::LoopbackIpV6, maxClient, NetworkChannelCount))
+		else if (!m_host.Create((protocol == Nz::NetProtocol_IPv4) ? Nz::IpAddress::LoopbackIpV4 : Nz::IpAddress::LoopbackIpV6, maxClient, NetworkChannelCount))
 			throw std::runtime_error("Failed to start reactor");
 
 		m_clients.resize(maxClient, nullptr);

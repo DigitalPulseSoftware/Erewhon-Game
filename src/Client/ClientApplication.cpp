@@ -34,7 +34,16 @@ namespace ewn
 			return false;
 		}
 
-		std::size_t newPeerId = GetReactor(0)->ConnectTo(results.front().address, data);
+		Nz::IpAddress serverAddress = results.front().address;
+
+		// TODO: Improve network handling
+		if (GetReactorCount() == 0 && !SetupNetwork(1, serverAddress.GetProtocol(), 0))
+		{
+			std::cerr << "Failed to setup network" << std::endl;
+			return false;
+		}
+		
+		std::size_t newPeerId = GetReactor(0)->ConnectTo(serverAddress, data);
 		if (newPeerId == NetworkReactor::InvalidPeerId)
 		{
 			std::cerr << "Failed to allocate new peer" << std::endl;
