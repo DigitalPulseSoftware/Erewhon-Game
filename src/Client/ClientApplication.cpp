@@ -27,7 +27,7 @@ namespace ewn
 		Nz::UInt16 port = m_config.GetIntegerOption<Nz::UInt16>("Server.Port");
 
 		Nz::ResolveError resolveError = Nz::ResolveError_NoError;
-		std::vector<Nz::HostnameInfo> results = Nz::IpAddress::ResolveHostname(Nz::NetProtocol_IPv4, serverHostname, Nz::String::Number(port), &resolveError);
+		std::vector<Nz::HostnameInfo> results = Nz::IpAddress::ResolveHostname(Nz::NetProtocol_Any, serverHostname, Nz::String::Number(port), &resolveError);
 		if (results.empty())
 		{
 			std::cerr << "Failed to resolve server hostname: " << Nz::ErrorToString(resolveError) << std::endl;

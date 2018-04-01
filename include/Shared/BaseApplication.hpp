@@ -30,7 +30,7 @@ namespace ewn
 
 			virtual bool Run() = 0;
 
-			bool SetupNetwork(std::size_t clientPerReactor, const Nz::IpAddress& ipAddress);
+			bool SetupNetwork(std::size_t clientPerReactor, Nz::UInt16 port);
 
 			static inline Nz::UInt64 GetAppTime();
 

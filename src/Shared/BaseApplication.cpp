@@ -21,13 +21,13 @@ namespace ewn
 		return Application::Run();
 	}
 
-	bool BaseApplication::SetupNetwork(std::size_t clientPerReactor, const Nz::IpAddress& ipAddress)
+	bool BaseApplication::SetupNetwork(std::size_t clientPerReactor, Nz::UInt16 port)
 	{
 		m_peerPerReactor = clientPerReactor;
 
 		try
 		{
-			m_reactors.emplace_back(std::make_unique<NetworkReactor>(0, ipAddress, clientPerReactor));
+			m_reactors.emplace_back(std::make_unique<NetworkReactor>(0, port, clientPerReactor));
 			return true;
 		}
 		catch (const std::exception& e)

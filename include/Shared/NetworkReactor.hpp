@@ -27,7 +27,7 @@ namespace ewn
 	class NetworkReactor
 	{
 		public:
-			NetworkReactor(std::size_t firstId, const Nz::IpAddress& listenAddress, std::size_t maxClient);
+			NetworkReactor(std::size_t firstId, Nz::UInt16 port, std::size_t maxClient);
 			NetworkReactor(const NetworkReactor&) = delete;
 			NetworkReactor(NetworkReactor&&) = delete;
 			~NetworkReactor();
