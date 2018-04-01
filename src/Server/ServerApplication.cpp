@@ -22,23 +22,8 @@ namespace ewn
 	m_chatCommandStore(this),
 	m_commandStore(this)
 	{
-		// Database configuration
-		m_config.RegisterStringOption("Database.Host");
-		m_config.RegisterStringOption("Database.Name");
-		m_config.RegisterStringOption("Database.Password");
-		m_config.RegisterIntegerOption("Database.Port", 1, 0xFFFF);
-		m_config.RegisterStringOption("Database.Username");
-		m_config.RegisterIntegerOption("Database.WorkerCount", 1, 100);
-
-		m_config.RegisterIntegerOption("Security.Argon2.IterationCost");
-		m_config.RegisterIntegerOption("Security.Argon2.MemoryCost");
-		m_config.RegisterIntegerOption("Security.Argon2.ThreadCost");
-		m_config.RegisterIntegerOption("Security.HashLength");
-		m_config.RegisterStringOption("Security.PasswordSalt");
-
-		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
-		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
-		m_config.RegisterIntegerOption("Game.WorkerCount", 1, 100);
+		RegisterConfigOptions();
+		RegisterNetworkedStrings();
 	}
 
 	ServerApplication::~ServerApplication()
@@ -60,9 +45,26 @@ namespace ewn
 		DatabaseLoader loader;
 		loader.RegisterStore("CollisionMeshes", &m_collisionMeshStore, {});
 		loader.RegisterStore("Modules", &m_moduleStore, {});
-		loader.RegisterStore("SpaceshipHulls", &m_spaceshipHullStore, {"CollisionMeshes"});
+		loader.RegisterStore("SpaceshipHulls", &m_spaceshipHullStore, { "CollisionMeshes" });
+		loader.RegisterStore("VisualMeshes", &m_visualMeshStore, {});
 
-		return loader.LoadFromDatabase(this, globalDatabase);
+		if (!loader.LoadFromDatabase(this, globalDatabase))
+			return false;
+
+		// Register mesh paths as networked strings
+		for (std::size_t i = 0; i < m_collisionMeshStore.GetEntryCount(); ++i)
+		{
+			if (m_collisionMeshStore.IsEntryLoaded(i))
+				m_stringStore.RegisterString(m_collisionMeshStore.GetEntryFilePath(i));
+		}
+
+		for (std::size_t i = 0; i < m_visualMeshStore.GetEntryCount(); ++i)
+		{
+			if (m_visualMeshStore.IsEntryLoaded(i))
+				m_stringStore.RegisterString(m_visualMeshStore.GetEntryFilePath(i));
+		}
+
+		return true;
 	}
 
 	bool ServerApplication::Run()
@@ -146,6 +148,9 @@ namespace ewn
 
 		m_players[peerId] = m_playerPool.New<Player>(this, peerId, *reactor, m_commandStore);
 		std::cout << "Client #" << peerId << " connected with data " << data << std::endl;
+
+		// Send newtorked strings
+		m_players[peerId]->SendPacket(m_stringStore.BuildPacket(0));
 	}
 
 	void ServerApplication::HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data)
@@ -609,5 +614,35 @@ namespace ewn
 		response.serverTime = GetAppTime();
 
 		player->SendPacket(response);
+	}
+
+	void ServerApplication::RegisterConfigOptions()
+	{
+		m_config.RegisterStringOption("AssetsFolder");
+
+		// Database configuration
+		m_config.RegisterStringOption("Database.Host");
+		m_config.RegisterStringOption("Database.Name");
+		m_config.RegisterStringOption("Database.Password");
+		m_config.RegisterIntegerOption("Database.Port", 1, 0xFFFF);
+		m_config.RegisterStringOption("Database.Username");
+		m_config.RegisterIntegerOption("Database.WorkerCount", 1, 100);
+
+		m_config.RegisterIntegerOption("Security.Argon2.IterationCost");
+		m_config.RegisterIntegerOption("Security.Argon2.MemoryCost");
+		m_config.RegisterIntegerOption("Security.Argon2.ThreadCost");
+		m_config.RegisterIntegerOption("Security.HashLength");
+		m_config.RegisterStringOption("Security.PasswordSalt");
+
+		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
+		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
+		m_config.RegisterIntegerOption("Game.WorkerCount", 1, 100);
+	}
+
+	void ServerApplication::RegisterNetworkedStrings()
+	{
+		m_stringStore.RegisterString("earth");
+		m_stringStore.RegisterString("plasmabeam");
+		m_stringStore.RegisterString("torpedo");
 	}
 }

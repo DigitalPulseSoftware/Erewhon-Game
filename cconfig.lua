@@ -5,6 +5,8 @@ Server = {
 	Port    = 2049
 }
 
+AssetsFolder = "Assets/"
+
 -- Warning: changing these parameters will break login to already registered accounts
 Security = {
 	Argon2 = {

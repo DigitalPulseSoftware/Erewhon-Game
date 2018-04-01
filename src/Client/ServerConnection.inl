@@ -16,6 +16,7 @@ namespace ewn
 	m_peerId(NetworkReactor::InvalidPeerId),
 	m_connected(false)
 	{
+		OnNetworkStrings.Connect([this](ServerConnection* server, const Packets::NetworkStrings& data) { UpdateNetworkStrings(server, data); });
 	}
 
 	inline void ServerConnection::Disconnect(Nz::UInt32 data)
@@ -33,7 +34,12 @@ namespace ewn
 		return m_application;
 	}
 
-	inline bool ServerConnection::IsConnected()
+	inline const NetworkStringStore& ServerConnection::GetNetworkStringStore() const
+	{
+		return m_stringStore;
+	}
+
+	inline bool ServerConnection::IsConnected() const
 	{
 		return m_connected;
 	}
@@ -71,8 +77,9 @@ namespace ewn
 
 	inline void ServerConnection::NotifyDisconnected(Nz::UInt32 data)
 	{
-		m_peerId = NetworkReactor::InvalidPeerId;
 		m_connected = false;
+		m_peerId = NetworkReactor::InvalidPeerId;
+		m_stringStore.Clear();
 
 		OnDisconnected(this, data);
 	}

@@ -37,6 +37,11 @@ namespace ewn
 		return m_moduleStore;
 	}
 
+	inline const NetworkStringStore& ServerApplication::GetNetworkStringStore() const
+	{
+		return m_stringStore;
+	}
+
 	inline SpaceshipHullStore& ServerApplication::GetSpaceshipHullStore()
 	{
 		return m_spaceshipHullStore;

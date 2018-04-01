@@ -11,13 +11,64 @@ namespace ewn
 {
 	namespace Packets
 	{
+		void Serialize(PacketSerializer& serializer, ArenaModels& data)
+		{
+			serializer &= data.startId;
+
+			CompressedUnsigned<Nz::UInt32> modelCount;
+			if (serializer.IsWriting())
+				modelCount = Nz::UInt32(data.models.size());
+
+			serializer &= modelCount;
+			if (!serializer.IsWriting())
+				data.models.resize(modelCount);
+
+			for (auto& model : data.models)
+			{
+				CompressedUnsigned<Nz::UInt32> pieceCount;
+				if (serializer.IsWriting())
+					pieceCount = Nz::UInt32(model.pieces.size());
+
+				serializer &= pieceCount;
+				if (!serializer.IsWriting())
+					model.pieces.resize(pieceCount);
+
+				for (auto& piece : model.pieces)
+				{
+					serializer &= piece.modelId;
+					serializer &= piece.rotation;
+					serializer &= piece.position;
+					serializer &= piece.scale;
+				}
+			}
+		}
+
+		void Serialize(PacketSerializer& serializer, ArenaPrefabs& data)
+		{
+			serializer &= data.startId;
+
+			CompressedUnsigned<Nz::UInt32> prefabCount;
+			if (serializer.IsWriting())
+				prefabCount = Nz::UInt32(data.prefabs.size());
+
+			serializer &= prefabCount;
+			if (!serializer.IsWriting())
+				data.prefabs.resize(prefabCount);
+
+			for (auto& prefab : data.prefabs)
+			{
+				serializer &= prefab.collisionMeshId;
+				serializer &= prefab.visualEffectId;
+			}
+		}
+
 		void Serialize(PacketSerializer& serializer, ArenaState& data)
 		{
 			serializer &= data.stateId;
 			serializer &= data.serverTime;
 			serializer &= data.lastProcessedInputTime;
 
-			Nz::UInt32 entityCount;
+			CompressedUnsigned<Nz::UInt32> entityCount;
 			if (serializer.IsWriting())
 				entityCount = Nz::UInt32(data.entities.size());
 
@@ -53,13 +104,13 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, CreateEntity& data)
 		{
-			serializer &= data.entityType;
-			serializer &= data.id;
 			serializer &= data.angularVelocity;
+			serializer &= data.entityId;
 			serializer &= data.linearVelocity;
 			serializer &= data.position;
+			serializer &= data.prefabId;
 			serializer &= data.rotation;
-			serializer &= data.name;
+			serializer &= data.visualName;
 		}
 
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data)
@@ -100,6 +151,22 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, LoginSuccess& data)
 		{
+		}
+
+		void Serialize(PacketSerializer& serializer, NetworkStrings& data)
+		{
+			serializer &= data.startId;
+
+			CompressedUnsigned<Nz::UInt32> stringCount;
+			if (serializer.IsWriting())
+				stringCount = Nz::UInt32(data.strings.size());
+
+			serializer &= stringCount;
+			if (!serializer.IsWriting())
+				data.strings.resize(stringCount);
+
+			for (auto& string : data.strings)
+				serializer &= string;
 		}
 
 		void Serialize(PacketSerializer& serializer, PlayerChat& data)

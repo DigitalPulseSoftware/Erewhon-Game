@@ -30,11 +30,13 @@ namespace ewn
 	{
 		m_snapshotDelay = m_jitterBuffer.size() * 1000 / 30 /* + ping? */;
 
+		m_onArenaModelsSlot.Connect(server->OnArenaModels, this, &ServerMatchEntities::OnArenaModels);
+		m_onArenaPrefabsSlot.Connect(server->OnArenaPrefabs, this, &ServerMatchEntities::OnArenaPrefabs);
 		m_onArenaStateSlot.Connect(server->OnArenaState, this, &ServerMatchEntities::OnArenaState);
 		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
 		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
 
-		CreateEntityTemplates();
+		FillPrefabFactory();
 
 		// Listen to debug state
 		if constexpr (showServerGhosts)
@@ -120,7 +122,7 @@ namespace ewn
 			}
 		}
 
-		if constexpr (showServerGhosts)
+		/*if constexpr (showServerGhosts)
 		{
 			Nz::NetPacket packet;
 			if (m_debugStateSocket.ReceivePacket(&packet, nullptr))
@@ -146,42 +148,17 @@ namespace ewn
 					ghostNode.SetRotation(serverData.rotation);
 				}
 			}
-		}
+		}*/
 	}
 
-	void ServerMatchEntities::CreateEntityTemplates()
+	void ServerMatchEntities::FillPrefabFactory()
 	{
-		Nz::ModelParameters params;
-		params.mesh.center = true;
-		params.material.shaderName = "Basic";
-
-		// Ball
-		Nz::ModelRef ballModel = Nz::Model::New();
-		ballModel->LoadFromFile("Assets/ball/ball.obj", params);
-
-		{
-			m_ballTemplateEntity = m_world->CreateEntity();
-
-			constexpr float radius = 18.251904f / 2.f;
-
-			//m_ballTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			m_ballTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ballModel);
-			m_ballTemplateEntity->AddComponent<Ndk::NodeComponent>();
-
-			auto& physComponent = m_ballTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(10.f);
-			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
-			m_ballTemplateEntity->Disable();
-		}
-
 		// Earth
+		m_prefabFactory["earth"] = [](ClientApplication* /*app*/, Ndk::World& world) -> const Ndk::EntityHandle&
 		{
 			Nz::MeshRef earthMesh = Nz::Mesh::New();
 			earthMesh->CreateStatic();
-			earthMesh->BuildSubMesh(Nz::Primitive::UVSphere(1.f, 40, 40));
+			earthMesh->BuildSubMesh(Nz::Primitive::UVSphere(50.f, 40, 40));
 
 			Nz::MaterialRef earthMaterial = Nz::Material::New();
 			earthMaterial->SetDiffuseMap("Assets/earth/earthmap1k.jpg");
@@ -191,33 +168,34 @@ namespace ewn
 			earthModel->SetMesh(earthMesh);
 			earthModel->SetMaterial(0, earthMaterial);
 
-			m_earthTemplateEntity = m_world->CreateEntity();
-			m_earthTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20.f));
-			m_earthTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
+			const Ndk::EntityHandle& entity = world.CreateEntity();
+			entity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
 
-			auto& physComponent = m_earthTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.EnableNodeSynchronization(false);
 			physComponent.SetMass(0.f);
 			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
 			physComponent.SetLinearDamping(0.f);
 
-			auto& earthNode = m_earthTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			earthNode.SetScale(20'000.f);
+			entity->AddComponent<Ndk::NodeComponent>();
 
-			m_earthTemplateEntity->Disable();
-		}
-		
+			return entity;
+		};
+
 		// Projectile (laser)
+		m_prefabFactory["plasmabeam"] = [](ClientApplication* app, Ndk::World& world) -> const Ndk::EntityHandle&
 		{
+			const std::string& assetsFolder = app->GetConfig().GetStringOption("AssetsFolder");
+
 			Nz::TextureSampler diffuseSampler;
 			diffuseSampler.SetAnisotropyLevel(4);
 			diffuseSampler.SetWrapMode(Nz::SamplerWrap_Repeat);
 
 			Nz::MaterialRef material = Nz::Material::New("Translucent3D");
 			material->SetShader("Basic");
-			material->SetDiffuseMap("Assets/weapons/LaserBeam.png");
+			material->SetDiffuseMap(assetsFolder + "/weapons/LaserBeam.png");
 			material->SetDiffuseSampler(diffuseSampler);
-			material->SetEmissiveMap("Assets/weapons/LaserBeam.png");
+			material->SetEmissiveMap(assetsFolder + "/weapons/LaserBeam.png");
 
 			Nz::SpriteRef laserSprite1 = Nz::Sprite::New();
 			laserSprite1->SetMaterial(material);
@@ -227,31 +205,35 @@ namespace ewn
 
 			Nz::SpriteRef laserSprite2 = Nz::Sprite::New(*laserSprite1);
 
-			m_plasmaProjectileTemplateEntity = m_world->CreateEntity();
-			auto& gfxComponent = m_plasmaProjectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
-			
+			const Ndk::EntityHandle& entity = world.CreateEntity();
+			auto& gfxComponent = entity->AddComponent<Ndk::GraphicsComponent>();
+
 			gfxComponent.Attach(laserSprite1, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			gfxComponent.Attach(laserSprite2, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(90.f, 90.f, 0.f)));
 
 			//m_projectileTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
-			m_plasmaProjectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			m_plasmaProjectileTemplateEntity->Disable();
+			entity->AddComponent<Ndk::NodeComponent>();
 
-			auto& physComponent = m_plasmaProjectileTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.EnableNodeSynchronization(false);
 			physComponent.SetMass(1.f);
 			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
 			physComponent.SetLinearDamping(0.f);
-		}
+
+			return entity;
+		};
 
 		// Projectile (torpedo)
+		m_prefabFactory["torpedo"] = [](ClientApplication* app, Ndk::World& world) -> const Ndk::EntityHandle&
 		{
-			m_torpedoProjectileTemplateEntity = m_world->CreateEntity();
-			auto& gfxComponent = m_torpedoProjectileTemplateEntity->AddComponent<Ndk::GraphicsComponent>();
+			const std::string& assetsFolder = app->GetConfig().GetStringOption("AssetsFolder");
+
+			const Ndk::EntityHandle& entity = world.CreateEntity();
+			auto& gfxComponent = entity->AddComponent<Ndk::GraphicsComponent>();
 
 			Nz::MaterialRef flareMaterial = Nz::Material::New("Translucent3D");
 			flareMaterial->SetShader("Basic");
-			flareMaterial->SetDiffuseMap("Assets/weapons/flare1.png");
+			flareMaterial->SetDiffuseMap(assetsFolder + "/weapons/flare1.png");
 
 			Nz::BillboardRef billboard = Nz::Billboard::New();
 			billboard->SetMaterial(flareMaterial);
@@ -259,99 +241,75 @@ namespace ewn
 
 			gfxComponent.Attach(billboard);
 
-			m_torpedoProjectileTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			m_torpedoProjectileTemplateEntity->Disable();
+			entity->AddComponent<Ndk::NodeComponent>();
 
-			auto& physComponent = m_torpedoProjectileTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
 			physComponent.EnableNodeSynchronization(false);
 			physComponent.SetMass(1.f);
 			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
 			physComponent.SetLinearDamping(0.f);
-		}
 
-		// Spaceship
-		params.mesh.matrix.MakeTransform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(0.01f));
+			return entity;
+		};
+	}
+
+	void ServerMatchEntities::OnArenaModels(ServerConnection* server, const Packets::ArenaModels& arenaModels)
+	{
+		Nz::ModelParameters params;
+		params.mesh.center = true;
 		params.mesh.texCoordScale.Set(1.f, -1.f);
+		params.material.shaderName = "Basic";
 
-		Nz::ModelRef spaceshipModel = Nz::Model::New();
-		spaceshipModel->LoadFromFile("Assets/spaceship/spaceship.obj", params);
+		m_prefabs.erase(m_prefabs.begin() + arenaModels.startId, m_prefabs.end());
 
+		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
+
+		const NetworkStringStore& networkStringStore = server->GetNetworkStringStore();
+		for (const auto& model : arenaModels.models)
 		{
-			m_spaceshipTemplateEntity = m_world->CreateEntity();
+			const Ndk::EntityHandle& entity = m_world->CreateEntity();
+			entity->Disable();
 
-			Nz::SphereCollider3DRef collider = Nz::SphereCollider3D::New(5.f);
-			//auto& collisionComponent = m_spaceshipTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
+			entity->AddComponent<Ndk::NodeComponent>();
 
-			m_spaceshipTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(spaceshipModel);
-			m_spaceshipTemplateEntity->AddComponent<Ndk::NodeComponent>();
-			auto& spaceshipPhys = m_spaceshipTemplateEntity->AddComponent<Ndk::PhysicsComponent3D>();
-			spaceshipPhys.EnableNodeSynchronization(false);
-			spaceshipPhys.SetMass(42.f);
-			spaceshipPhys.SetAngularDamping(Nz::Vector3f(0.f));
-			spaceshipPhys.SetLinearDamping(0.f);
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
+			physComponent.SetMass(10.f);
+			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
 
-
-			/*Nz::MeshRef mesh = spaceshipModel->GetMesh();
-
-			Nz::VertexMapper vertexMapper(mesh->GetSubMesh(0), Nz::BufferAccess_ReadOnly);
-			Nz::SparsePtr<Nz::Vector3f> vertexPtr = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
-
-			auto collider = Nz::ConvexCollider3D::New(vertexPtr, vertexMapper.GetVertexCount(), 0.01f);
-
-			vertexMapper.Unmap();
-
-			std::vector<Nz::Vector3f> vertices;
-			collider->ForEachPolygon([&](const float* positions, std::size_t vertexCount)
+			auto& graphicsComponent = entity->AddComponent<Ndk::GraphicsComponent>();
+			for (const auto& piece : model.pieces)
 			{
-				for (std::size_t i = 0; i < vertexCount - 1; ++i)
-				{
-					vertices.emplace_back(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]);
-					vertices.emplace_back(positions[(i + 1) * 3 + 0], positions[(i + 1) * 3 + 1], positions[(i + 1) * 3 + 2]);
-				}
+				Nz::Matrix4f transformMatrix = Nz::Matrix4f::Transform(piece.position, piece.rotation, piece.scale);
 
-				vertices.emplace_back(positions[(vertexCount - 1) * 3 + 0], positions[(vertexCount - 1) * 3 + 1], positions[(vertexCount - 1) * 3 + 2]);
-				vertices.emplace_back(positions[0], positions[1], positions[2]);
-			});
+				// TODO: Load it once for every path
+				const std::string& filePath = assetsFolder + '/' + networkStringStore.GetString(piece.modelId);
 
-			Nz::VertexBufferRef vb = Nz::VertexBuffer::New(Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ), verticesLol.size(), Nz::DataStorage_Hardware, 0U);
-			vb->Fill(vertices.data(), 0, vertices.size());
+				Nz::ModelRef model = Nz::Model::New();
+				if (model->LoadFromFile(filePath, params))
+					graphicsComponent.Attach(model, transformMatrix);
+			}
 
-			Nz::MeshRef debugMesh = Nz::Mesh::New();
-			debugMesh->CreateStatic();
-			debugMesh->SetMaterialCount(1);
-
-			Nz::StaticMeshRef staticMesh = Nz::StaticMesh::New(debugMesh);
-			staticMesh->Create(vb);
-			staticMesh->SetPrimitiveMode(Nz::PrimitiveMode_LineList);
-			staticMesh->SetMaterialIndex(0);
-			staticMesh->GenerateAABB();
-
-			debugMesh->AddSubMesh(staticMesh);
-
-			Nz::MaterialRef debugMat = Nz::Material::New();
-			debugMat->SetShader("Basic");
-
-			Nz::ModelRef debugModel = Nz::Model::New();
-			debugModel->SetMesh(debugMesh);
-			debugModel->SetMaterial(0, debugMat);
-
-			m_spaceshipTemplateEntity->GetComponent<Ndk::GraphicsComponent>().Attach(debugModel);*/
-
-			m_spaceshipTemplateEntity->Disable();
+			m_prefabs.emplace_back(entity);
 		}
+	}
 
-		Nz::MaterialRef debugMaterial = Nz::Material::New("Translucent3D");
-		debugMaterial->SetDiffuseColor(Nz::Color(255, 255, 255, 50));
+	void ServerMatchEntities::OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs)
+	{
+		m_prefabs.erase(m_prefabs.begin() + arenaPrefabs.startId, m_prefabs.end());
 
-		Nz::ModelRef ghostSpaceship = Nz::Model::New(*spaceshipModel);
-		for (std::size_t i = 0; i < ghostSpaceship->GetMaterialCount(); ++i)
-			ghostSpaceship->SetMaterial(i, debugMaterial);
+		const NetworkStringStore& networkStringStore = server->GetNetworkStringStore();
+		for (const auto& prefab : arenaPrefabs.prefabs)
+		{
+			auto prefabIt = m_prefabFactory.find(networkStringStore.GetString(prefab.visualEffectId));
+			assert(prefabIt != m_prefabFactory.end());
 
-		m_debugTemplateEntity = m_world->CreateEntity();
-		m_debugTemplateEntity->AddComponent<Ndk::GraphicsComponent>().Attach(ghostSpaceship);
-		m_debugTemplateEntity->AddComponent<Ndk::NodeComponent>();
-		m_debugTemplateEntity->Disable();
+			const Ndk::EntityHandle& entity = prefabIt->second(m_app, *m_world);
+			entity->Disable();
 
+			m_prefabs.emplace_back(entity);
+		}
 	}
 
 	void ServerMatchEntities::OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState)
@@ -379,40 +337,14 @@ namespace ewn
 
 	void ServerMatchEntities::OnCreateEntity(ServerConnection*, const Packets::CreateEntity& createPacket)
 	{
-		ServerEntity& data = CreateServerEntity(createPacket.id);
+		ServerEntity& data = CreateServerEntity(createPacket.entityId);
 
 		data.positionError = Nz::Vector3f::Zero();
 		data.rotationError = Nz::Quaternionf::Identity();
 
-		if (createPacket.entityType == "spaceship")
-		{
-			data.entity = m_spaceshipTemplateEntity->Clone();
-			data.type = Type::Spaceship; //< Remove asap
-		}
-		else if (createPacket.entityType == "earth")
-		{
-			data.entity = m_earthTemplateEntity->Clone();
-			data.type = Type::Earth; //< Remove asap
-		}
-		else if (createPacket.entityType == "ball")
-		{
-			data.entity = m_ballTemplateEntity->Clone();
-			data.type = Type::Ball; //< Remove asap
-		}
-		else if (createPacket.entityType == "plasmabeam")
-		{
-			data.entity = m_plasmaProjectileTemplateEntity->Clone();
-			data.type = Type::Projectile; //< Remove asap
-		}
-		else if (createPacket.entityType == "torpedo")
-		{
-			data.entity = m_torpedoProjectileTemplateEntity->Clone();
-			data.type = Type::Projectile; //< Remove asap
-		}
-		else
-			return; //< TODO: Fallback
+		data.entity = m_prefabs[createPacket.prefabId]->Clone();
 
-		data.name = createPacket.name.ToStdString();
+		data.name = createPacket.visualName.ToStdString();
 
 		auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
 		entityNode.SetPosition(createPacket.position);
@@ -424,14 +356,14 @@ namespace ewn
 		entityPhys.SetPosition(createPacket.position);
 		entityPhys.SetRotation(createPacket.rotation);
 
-		Nz::Color textColor = (createPacket.name == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
+		Nz::Color textColor = (createPacket.visualName == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
 		// Create entity name entity
-		if (!createPacket.name.IsEmpty())
+		if (!createPacket.visualName.IsEmpty())
 		{
 			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
 			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.name, 96, 0U, textColor));
+			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.visualName, 96, 0U, textColor));
 			textSprite->SetScale(0.01f);
 
 			data.textEntity = m_world->CreateEntity();

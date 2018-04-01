@@ -138,7 +138,7 @@ namespace ewn
 	void Arena::Reset()
 	{
 		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 25'000.f, Nz::Quaternionf::Identity());
+		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 60.f, Nz::Quaternionf::Identity());
 
 		// Space ball entity
 		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
@@ -236,7 +236,7 @@ namespace ewn
 			});
 
 			newEntity->AddComponent<InputComponent>();
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 5);
+			newEntity->AddComponent<SynchronizedComponent>(4, type, name, true, 5);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -244,16 +244,16 @@ namespace ewn
 		}
 		else if (type == "earth")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(20'000.f));
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(50.f));
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
-			newEntity->AddComponent<SynchronizedComponent>(type, name, false, 0);
+			newEntity->AddComponent<SynchronizedComponent>(0, type, name, false, 0);
 		}
 		else if (type == "ball")
 		{
 			constexpr float radius = 18.251904f / 2.f;
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 3);
+			newEntity->AddComponent<SynchronizedComponent>(3, type, name, true, 3);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -270,7 +270,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
 			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 0);
+			newEntity->AddComponent<SynchronizedComponent>(1, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -289,7 +289,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(3.f));
 			newEntity->AddComponent<LifeTimeComponent>(30.f);
 			newEntity->AddComponent<ProjectileComponent>(200);
-			newEntity->AddComponent<SynchronizedComponent>(type, name, true, 0);
+			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -375,7 +375,7 @@ namespace ewn
 		});
 
 		newEntity->AddComponent<InputComponent>();
-		newEntity->AddComponent<SynchronizedComponent>("spaceship", name, true, 5);
+		newEntity->AddComponent<SynchronizedComponent>(4, "spaceship", name, true, 5);
 
 		auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 		node.SetPosition(position);
@@ -402,6 +402,8 @@ namespace ewn
 	{
 		assert(m_players.find(player) == m_players.end());
 
+		SendArenaData(player);
+
 		m_createEntityCache.clear();
 		m_world.GetSystem<BroadcastSystem>().CreateAllEntities(m_createEntityCache);
 
@@ -411,6 +413,52 @@ namespace ewn
 		m_players[player] = Ndk::EntityHandle::InvalidHandle;
 
 		DispatchChatMessage(player->GetName() + " has joined");
+	}
+
+	void Arena::SendArenaData(Player* player)
+	{
+		Packets::ArenaPrefabs arenaPrefabsPacket;
+		arenaPrefabsPacket.startId = 0;
+
+		// Earth
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
+		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("earth");
+
+		// Plasma beam
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
+		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("plasmabeam");
+
+		// Torpedo
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
+		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("torpedo");
+
+		player->SendPacket(arenaPrefabsPacket);
+
+		// Models
+
+		Packets::ArenaModels arenaModelsPacket;
+		arenaModelsPacket.startId = arenaPrefabsPacket.prefabs.size();
+
+		// Ball
+		arenaModelsPacket.models.emplace_back();
+		arenaModelsPacket.models.back().pieces.emplace_back();
+		arenaModelsPacket.models.back().pieces.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("ball/ball.obj");
+		arenaModelsPacket.models.back().pieces.back().position = Nz::Vector3f::Zero();
+		arenaModelsPacket.models.back().pieces.back().rotation = Nz::Quaternionf::Identity();
+		arenaModelsPacket.models.back().pieces.back().scale = Nz::Vector3f::Unit();
+
+		// Spaceship
+		arenaModelsPacket.models.emplace_back();
+		arenaModelsPacket.models.back().pieces.emplace_back();
+		arenaModelsPacket.models.back().pieces.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("spaceship/spaceship.obj");
+		arenaModelsPacket.models.back().pieces.back().position = Nz::Vector3f::Zero();
+		arenaModelsPacket.models.back().pieces.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
+		arenaModelsPacket.models.back().pieces.back().scale = Nz::Vector3f(0.01f);
+
+		player->SendPacket(arenaModelsPacket);
 	}
 
 	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)

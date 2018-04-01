@@ -4,11 +4,10 @@
 
 #pragma once
 
-#ifndef EREWHON_SERVER_COLLISIONMESHSTORE_HPP
-#define EREWHON_SERVER_COLLISIONMESHSTORE_HPP
+#ifndef EREWHON_SERVER_VISUALMESHSTORE_HPP
+#define EREWHON_SERVER_VISUALMESHSTORE_HPP
 
 #include <Server/DatabaseStore.hpp>
-#include <Nazara/Physics3D/Collider3D.hpp>
 #include <NDK/Entity.hpp>
 #include <string>
 #include <vector>
@@ -18,32 +17,30 @@ namespace ewn
 	class Database;
 	class DatabaseResult;
 
-	class CollisionMeshStore final : public DatabaseStore
+	class VisualMeshStore final : public DatabaseStore
 	{
 		public:
-			inline CollisionMeshStore();
-			~CollisionMeshStore() = default;
+			inline VisualMeshStore();
+			~VisualMeshStore() = default;
 
-			inline Nz::Collider3DRef GetEntryCollider(std::size_t entryId) const;
-			inline std::size_t GetEntryCount() const;
 			inline const std::string& GetEntryFilePath(std::size_t entryId) const;
+			inline std::size_t GetEntryCount() const;
 			inline bool IsEntryLoaded(std::size_t entryId) const;
 
 		private:
 			bool FillStore(ServerApplication* app, DatabaseResult& result) override;
 
-			struct CollisionMeshInfo 
+			struct VisualMeshInfo 
 			{
-				Nz::Collider3DRef collider;
 				std::string filePath;
 				bool doesExist = false;
 				bool isLoaded = false;
 			};
 
-			std::vector<CollisionMeshInfo> m_collisionInfos;
+			std::vector<VisualMeshInfo> m_visualInfos;
 	};
 }
 
-#include <Server/Store/CollisionMeshStore.inl>
+#include <Server/Store/VisualMeshStore.inl>
 
-#endif // EREWHON_SERVER_COLLISIONMESHSTORE_HPP
+#endif // EREWHON_SERVER_VISUALMESHSTORE_HPP

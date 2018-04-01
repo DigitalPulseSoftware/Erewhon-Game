@@ -24,6 +24,7 @@ namespace ewn
 
 		public:
 			ClientApplication();
+
 			virtual ~ClientApplication();
 
 			bool Run() override;
@@ -34,6 +35,8 @@ namespace ewn
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) override;
+
+			void RegisterConfig();
 
 			std::vector<ServerConnection*> m_servers;
 	};

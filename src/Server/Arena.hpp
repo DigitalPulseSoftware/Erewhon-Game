@@ -61,6 +61,8 @@ namespace ewn
 			void OnBroadcastEntityDestruction(const BroadcastSystem* system, const Packets::DeleteEntity& packet);
 			void OnBroadcastStateUpdate(const BroadcastSystem* system, Packets::ArenaState& statePacket);
 
+			void SendArenaData(Player* player);
+
 			Nz::UdpSocket m_debugSocket;
 			Ndk::EntityOwner m_attractionPoint;
 			Ndk::EntityOwner m_spaceball;

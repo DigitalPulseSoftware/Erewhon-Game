@@ -18,6 +18,17 @@ namespace ewn
 		return m_collisionInfos[entryId].collider;
 	}
 
+	inline std::size_t CollisionMeshStore::GetEntryCount() const
+	{
+		return m_collisionInfos.size();
+	}
+
+	inline const std::string& CollisionMeshStore::GetEntryFilePath(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_collisionInfos[entryId].filePath;
+	}
+
 	inline bool CollisionMeshStore::IsEntryLoaded(std::size_t entryId) const
 	{
 		assert(entryId < m_collisionInfos.size());

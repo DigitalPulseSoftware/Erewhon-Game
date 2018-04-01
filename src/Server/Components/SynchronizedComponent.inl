@@ -7,7 +7,8 @@
 
 namespace ewn
 {
-	inline SynchronizedComponent::SynchronizedComponent(std::string type, std::string nameTemp, bool movable, Nz::UInt16 networkPriority) :
+	inline SynchronizedComponent::SynchronizedComponent(std::size_t prefabId, std::string type, std::string nameTemp, bool movable, Nz::UInt16 networkPriority) :
+	m_prefabId(prefabId),
 	m_name(std::move(nameTemp)),
 	m_type(std::move(type)),
 	m_priority(networkPriority),
@@ -28,6 +29,11 @@ namespace ewn
 	inline const std::string& SynchronizedComponent::GetName() const
 	{
 		return m_name;
+	}
+
+	inline std::size_t SynchronizedComponent::GetPrefabId() const
+	{
+		return m_prefabId;
 	}
 
 	inline Nz::UInt16 SynchronizedComponent::GetPriority() const

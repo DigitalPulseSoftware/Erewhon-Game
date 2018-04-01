@@ -18,6 +18,8 @@ namespace ewn
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
+		IncomingCommand(ArenaModels);
+		IncomingCommand(ArenaPrefabs);
 		IncomingCommand(ArenaState);
 		IncomingCommand(BotMessage);
 		IncomingCommand(ChatMessage);
@@ -27,6 +29,7 @@ namespace ewn
 		IncomingCommand(IntegrityUpdate);
 		IncomingCommand(LoginFailure);
 		IncomingCommand(LoginSuccess);
+		IncomingCommand(NetworkStrings);
 		IncomingCommand(RegisterFailure);
 		IncomingCommand(RegisterSuccess);
 		IncomingCommand(TimeSyncResponse);

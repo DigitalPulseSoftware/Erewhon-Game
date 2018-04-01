@@ -641,26 +641,6 @@ namespace ewn
 				{
 					m_controlScript.PushField("name", entityData.name);
 
-					// Kill me
-					switch (entityData.type)
-					{
-						case ServerMatchEntities::Type::Ball:
-							m_controlScript.PushField("type", std::string("ball"));
-							break;
-						case ServerMatchEntities::Type::Earth:
-							m_controlScript.PushField("type", std::string("earth"));
-							break;
-						case ServerMatchEntities::Type::Projectile:
-							m_controlScript.PushField("type", std::string("projectile"));
-							break;
-						case ServerMatchEntities::Type::Spaceship:
-							m_controlScript.PushField("type", std::string("spaceship"));
-							break;
-						default:
-							m_controlScript.PushField("type", std::string("bug"));
-							break;
-					}
-
 					m_controlScript.PushTable(0, 3);
 					{
 						Nz::Vector3f position = entityNode.GetPosition();

@@ -7,10 +7,11 @@
 #ifndef EREWHON_CLIENT_SERVERCONNECTION_HPP
 #define EREWHON_CLIENT_SERVERCONNECTION_HPP
 
+#include <Shared/Protocol/NetworkStringStore.hpp>
+#include <Shared/Protocol/Packets.hpp>
+#include <Client/ClientCommandStore.hpp>
 #include <Nazara/Core/Signal.hpp>
 #include <Nazara/Core/String.hpp>
-#include <Client/ClientCommandStore.hpp>
-#include <Shared/Protocol/Packets.hpp>
 
 namespace ewn
 {
@@ -35,8 +36,9 @@ namespace ewn
 
 			inline ClientApplication& GetApp();
 			inline const ClientApplication& GetApp() const;
+			inline const NetworkStringStore& GetNetworkStringStore() const;
 
-			inline bool IsConnected();
+			inline bool IsConnected() const;
 			
 			template<typename T> void SendPacket(const T& packet);
 
@@ -49,6 +51,8 @@ namespace ewn
 			NazaraSignal(OnDisconnected, ServerConnection* /*server*/, Nz::UInt32 /*data*/);
 
 			// Packet reception signals
+			NazaraSignal(OnArenaModels,      ServerConnection* /*server*/, const Packets::ArenaModels&      /*data*/);
+			NazaraSignal(OnArenaPrefabs,     ServerConnection* /*server*/, const Packets::ArenaPrefabs&     /*data*/);
 			NazaraSignal(OnArenaState,       ServerConnection* /*server*/, const Packets::ArenaState&       /*data*/);
 			NazaraSignal(OnBotMessage,       ServerConnection* /*server*/, const Packets::BotMessage&       /*data*/);
 			NazaraSignal(OnChatMessage,      ServerConnection* /*server*/, const Packets::ChatMessage&      /*data*/);
@@ -58,6 +62,7 @@ namespace ewn
 			NazaraSignal(OnIntegrityUpdate,  ServerConnection* /*server*/, const Packets::IntegrityUpdate&  /*data*/);
 			NazaraSignal(OnLoginFailure,     ServerConnection* /*server*/, const Packets::LoginFailure&     /*data*/);
 			NazaraSignal(OnLoginSuccess,     ServerConnection* /*server*/, const Packets::LoginSuccess&     /*data*/);
+			NazaraSignal(OnNetworkStrings,   ServerConnection* /*server*/, const Packets::NetworkStrings&   /*data*/);
 			NazaraSignal(OnRegisterFailure,  ServerConnection* /*server*/, const Packets::RegisterFailure&  /*data*/);
 			NazaraSignal(OnRegisterSuccess,  ServerConnection* /*server*/, const Packets::RegisterSuccess&  /*data*/);
 			NazaraSignal(OnTimeSyncResponse, ServerConnection* /*server*/, const Packets::TimeSyncResponse& /*data*/);
@@ -67,8 +72,11 @@ namespace ewn
 			inline void NotifyConnected(Nz::UInt32 data);
 			inline void NotifyDisconnected(Nz::UInt32 data);
 
+			void UpdateNetworkStrings(ServerConnection* server, const Packets::NetworkStrings& data);
+
 			ClientApplication& m_application;
 			ClientCommandStore m_commandStore;
+			NetworkStringStore m_stringStore;
 			NetworkReactor* m_networkReactor;
 			Nz::UInt64 m_deltaTime;
 			std::size_t m_peerId;

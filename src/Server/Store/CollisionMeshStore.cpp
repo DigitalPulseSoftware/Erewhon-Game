@@ -7,6 +7,7 @@
 #include <Nazara/Utility/StaticMesh.hpp>
 #include <Nazara/Utility/VertexDeclaration.hpp>
 #include <Nazara/Utility/VertexMapper.hpp>
+#include <Server/ServerApplication.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Database/DatabaseResult.hpp>
 #include <iostream>
@@ -31,6 +32,8 @@ namespace ewn
 		params.storage = Nz::DataStorage_Software;
 		//params.vertexDeclaration = Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ);
 
+		const std::string& assetsFolder = app->GetConfig().GetStringOption("AssetsFolder");
+
 		std::size_t meshLoaded = 0;
 		for (std::size_t i = 0; i < meshCount; ++i)
 		{
@@ -41,11 +44,11 @@ namespace ewn
 				CollisionMeshInfo& collisionInfo = m_collisionInfos[id];
 				collisionInfo.doesExist = true;
 
-				std::string meshPath = std::get<std::string>(result.GetValue(1, i));
+				collisionInfo.filePath = std::get<std::string>(result.GetValue(1, i));
 
 				Nz::Mesh mesh;
-				if (!mesh.LoadFromFile("Assets/" + meshPath, params))
-					throw std::runtime_error("Failed to load " + meshPath);
+				if (!mesh.LoadFromFile(assetsFolder + '/' + collisionInfo.filePath, params))
+					throw std::runtime_error("Failed to load " + collisionInfo.filePath);
 
 				std::size_t subMeshCount = mesh.GetSubMeshCount();
 				if (subMeshCount > 1)

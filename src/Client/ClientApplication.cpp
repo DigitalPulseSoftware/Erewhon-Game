@@ -12,20 +12,7 @@ namespace ewn
 {
 	ClientApplication::ClientApplication()
 	{
-		m_config.RegisterStringOption("ClientScript.Filename");
-		m_config.RegisterStringOption("ServerScript.Filename");
-
-		m_config.RegisterBoolOption("Options.Fullscreen");
-		m_config.RegisterBoolOption("Options.VerticalSync");
-
-		m_config.RegisterIntegerOption("Security.Argon2.IterationCost");
-		m_config.RegisterIntegerOption("Security.Argon2.MemoryCost");
-		m_config.RegisterIntegerOption("Security.Argon2.ThreadCost");
-		m_config.RegisterIntegerOption("Security.HashLength");
-		m_config.RegisterStringOption("Security.PasswordSalt");
-
-		m_config.RegisterStringOption("Server.Address");
-		m_config.RegisterIntegerOption("Server.Port", 1, 0xFFFF);
+		RegisterConfig();
 	}
 
 	ClientApplication::~ClientApplication() = default;
@@ -80,4 +67,25 @@ namespace ewn
 	{
 		m_servers[peerId]->DispatchIncomingPacket(std::move(packet));
 	}
+
+	void ClientApplication::RegisterConfig()
+	{
+		m_config.RegisterStringOption("AssetsFolder");
+
+		m_config.RegisterStringOption("ClientScript.Filename");
+		m_config.RegisterStringOption("ServerScript.Filename");
+
+		m_config.RegisterBoolOption("Options.Fullscreen");
+		m_config.RegisterBoolOption("Options.VerticalSync");
+
+		m_config.RegisterIntegerOption("Security.Argon2.IterationCost");
+		m_config.RegisterIntegerOption("Security.Argon2.MemoryCost");
+		m_config.RegisterIntegerOption("Security.Argon2.ThreadCost");
+		m_config.RegisterIntegerOption("Security.HashLength");
+		m_config.RegisterStringOption("Security.PasswordSalt");
+
+		m_config.RegisterStringOption("Server.Address");
+		m_config.RegisterIntegerOption("Server.Port", 1, 0xFFFF);
+	}
+
 }

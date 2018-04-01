@@ -10,6 +10,7 @@
 #include <Nazara/Core/Signal.hpp>
 #include <Nazara/Graphics/Material.hpp>
 #include <Nazara/Network/UdpSocket.hpp>
+#include <NDK/EntityOwner.hpp>
 #include <NDK/World.hpp>
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/ServerConnection.hpp>
@@ -24,14 +25,6 @@ namespace ewn
 	class ServerMatchEntities
 	{
 		public:
-			enum class Type
-			{
-				Ball,
-				Earth,
-				Projectile,
-				Spaceship
-			};
-
 			struct ServerEntity;
 
 			ServerMatchEntities(ClientApplication* app, ServerConnection* server, Ndk::WorldHandle world);
@@ -61,7 +54,6 @@ namespace ewn
 				Nz::UInt32 serverId;
 				bool isValid = false;
 				std::string name; //< remove asap, used for temporary client-side radar
-				Type type; //< remove asap, used for temporary client-side radar
 			};
 
 			NazaraSignal(OnEntityCreated, ServerMatchEntities* /*emitter*/, ServerEntity& /*entity*/);
@@ -70,9 +62,11 @@ namespace ewn
 		private:
 			struct Snapshot;
 
-			void CreateEntityTemplates();
 			inline ServerEntity& CreateServerEntity(Nz::UInt32 id);
+			void FillPrefabFactory();
 
+			void OnArenaModels(ServerConnection* server, const Packets::ArenaModels& arenaModels);
+			void OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs);
 			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
 			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
 			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
@@ -95,19 +89,19 @@ namespace ewn
 				std::vector<Entity> entities;
 			};
 
+			NazaraSlot(ServerConnection, OnArenaModels,  m_onArenaModelsSlot);
+			NazaraSlot(ServerConnection, OnArenaPrefabs, m_onArenaPrefabsSlot);
 			NazaraSlot(ServerConnection, OnArenaState,   m_onArenaStateSlot);
 			NazaraSlot(ServerConnection, OnCreateEntity, m_onCreateEntitySlot);
 			NazaraSlot(ServerConnection, OnDeleteEntity, m_onDeleteEntitySlot);
 
+			using PrefabFactoryFunction = std::function<const Ndk::EntityHandle&(ClientApplication* app, Ndk::World& world)>;
+
 			std::array<Snapshot, 5> m_jitterBufferData;
 			nonstd::ring_span<Snapshot> m_jitterBuffer;
+			std::unordered_map<std::string, PrefabFactoryFunction> m_prefabFactory;
+			std::vector<Ndk::EntityOwner> m_prefabs;
 			std::vector<ServerEntity> m_serverEntities;
-			Ndk::EntityHandle m_ballTemplateEntity;
-			Ndk::EntityHandle m_earthTemplateEntity;
-			Ndk::EntityHandle m_debugTemplateEntity;
-			Ndk::EntityHandle m_plasmaProjectileTemplateEntity;
-			Ndk::EntityHandle m_torpedoProjectileTemplateEntity;
-			Ndk::EntityHandle m_spaceshipTemplateEntity;
 			Ndk::WorldHandle m_world;
 			Nz::UdpSocket m_debugStateSocket;
 			Nz::UInt64 m_snapshotDelay;

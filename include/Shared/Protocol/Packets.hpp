@@ -23,6 +23,8 @@ namespace ewn
 {
 	enum class PacketType
 	{
+		ArenaModels,
+		ArenaPrefabs,
 		ArenaState,
 		BotMessage,
 		ChatMessage,
@@ -36,6 +38,7 @@ namespace ewn
 		Login,
 		LoginFailure,
 		LoginSuccess,
+		NetworkStrings,
 		PlayerChat,
 		PlayerMovement,
 		PlayerShoot,
@@ -55,6 +58,39 @@ namespace ewn
 	namespace Packets
 	{
 #define DeclarePacket(Type) struct Type : PacketTag<PacketType:: Type >
+
+		DeclarePacket(ArenaModels)
+		{
+			CompressedUnsigned<Nz::UInt32> startId;
+
+			struct Model
+			{
+				struct Piece
+				{
+					CompressedUnsigned<Nz::UInt32> modelId;
+					Nz::Quaternionf rotation;
+					Nz::Vector3f position;
+					Nz::Vector3f scale;
+				};
+
+				std::vector<Piece> pieces;
+			};
+
+			std::vector<Model> models;
+		};
+
+		DeclarePacket(ArenaPrefabs)
+		{
+			CompressedUnsigned<Nz::UInt32> startId;
+
+			struct Prefab
+			{
+				CompressedUnsigned<Nz::UInt32> visualEffectId;
+				CompressedUnsigned<Nz::UInt32> collisionMeshId;
+			};
+
+			std::vector<Prefab> prefabs;
+		};
 
 		DeclarePacket(ArenaState)
 		{
@@ -91,13 +127,13 @@ namespace ewn
 
 		DeclarePacket(CreateEntity)
 		{
-			CompressedUnsigned<Nz::UInt32> id;
+			CompressedUnsigned<Nz::UInt32> entityId;
+			CompressedUnsigned<Nz::UInt32> prefabId;
+			Nz::Quaternionf rotation;
 			Nz::Vector3f angularVelocity;
 			Nz::Vector3f linearVelocity;
 			Nz::Vector3f position;
-			Nz::Quaternionf rotation;
-			Nz::String name;
-			Nz::String entityType;
+			Nz::String visualName;
 		};
 
 		DeclarePacket(CreateSpaceship)
@@ -138,6 +174,12 @@ namespace ewn
 
 		DeclarePacket(LoginSuccess)
 		{
+		};
+
+		DeclarePacket(NetworkStrings)
+		{
+			CompressedUnsigned<Nz::UInt32> startId;
+			std::vector<std::string> strings;
 		};
 
 		DeclarePacket(PlayerChat)
@@ -190,6 +232,8 @@ namespace ewn
 
 #undef DeclarePacket
 
+		void Serialize(PacketSerializer& serializer, ArenaModels& data);
+		void Serialize(PacketSerializer& serializer, ArenaPrefabs& data);
 		void Serialize(PacketSerializer& serializer, ArenaState& data);
 		void Serialize(PacketSerializer& serializer, BotMessage& data);
 		void Serialize(PacketSerializer& serializer, ChatMessage& data);
@@ -203,6 +247,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, Login& data);
 		void Serialize(PacketSerializer& serializer, LoginFailure& data);
 		void Serialize(PacketSerializer& serializer, LoginSuccess& data);
+		void Serialize(PacketSerializer& serializer, NetworkStrings& data);
 		void Serialize(PacketSerializer& serializer, PlayerChat& data);
 		void Serialize(PacketSerializer& serializer, PlayerMovement& data);
 		void Serialize(PacketSerializer& serializer, PlayerShoot& data);

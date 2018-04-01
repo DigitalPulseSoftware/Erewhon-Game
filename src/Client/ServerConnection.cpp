@@ -20,4 +20,11 @@ namespace ewn
 	{
 		return ClientApplication::GetAppTime() + m_deltaTime;
 	}
+
+	void ServerConnection::UpdateNetworkStrings(ServerConnection* server, const Packets::NetworkStrings& data)
+	{
+		assert(server == this);
+
+		m_stringStore.FillStore(data.startId, std::move(data.strings));
+	}
 }

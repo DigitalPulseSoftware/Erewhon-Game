@@ -30,6 +30,8 @@ namespace ewn
 		IncomingCommand(TimeSyncRequest);
 
 		// Outgoing commands
+		OutgoingCommand(ArenaModels,      Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(ArenaPrefabs,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ArenaState,       0,                           0);
 		OutgoingCommand(BotMessage,       Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ChatMessage,      Nz::ENetPacketFlag_Reliable, 0);
@@ -39,6 +41,7 @@ namespace ewn
 		OutgoingCommand(IntegrityUpdate,  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(NetworkStrings,   Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(RegisterFailure,  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(RegisterSuccess,  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncResponse, 0,                           0);

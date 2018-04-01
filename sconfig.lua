@@ -1,3 +1,5 @@
+AssetsFolder = "Assets/"
+
 Database = {
 	Host = "localhost",
 	Port = 5432,
