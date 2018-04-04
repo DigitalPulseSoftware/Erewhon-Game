@@ -667,6 +667,7 @@ namespace ewn
 	void ServerApplication::RegisterNetworkedStrings()
 	{
 		m_stringStore.RegisterString("earth");
+		m_stringStore.RegisterString("light");
 		m_stringStore.RegisterString("plasmabeam");
 		m_stringStore.RegisterString("torpedo");
 	}

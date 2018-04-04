@@ -140,6 +140,9 @@ namespace ewn
 		// Earth entity
 		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 60.f, Nz::Quaternionf::Identity());
 
+		// Light entity
+		m_light = CreateEntity("light", "", nullptr, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
+
 		// Space ball entity
 		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
 	}
@@ -236,7 +239,7 @@ namespace ewn
 			});
 
 			newEntity->AddComponent<InputComponent>();
-			newEntity->AddComponent<SynchronizedComponent>(4, type, name, true, 5);
+			newEntity->AddComponent<SynchronizedComponent>(5, type, name, true, 5);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -248,12 +251,20 @@ namespace ewn
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
 			newEntity->AddComponent<SynchronizedComponent>(0, type, name, false, 0);
 		}
+		else if (type == "light")
+		{
+			newEntity->AddComponent<SynchronizedComponent>(1, type, name, false, 0);
+
+			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
+			node.SetPosition(position);
+			node.SetRotation(rotation);
+		}
 		else if (type == "ball")
 		{
 			constexpr float radius = 18.251904f / 2.f;
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
-			newEntity->AddComponent<SynchronizedComponent>(3, type, name, true, 3);
+			newEntity->AddComponent<SynchronizedComponent>(4, type, name, true, 3);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -270,7 +281,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
 			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
-			newEntity->AddComponent<SynchronizedComponent>(1, type, name, true, 0);
+			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -289,7 +300,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(3.f));
 			newEntity->AddComponent<LifeTimeComponent>(30.f);
 			newEntity->AddComponent<ProjectileComponent>(200);
-			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
+			newEntity->AddComponent<SynchronizedComponent>(3, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 			node.SetPosition(position);
@@ -375,7 +386,7 @@ namespace ewn
 		});
 
 		newEntity->AddComponent<InputComponent>();
-		newEntity->AddComponent<SynchronizedComponent>(4, "spaceship", name, true, 5);
+		newEntity->AddComponent<SynchronizedComponent>(5, "spaceship", name, true, 5);
 
 		auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 		node.SetPosition(position);
@@ -424,6 +435,11 @@ namespace ewn
 		arenaPrefabsPacket.prefabs.emplace_back();
 		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
 		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("earth");
+
+		// Light
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
+		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("light");
 
 		// Plasma beam
 		arenaPrefabsPacket.prefabs.emplace_back();

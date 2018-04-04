@@ -130,7 +130,7 @@ namespace ewn
 
 		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
-		m_arena->CreatePlasmaProjectile(this, m_spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
+		m_arena->CreateTorpedo(this, m_spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f movement, Nz::Vector3f rotation)

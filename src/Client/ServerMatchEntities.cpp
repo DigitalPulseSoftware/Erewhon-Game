@@ -162,7 +162,7 @@ namespace ewn
 
 			Nz::MaterialRef earthMaterial = Nz::Material::New();
 			earthMaterial->SetDiffuseMap("Assets/earth/earthmap1k.jpg");
-			earthMaterial->SetShader("Basic");
+			earthMaterial->SetShader("PhongLighting");
 
 			Nz::ModelRef earthModel = Nz::Model::New();
 			earthModel->SetMesh(earthMesh);
@@ -182,6 +182,23 @@ namespace ewn
 			return entity;
 		};
 
+		// Scene light
+		m_prefabFactory["light"] = [](ClientApplication* /*app*/, Ndk::World& world) -> const Ndk::EntityHandle&
+		{
+			const Ndk::EntityHandle& entity = world.CreateEntity();
+			entity->AddComponent<Ndk::NodeComponent>();
+
+			auto& lightComponent = entity->AddComponent<Ndk::LightComponent>(Nz::LightType_Directional);
+
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
+			physComponent.SetMass(0.f);
+			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
+
+			return entity;
+		};
+
 		// Projectile (laser)
 		m_prefabFactory["plasmabeam"] = [](ClientApplication* app, Ndk::World& world) -> const Ndk::EntityHandle&
 		{
@@ -192,10 +209,10 @@ namespace ewn
 			diffuseSampler.SetWrapMode(Nz::SamplerWrap_Repeat);
 
 			Nz::MaterialRef material = Nz::Material::New("Translucent3D");
-			material->SetShader("Basic");
 			material->SetDiffuseMap(assetsFolder + "/weapons/LaserBeam.png");
 			material->SetDiffuseSampler(diffuseSampler);
 			material->SetEmissiveMap(assetsFolder + "/weapons/LaserBeam.png");
+			material->SetShader("PhongLighting");
 
 			Nz::SpriteRef laserSprite1 = Nz::Sprite::New();
 			laserSprite1->SetMaterial(material);
@@ -232,8 +249,8 @@ namespace ewn
 			auto& gfxComponent = entity->AddComponent<Ndk::GraphicsComponent>();
 
 			Nz::MaterialRef flareMaterial = Nz::Material::New("Translucent3D");
-			flareMaterial->SetShader("Basic");
 			flareMaterial->SetDiffuseMap(assetsFolder + "/weapons/flare1.png");
+			flareMaterial->SetShader("Basic");
 
 			Nz::BillboardRef billboard = Nz::Billboard::New();
 			billboard->SetMaterial(flareMaterial);
@@ -258,7 +275,6 @@ namespace ewn
 		Nz::ModelParameters params;
 		params.mesh.center = true;
 		params.mesh.texCoordScale.Set(1.f, -1.f);
-		params.material.shaderName = "Basic";
 
 		m_prefabs.erase(m_prefabs.begin() + arenaModels.startId, m_prefabs.end());
 

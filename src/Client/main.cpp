@@ -6,6 +6,7 @@
 #include <Nazara/Audio/SoundBuffer.hpp>
 #include <Nazara/Core/Directory.hpp>
 #include <Nazara/Core/Initializer.hpp>
+#include <Nazara/Graphics/DeferredRenderTechnique.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Network/Network.hpp>
 #include <NDK/Canvas.hpp>
@@ -45,6 +46,7 @@ int main()
 
 	// 3D Scene
 	Ndk::World& world3D = app.AddWorld();
+	//world3D.GetSystem<Ndk::RenderSystem>().ChangeRenderTechnique(std::make_unique<Nz::DeferredRenderTechnique>());
 
 	const Ndk::EntityHandle& camera3D = world3D.CreateEntity();
 
