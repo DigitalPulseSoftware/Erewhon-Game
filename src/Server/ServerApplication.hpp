@@ -44,6 +44,7 @@ namespace ewn
 			inline const CollisionMeshStore& GetCollisionMeshStore() const;
 			inline ModuleStore& GetModuleStore();
 			inline const ModuleStore& GetModuleStore() const;
+			inline std::size_t GetPeerPerReactor() const;
 			inline const NetworkStringStore& GetNetworkStringStore() const;
 			inline SpaceshipHullStore& GetSpaceshipHullStore();
 			inline const SpaceshipHullStore& GetSpaceshipHullStore() const;
@@ -65,6 +66,8 @@ namespace ewn
 
 			inline void RegisterCallback(ServerCallback callback);
 
+			bool SetupNetwork(std::size_t clientPerReactor, std::size_t reactorCount, Nz::NetProtocol protocol, Nz::UInt16 firstPort);
+
 		private:
 			using CallbackQueue = moodycamel::ConcurrentQueue<ServerCallback>;
 			using WorkerQueue = moodycamel::BlockingConcurrentQueue<WorkerFunction>;
@@ -83,6 +86,9 @@ namespace ewn
 			void RegisterConfigOptions();
 			void RegisterNetworkedStrings();
 
+			std::optional<GlobalDatabase> m_globalDatabase;
+			std::size_t m_peerPerReactor;
+			std::vector<std::unique_ptr<GameWorker>> m_workers;
 			std::vector<Player*> m_players;
 			std::vector<std::unique_ptr<Arena>> m_arenas;
 			Nz::MemoryPool m_playerPool;
@@ -91,12 +97,10 @@ namespace ewn
 			ModuleStore m_moduleStore;
 			NetworkStringStore m_stringStore;
 			ServerChatCommandStore m_chatCommandStore;
+			ServerCommandStore m_commandStore;
 			SpaceshipHullStore m_spaceshipHullStore;
 			VisualMeshStore m_visualMeshStore;
 			WorkerQueue m_workerQueue;
-			std::optional<GlobalDatabase> m_globalDatabase;
-			std::vector<std::unique_ptr<GameWorker>> m_workers;
-			ServerCommandStore m_commandStore;
 	};
 }
 

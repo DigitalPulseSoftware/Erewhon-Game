@@ -13,9 +13,9 @@
 namespace ewn
 {
 	NetworkReactor::NetworkReactor(std::size_t firstId, Nz::NetProtocol protocol, Nz::UInt16 port, std::size_t maxClient) :
-	m_firstId(firstId)
+	m_firstId(firstId),
+	m_protocol(protocol)
 	{
-		// Bind using dual-stack
 		if (port > 0)
 		{
 			if (!m_host.Create(protocol, port, maxClient, NetworkChannelCount))
@@ -52,7 +52,7 @@ namespace ewn
 		request.callback = [&](std::size_t peerId)
 		{
 			// This callback is called from within the reactor
-			newClientId = peerId;
+			newClientId = m_firstId + peerId;
 			hasReturned = true;
 
 			std::unique_lock<std::mutex> lock(signalMutex);
@@ -86,6 +86,8 @@ namespace ewn
 
 	void NetworkReactor::SendData(std::size_t peerId, Nz::UInt8 channelId, Nz::ENetPacketFlags flags, Nz::NetPacket&& packet)
 	{
+		assert(peerId >= m_firstId);
+
 		OutgoingEvent::PacketEvent packetEvent;
 		packetEvent.channelId = channelId;
 		packetEvent.packet = std::move(packet);

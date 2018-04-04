@@ -30,7 +30,7 @@ namespace ewn
 			bool Run() override;
 
 		private:
-			bool ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor);
+			bool ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** peerReactor);
 
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) override;

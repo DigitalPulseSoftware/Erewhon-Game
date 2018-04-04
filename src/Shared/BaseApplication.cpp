@@ -21,22 +21,6 @@ namespace ewn
 		return Application::Run();
 	}
 
-	bool BaseApplication::SetupNetwork(std::size_t clientPerReactor, Nz::NetProtocol protocol, Nz::UInt16 port)
-	{
-		m_peerPerReactor = clientPerReactor;
-
-		try
-		{
-			m_reactors.emplace_back(std::make_unique<NetworkReactor>(0, protocol, port, clientPerReactor));
-			return true;
-		}
-		catch (const std::exception& e)
-		{
-			std::cerr << "Failed to start network reactors: " << e.what() << std::endl;
-			return false;
-		}
-	}
-
 	void BaseApplication::OnConfigLoaded(const ConfigFile& /*config*/)
 	{
 	}

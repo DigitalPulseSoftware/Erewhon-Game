@@ -23,18 +23,17 @@ namespace ewn
 
 			inline ConfigFile& GetConfig();
 			inline const ConfigFile& GetConfig() const;
-			inline std::size_t GetPeerPerReactor() const;
 			inline std::size_t GetReactorCount() const;
 
 			inline bool LoadConfig(const std::string& configFile);
 
 			virtual bool Run() = 0;
 
-			bool SetupNetwork(std::size_t clientPerReactor, Nz::NetProtocol protocol, Nz::UInt16 port);
-
 			static inline Nz::UInt64 GetAppTime();
 
 		protected:
+			inline std::size_t AddReactor(std::unique_ptr<NetworkReactor> reactor);
+			inline void ClearReactors();
 			inline const std::unique_ptr<NetworkReactor>& GetReactor(std::size_t reactorId);
 
 			virtual void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) = 0;
@@ -45,7 +44,6 @@ namespace ewn
 			ConfigFile m_config;
 
 		private:
-			std::size_t m_peerPerReactor;
 			std::vector<std::unique_ptr<NetworkReactor>> m_reactors;
 
 			static Nz::Clock s_appClock;

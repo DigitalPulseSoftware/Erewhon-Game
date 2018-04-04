@@ -33,4 +33,9 @@ namespace ewn
 			}, inEvent.data);
 		}
 	}
+
+	inline Nz::NetProtocol NetworkReactor::GetProtocol() const
+	{
+		return m_protocol;
+	}
 }

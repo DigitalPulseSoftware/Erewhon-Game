@@ -38,6 +38,8 @@ namespace ewn
 			template<typename ConnectCB, typename DisconnectCB, typename DataCB>
 			void Poll(ConnectCB&& onConnection, DisconnectCB&& onDisconnection, DataCB&& onData);
 
+			inline Nz::NetProtocol GetProtocol() const;
+
 			void SendData(std::size_t peerId, Nz::UInt8 channelId, Nz::ENetPacketFlags flags, Nz::NetPacket&& packet);
 
 			NetworkReactor& operator=(const NetworkReactor&) = delete;
@@ -108,6 +110,7 @@ namespace ewn
 			moodycamel::ConcurrentQueue<IncomingEvent> m_incomingQueue;
 			moodycamel::ConcurrentQueue<OutgoingEvent> m_outgoingQueue;
 			Nz::ENetHost m_host;
+			Nz::NetProtocol m_protocol;
 			Nz::Thread m_thread;
 	};
 }

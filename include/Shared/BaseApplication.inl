@@ -16,11 +16,6 @@ namespace ewn
 		return m_config;
 	}
 
-	inline std::size_t BaseApplication::GetPeerPerReactor() const
-	{
-		return m_peerPerReactor;
-	}
-
 	inline std::size_t BaseApplication::GetReactorCount() const
 	{
 		return m_reactors.size();
@@ -35,6 +30,17 @@ namespace ewn
 		}
 		else
 			return false;
+	}
+
+	inline std::size_t BaseApplication::AddReactor(std::unique_ptr<NetworkReactor> reactor)
+	{
+		m_reactors.emplace_back(std::move(reactor));
+		return m_reactors.size() - 1;
+	}
+
+	inline void BaseApplication::ClearReactors()
+	{
+		m_reactors.clear();
 	}
 
 	inline const std::unique_ptr<NetworkReactor>& BaseApplication::GetReactor(std::size_t reactorId)

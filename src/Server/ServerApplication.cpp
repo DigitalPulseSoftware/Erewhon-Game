@@ -622,6 +622,25 @@ namespace ewn
 		player->SendPacket(response);
 	}
 
+	bool ServerApplication::SetupNetwork(std::size_t clientPerReactor, std::size_t reactorCount, Nz::NetProtocol protocol, Nz::UInt16 firstPort)
+	{
+		m_peerPerReactor = clientPerReactor;
+
+		ClearReactors();
+		try
+		{
+			for (std::size_t i = 0; i < reactorCount; ++i)
+				AddReactor(std::make_unique<NetworkReactor>(m_peerPerReactor * i, protocol, Nz::UInt16(firstPort + i), clientPerReactor));
+
+			return true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Failed to start network reactors: " << e.what() << std::endl;
+			return false;
+		}
+	}
+
 	void ServerApplication::RegisterConfigOptions()
 	{
 		m_config.RegisterStringOption("AssetsFolder");

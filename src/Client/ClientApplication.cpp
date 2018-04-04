@@ -22,8 +22,10 @@ namespace ewn
 		return BaseApplication::Run();
 	}
 
-	bool ClientApplication::ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** reactor)
+	bool ClientApplication::ConnectNewServer(const Nz::String& serverHostname, Nz::UInt32 data, ServerConnection* connection, std::size_t* peerId, NetworkReactor** peerReactor)
 	{
+		constexpr std::size_t MaxPeerCount = 1;
+
 		Nz::UInt16 port = m_config.GetIntegerOption<Nz::UInt16>("Server.Port");
 
 		Nz::ResolveError resolveError = Nz::ResolveError_NoError;
@@ -36,29 +38,39 @@ namespace ewn
 
 		Nz::IpAddress serverAddress = results.front().address;
 
-		// TODO: Improve network handling
-		if (GetReactorCount() == 0 && !SetupNetwork(1, serverAddress.GetProtocol(), 0))
+		auto ConnectWithReactor = [&](NetworkReactor* reactor) -> bool
 		{
-			std::cerr << "Failed to setup network" << std::endl;
-			return false;
-		}
-		
-		std::size_t newPeerId = GetReactor(0)->ConnectTo(serverAddress, data);
-		if (newPeerId == NetworkReactor::InvalidPeerId)
+			std::size_t newPeerId = reactor->ConnectTo(serverAddress, data);
+			if (newPeerId == NetworkReactor::InvalidPeerId)
+			{
+				std::cerr << "Failed to allocate new peer" << std::endl;
+				return false;
+			}
+
+			*peerId = newPeerId;
+			*peerReactor = reactor;
+
+			if (newPeerId >= m_servers.size())
+				m_servers.resize(newPeerId + 1);
+
+			m_servers[newPeerId] = connection;
+			return true;
+		};
+
+		std::size_t reactorCount = GetReactorCount();
+		std::size_t reactorIndex;
+		for (reactorIndex = 0; reactorIndex < reactorCount; ++reactorIndex)
 		{
-			std::cerr << "Failed to allocate new peer" << std::endl;
-			return false;
+			const std::unique_ptr<NetworkReactor>& reactor = GetReactor(reactorIndex);
+			if (reactor->GetProtocol() != serverAddress.GetProtocol())
+				continue;
+
+			return ConnectWithReactor(reactor.get());
 		}
 
-		*peerId = newPeerId;
-		*reactor = GetReactor(0).get();
-
-		if (newPeerId >= m_servers.size())
-			m_servers.resize(newPeerId + 1);
-
-		m_servers[newPeerId] = connection;
-
-		return true;
+		// We don't have any reactor compatible with the server's protocol, allocate a new one
+		std::size_t reactorId = AddReactor(std::make_unique<NetworkReactor>(reactorCount * MaxPeerCount, serverAddress.GetProtocol(), 0, MaxPeerCount));
+		return ConnectWithReactor(GetReactor(reactorId).get());
 	}
 
 	void ClientApplication::HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data)

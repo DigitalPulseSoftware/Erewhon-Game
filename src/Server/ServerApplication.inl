@@ -37,6 +37,11 @@ namespace ewn
 		return m_moduleStore;
 	}
 
+	inline std::size_t ServerApplication::GetPeerPerReactor() const
+	{
+		return m_peerPerReactor;
+	}
+
 	inline const NetworkStringStore& ServerApplication::GetNetworkStringStore() const
 	{
 		return m_stringStore;
