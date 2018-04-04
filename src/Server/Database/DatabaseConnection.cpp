@@ -17,7 +17,7 @@ namespace ewn
 {
 	DatabaseConnection::DatabaseConnection(const std::string& dbHost, const std::string& port, const std::string& dbUser, const std::string& dbPassword, const std::string& dbName)
 	{
-		constexpr std::size_t parameterCount = 10;
+		constexpr std::size_t parameterCount = 14;
 
 		std::size_t parameterIndex = 0;
 		std::array<const char*, parameterCount> keys;
@@ -42,6 +42,11 @@ namespace ewn
 		AddParameter("client_encoding", "UTF8");
 		AddParameter("connect_timeout", "10");
 		AddParameter("application_name", "Utopia-Server");
+		AddParameter("keepalives", "1");
+		AddParameter("keepalives_idle", "30");
+		AddParameter("keepalives_interval", "5");
+		AddParameter("keepalives_count", "6");
+
 		AddParameter(nullptr, nullptr); //< End of parameters
 
 		m_connection = PQconnectdbParams(keys.data(), values.data(), 0);
