@@ -39,6 +39,7 @@ namespace ewn
 			std::shared_ptr<Ndk::State> m_previousState;
 			Ndk::ButtonWidget* m_applyButton;
 			Ndk::ButtonWidget* m_backButton;
+			Ndk::CheckboxWidget* m_forceIPv4Checkbox;
 			Ndk::CheckboxWidget* m_fullscreenCheckbox;
 			Ndk::CheckboxWidget* m_vsyncCheckbox;
 			Ndk::LabelWidget* m_statusLabel;

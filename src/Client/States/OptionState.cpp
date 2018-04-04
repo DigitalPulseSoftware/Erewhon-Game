@@ -17,6 +17,10 @@ namespace ewn
 
 		m_isReturningBack = false;
 
+		m_forceIPv4Checkbox = CreateWidget<Ndk::CheckboxWidget>();
+		m_forceIPv4Checkbox->UpdateText(Nz::SimpleTextDrawer::Draw("Force IPv4 for new connections", 24));
+		m_forceIPv4Checkbox->ResizeToContent();
+
 		m_fullscreenCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_fullscreenCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Fullscreen mode (need restart)", 24));
 		m_fullscreenCheckbox->ResizeToContent();
@@ -72,9 +76,10 @@ namespace ewn
 
 		constexpr float padding = 10.f;
 
-		std::array<Ndk::BaseWidget*, 2> widgets = {
+		std::array<Ndk::BaseWidget*, 3> widgets = {
 			m_fullscreenCheckbox,
-			m_vsyncCheckbox
+			m_vsyncCheckbox,
+			m_forceIPv4Checkbox
 		};
 
 		float maxWidth = 0.f;
@@ -91,12 +96,11 @@ namespace ewn
 
 		m_statusLabel->SetPosition({ 0.f, cursor.y - m_statusLabel->GetSize().y - padding, 0.f });
 
-		m_fullscreenCheckbox->SetPosition({ center.x - maxWidth / 2.f , cursor.y, 0.f });
-		cursor.y += m_fullscreenCheckbox->GetSize().y + padding;
-
-		m_vsyncCheckbox->SetPosition({ center.x - maxWidth / 2.f , cursor.y, 0.f });
-		cursor.y += m_vsyncCheckbox->GetSize().y + padding;
-
+		for (Ndk::BaseWidget* widget : widgets)
+		{
+			widget->SetPosition({ center.x - maxWidth / 2.f , cursor.y, 0.f });
+			cursor.y += widget->GetSize().y + padding;
+		}
 		
 		cursor.y += padding;
 
@@ -125,6 +129,7 @@ namespace ewn
 
 		ConfigFile& configFile = stateData.app->GetConfig();
 
+		configFile.SetBoolOption("Options.ForceIPv4", m_forceIPv4Checkbox->GetState() == Ndk::CheckboxState_Checked);
 		configFile.SetBoolOption("Options.Fullscreen", m_fullscreenCheckbox->GetState() == Ndk::CheckboxState_Checked);
 		configFile.SetBoolOption("Options.VerticalSync", m_vsyncCheckbox->GetState() == Ndk::CheckboxState_Checked);
 
@@ -136,6 +141,7 @@ namespace ewn
 		StateData& stateData = GetStateData();
 		const ConfigFile& configFile = stateData.app->GetConfig();
 
+		m_forceIPv4Checkbox->SetState((configFile.GetBoolOption("Options.ForceIPv4")) ? Ndk::CheckboxState_Checked : Ndk::CheckboxState_Unchecked);
 		m_fullscreenCheckbox->SetState((configFile.GetBoolOption("Options.Fullscreen")) ? Ndk::CheckboxState_Checked : Ndk::CheckboxState_Unchecked);
 		m_vsyncCheckbox->SetState((configFile.GetBoolOption("Options.VerticalSync")) ? Ndk::CheckboxState_Checked : Ndk::CheckboxState_Unchecked);
 	}
@@ -153,9 +159,10 @@ namespace ewn
 
 		const ConfigFile& configFile = stateData.app->GetConfig();
 
-		std::array<std::string, 2> boolOptions =
+		std::array<std::string, 3> boolOptions =
 		{
 			"Fullscreen",
+			"ForceIPv4",
 			"VerticalSync"
 		};
 
