@@ -2,7 +2,6 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Shared/ChatCommandStore.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/ArenaComponent.hpp>
 #include <Server/Components/HealthComponent.hpp>
@@ -24,32 +23,6 @@
 #include <Nazara/Core/Thread.hpp>
 #include <Nazara/Network/Network.hpp>
 #include <NDK/Sdk.hpp>
-
-template<typename T>
-class BitBuffer
-{
-	public:
-		template<typename U> void Write(U value, std::size_t bitCount)
-		{
-			std::size_t bitRemaining = m_buffer.size() * BitPerInteger - m_bitCursor;
-			if (bitCount > bitRemaining)
-				m_buffer.resize(m_buffer.size() + ((bitCount - bitRemaining + BitPerInteger - 1) / BitPerInteger));
-
-			if (m_bitCursor % BitPerInteger == 0)
-			{
-				// Fast path
-				std::size_t firstInteger = m_bitCursor / BitPerInteger;
-				for (std::size_t i = 0; i < bitCount / BitPerInteger; ++i)
-					m_buffer[firstInteger + i] = (value >> i * BitPerInteger)
-			}
-		}
-
-		static constexpr std::size_t BitPerInteger = sizeof(T) * CHAR_BIT;
-
-	private:
-		std::vector<T> m_buffer;
-		std::size_t m_bitCursor;
-};
 
 int main()
 {
