@@ -28,7 +28,7 @@ namespace ewn
 				targetPos = arg->template GetComponent<Ndk::NodeComponent>().GetPosition();
 				return true;
 			}
-			else if constexpr (std::is_same_v<T, std::monostate>)
+			else if constexpr (std::is_same_v<T, NoTarget>)
 				return false;
 			else
 				static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");

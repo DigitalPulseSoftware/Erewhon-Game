@@ -55,9 +55,11 @@ namespace ewn
 				Nz::Vector3f thrust;
 			};
 
+			struct NoTarget {}; //< Fixes std::monostate which GDB fail to demangle
+
 			ProximityCallback m_proximityCallback;
 			PidController<Nz::Vector3f> m_headingController;
-			std::variant<std::monostate, Ndk::EntityHandle, Nz::Vector3f> m_target;
+			std::variant<NoTarget, Ndk::EntityHandle, Nz::Vector3f> m_target;
 			std::vector<Impulsion> m_impulses;
 			float m_triggerDistance;
 	};

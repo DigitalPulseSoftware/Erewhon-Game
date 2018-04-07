@@ -23,7 +23,7 @@ namespace ewn
 
 	inline void NavigationComponent::ClearTarget()
 	{
-		m_target = std::monostate();
+		m_target = NoTarget{};
 	}
 
 	inline NavigationComponent::NavigationResults NavigationComponent::Run(Nz::UInt64 currentTime, float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel)
