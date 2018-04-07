@@ -12,24 +12,28 @@ namespace ewn
 	NavigationComponent::NavigationResults NavigationComponent::ComputeMovement(float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel)
 	{
 		Nz::Vector3f targetPos;
-		bool hasTarget = std::visit([&targetPos](auto&& arg) -> bool
+		bool hasTarget;
+		std::visit([&](auto&& arg)
 		{
 			using T = std::decay_t<decltype(arg)>;
 			if constexpr (std::is_same_v<T, Nz::Vector3f>)
 			{
 				targetPos = arg;
-				return true;
+				hasTarget = true;
 			}
 			else if constexpr (std::is_same_v<T, Ndk::EntityHandle>)
 			{
 				if (!arg)
-					return false;
+				{
+					hasTarget = false;
+					return;
+				}
 
 				targetPos = arg->template GetComponent<Ndk::NodeComponent>().GetPosition();
-				return true;
+				hasTarget = true;
 			}
 			else if constexpr (std::is_same_v<T, std::monostate>)
-				return false;
+				hasTarget = false;
 			else
 				static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
