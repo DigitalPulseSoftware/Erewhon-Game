@@ -12,7 +12,7 @@ namespace ewn
 	NavigationComponent::NavigationResults NavigationComponent::ComputeMovement(float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel)
 	{
 		Nz::Vector3f targetPos;
-		bool hasTarget = std::visit([&targetPos](auto&& arg) -> bool
+		/*bool hasTarget = std::visit([&targetPos](auto&& arg) -> bool
 		{
 			using T = std::decay_t<decltype(arg)>;
 			if constexpr (std::is_same_v<T, Nz::Vector3f>)
@@ -36,7 +36,25 @@ namespace ewn
 		}, m_target);
 
 		if (!hasTarget)
-			return { Nz::Vector3f::Zero(), Nz::Vector3f::Zero() };
+			return { Nz::Vector3f::Zero(), Nz::Vector3f::Zero() };*/
+
+		// GDB demangler seems to fail on upper lambda
+		switch (m_target.index())
+		{
+			case 0: //< NoTarget
+				return { Nz::Vector3f::Zero(), Nz::Vector3f::Zero() };
+
+			case 1: //< EntityHandle
+				targetPos = std::get<Ndk::EntityHandle>(m_target)->GetComponent<Ndk::NodeComponent>().GetPosition();
+				break;
+
+			case 2: //< Position
+				targetPos = std::get<Nz::Vector3f>(m_target);
+				break;
+
+			default:
+				assert(false);
+		}
 
 		Nz::Vector3f desiredHeading = targetPos - position;
 		bool isCloseEnough = (desiredHeading.GetSquaredLength() <= m_triggerDistance * m_triggerDistance);

@@ -55,7 +55,7 @@ namespace ewn
 				Nz::Vector3f thrust;
 			};
 
-			struct NoTarget {}; //< Fixes std::monostate which GDB fail to demangle
+			struct NoTarget {};
 
 			ProximityCallback m_proximityCallback;
 			PidController<Nz::Vector3f> m_headingController;
