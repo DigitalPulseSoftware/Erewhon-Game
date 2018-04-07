@@ -91,7 +91,7 @@ namespace ewn
 
 		DatabaseTransaction trans;
 		trans.AppendPreparedStatement("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName });
-		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code }, [](DatabaseTransaction& transaction, DatabaseResult result)
+		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code, Nz::Int32(1) }, [](DatabaseTransaction& transaction, DatabaseResult result)
 		{
 			if (!result)
 				return result;
