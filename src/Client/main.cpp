@@ -9,6 +9,7 @@
 #include <Nazara/Graphics/DeferredRenderTechnique.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Network/Network.hpp>
+#include <NDK/Algorithm.hpp>
 #include <NDK/Canvas.hpp>
 #include <NDK/Components/CameraComponent.hpp>
 #include <NDK/Components/ListenerComponent.hpp>
@@ -16,15 +17,20 @@
 #include <NDK/Systems/RenderSystem.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
+#include <Client/ServerConnection.hpp>
+#include <Client/Components/SoundEmitterComponent.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/DisconnectionState.hpp>
 #include <Client/States/LoginState.hpp>
-#include <Client/ServerConnection.hpp>
+#include <Client/Systems/SoundEmitterSystem.hpp>
 #include <iostream>
 
 int main()
 {
 	Nz::Initializer<Nz::Audio, Nz::Network> nazaraInit;
+
+	Ndk::InitializeComponent<ewn::SoundEmitterComponent>("SndEmitr");
+	Ndk::InitializeSystem<ewn::SoundEmitterSystem>();
 
 	ewn::ClientApplication app;
 	if (!app.LoadConfig("cconfig.lua"))
@@ -46,6 +52,7 @@ int main()
 
 	// 3D Scene
 	Ndk::World& world3D = app.AddWorld();
+	world3D.AddSystem<ewn::SoundEmitterSystem>();
 	//world3D.GetSystem<Ndk::RenderSystem>().ChangeRenderTechnique(std::make_unique<Nz::DeferredRenderTechnique>());
 
 	const Ndk::EntityHandle& camera3D = world3D.CreateEntity();
@@ -55,7 +62,7 @@ int main()
 	cameraComponent3D.SetZFar(10'000.f);
 	cameraComponent3D.SetZNear(1.f);
 
-	//camera3D->AddComponent<Ndk::ListenerComponent>();
+	camera3D->AddComponent<Ndk::ListenerComponent>();
 	camera3D->AddComponent<Ndk::NodeComponent>();
 
 	// 2D Scene

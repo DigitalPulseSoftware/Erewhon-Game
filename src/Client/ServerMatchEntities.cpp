@@ -13,6 +13,7 @@
 #include <Nazara/Utility/VertexMapper.hpp>
 #include <NDK/Components.hpp>
 #include <Client/ClientApplication.hpp>
+#include <Client/Components/SoundEmitterComponent.hpp>
 #include <iostream>
 
 namespace ewn
@@ -30,13 +31,14 @@ namespace ewn
 	{
 		m_snapshotDelay = m_jitterBuffer.size() * 1000 / 30 /* + ping? */;
 
-		m_onArenaModelsSlot.Connect(server->OnArenaModels, this, &ServerMatchEntities::OnArenaModels);
 		m_onArenaPrefabsSlot.Connect(server->OnArenaPrefabs, this, &ServerMatchEntities::OnArenaPrefabs);
-		m_onArenaStateSlot.Connect(server->OnArenaState, this, &ServerMatchEntities::OnArenaState);
+		m_onArenaSoundsSlot.Connect(server->OnArenaSounds, this,   &ServerMatchEntities::OnArenaSounds);
+		m_onArenaStateSlot.Connect(server->OnArenaState, this,     &ServerMatchEntities::OnArenaState);
 		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
 		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
+		m_onPlaySoundSlot.Connect(server->OnPlaySound, this,       &ServerMatchEntities::OnPlaySound);
 
-		FillPrefabFactory();
+		FillVisualEffectFactory();
 
 		// Listen to debug state
 		if constexpr (showServerGhosts)
@@ -65,6 +67,8 @@ namespace ewn
 
 	void ServerMatchEntities::Update(float elapsedTime)
 	{
+		HandlePlayingSounds();
+
 		if (m_stateHandlingEnabled)
 		{
 			Nz::UInt64 serverTime = m_server->EstimateServerTime();
@@ -151,10 +155,10 @@ namespace ewn
 		}*/
 	}
 
-	void ServerMatchEntities::FillPrefabFactory()
+	void ServerMatchEntities::FillVisualEffectFactory()
 	{
 		// Earth
-		m_prefabFactory["earth"] = [](ClientApplication* /*app*/, Ndk::World& world) -> const Ndk::EntityHandle&
+		m_visualEffectFactory["earth"] = [](ClientApplication* /*app*/, const Ndk::EntityHandle& entity)
 		{
 			Nz::MeshRef earthMesh = Nz::Mesh::New();
 			earthMesh->CreateStatic();
@@ -168,39 +172,17 @@ namespace ewn
 			earthModel->SetMesh(earthMesh);
 			earthModel->SetMaterial(0, earthMaterial);
 
-			const Ndk::EntityHandle& entity = world.CreateEntity();
-			entity->AddComponent<Ndk::GraphicsComponent>().Attach(earthModel);
-
-			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(0.f);
-			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
-			entity->AddComponent<Ndk::NodeComponent>();
-
-			return entity;
+			entity->GetComponent<Ndk::GraphicsComponent>().Attach(earthModel);
 		};
 
 		// Scene light
-		m_prefabFactory["light"] = [](ClientApplication* /*app*/, Ndk::World& world) -> const Ndk::EntityHandle&
+		m_visualEffectFactory["light"] = [](ClientApplication* /*app*/, const Ndk::EntityHandle& entity)
 		{
-			const Ndk::EntityHandle& entity = world.CreateEntity();
-			entity->AddComponent<Ndk::NodeComponent>();
-
-			auto& lightComponent = entity->AddComponent<Ndk::LightComponent>(Nz::LightType_Directional);
-
-			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(0.f);
-			physComponent.SetAngularVelocity(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
-			return entity;
+			entity->AddComponent<Ndk::LightComponent>(Nz::LightType_Directional);
 		};
 
 		// Projectile (laser)
-		m_prefabFactory["plasmabeam"] = [](ClientApplication* app, Ndk::World& world) -> const Ndk::EntityHandle&
+		m_visualEffectFactory["plasmabeam"] = [](ClientApplication* app, const Ndk::EntityHandle& entity)
 		{
 			const std::string& assetsFolder = app->GetConfig().GetStringOption("AssetsFolder");
 
@@ -222,31 +204,18 @@ namespace ewn
 
 			Nz::SpriteRef laserSprite2 = Nz::Sprite::New(*laserSprite1);
 
-			const Ndk::EntityHandle& entity = world.CreateEntity();
-			auto& gfxComponent = entity->AddComponent<Ndk::GraphicsComponent>();
+			auto& gfxComponent = entity->GetComponent<Ndk::GraphicsComponent>();
 
 			gfxComponent.Attach(laserSprite1, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(0.f, 90.f, 0.f)));
 			gfxComponent.Attach(laserSprite2, Nz::Matrix4f::Transform(Nz::Vector3f::Backward() * 2.5f, Nz::EulerAnglesf(90.f, 90.f, 0.f)));
-
-			//m_projectileTemplateEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
-			entity->AddComponent<Ndk::NodeComponent>();
-
-			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(1.f);
-			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
-			return entity;
 		};
 
 		// Projectile (torpedo)
-		m_prefabFactory["torpedo"] = [](ClientApplication* app, Ndk::World& world) -> const Ndk::EntityHandle&
+		m_visualEffectFactory["torpedo"] = [](ClientApplication* app, const Ndk::EntityHandle& entity)
 		{
 			const std::string& assetsFolder = app->GetConfig().GetStringOption("AssetsFolder");
 
-			const Ndk::EntityHandle& entity = world.CreateEntity();
-			auto& gfxComponent = entity->AddComponent<Ndk::GraphicsComponent>();
+			auto& gfxComponent = entity->GetComponent<Ndk::GraphicsComponent>();
 
 			Nz::MaterialRef flareMaterial = Nz::Material::New("Translucent3D");
 			flareMaterial->SetDiffuseMap(assetsFolder + "/weapons/flare1.png");
@@ -257,31 +226,32 @@ namespace ewn
 			billboard->SetSize(billboard->GetSize() * 0.025f);
 
 			gfxComponent.Attach(billboard);
-
-			entity->AddComponent<Ndk::NodeComponent>();
-
-			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(1.f);
-			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
-			return entity;
 		};
 	}
 
-	void ServerMatchEntities::OnArenaModels(ServerConnection* server, const Packets::ArenaModels& arenaModels)
+	void ServerMatchEntities::HandlePlayingSounds()
+	{
+		for (auto it = m_playingSounds.begin(); it != m_playingSounds.end();)
+		{
+			if (!it->IsPlaying())
+				it = m_playingSounds.erase(it);
+			else
+				++it;
+		}
+	}
+
+	void ServerMatchEntities::OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs)
 	{
 		Nz::ModelParameters params;
 		params.mesh.center = true;
 		params.mesh.texCoordScale.Set(1.f, -1.f);
 
-		m_prefabs.erase(m_prefabs.begin() + arenaModels.startId, m_prefabs.end());
+		m_prefabs.erase(m_prefabs.begin() + arenaPrefabs.startId, m_prefabs.end());
 
 		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
 
 		const NetworkStringStore& networkStringStore = server->GetNetworkStringStore();
-		for (const auto& model : arenaModels.models)
+		for (const auto& prefab : arenaPrefabs.prefabs)
 		{
 			const Ndk::EntityHandle& entity = m_world->CreateEntity();
 			entity->Disable();
@@ -295,36 +265,64 @@ namespace ewn
 			physComponent.SetLinearDamping(0.f);
 
 			auto& graphicsComponent = entity->AddComponent<Ndk::GraphicsComponent>();
-			for (const auto& piece : model.pieces)
+			for (const auto& model : prefab.models)
 			{
-				Nz::Matrix4f transformMatrix = Nz::Matrix4f::Transform(piece.position, piece.rotation, piece.scale);
+				Nz::Matrix4f transformMatrix = Nz::Matrix4f::Transform(model.position, model.rotation, model.scale);
 
 				// TODO: Load it once for every path
-				const std::string& filePath = assetsFolder + '/' + networkStringStore.GetString(piece.modelId);
+				std::string filePath = assetsFolder + '/' + networkStringStore.GetString(model.modelId);
 
 				Nz::ModelRef model = Nz::Model::New();
 				if (model->LoadFromFile(filePath, params))
 					graphicsComponent.Attach(model, transformMatrix);
+				else
+					std::cerr << "Failed to load " << filePath << std::endl;
+			}
+
+			for (const auto& sound : prefab.sounds)
+			{
+				if (!entity->HasComponent<SoundEmitterComponent>())
+					entity->AddComponent<SoundEmitterComponent>();
+
+				SoundEmitterComponent& soundEmitter = entity->GetComponent<SoundEmitterComponent>();
+				soundEmitter.EnableLooping(true);
+				soundEmitter.EnableSpatialization(true);
+				soundEmitter.SetBuffer(m_soundLibrary[sound.soundId]);
+				soundEmitter.SetMinDistance(20.f);
+
+				// TODO: Support multiple sounds (and relative positioning)
+				break;
+			}
+
+			for (const auto& visualEffect : prefab.visualEffects)
+			{
+				auto visualEffectIt = m_visualEffectFactory.find(networkStringStore.GetString(visualEffect.effectNameId));
+				assert(visualEffectIt != m_visualEffectFactory.end());
+
+				visualEffectIt->second(m_app, entity);
 			}
 
 			m_prefabs.emplace_back(entity);
 		}
 	}
 
-	void ServerMatchEntities::OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs)
+	void ServerMatchEntities::OnArenaSounds(ServerConnection* server, const Packets::ArenaSounds& arenaSounds)
 	{
-		m_prefabs.erase(m_prefabs.begin() + arenaPrefabs.startId, m_prefabs.end());
+		Nz::SoundBufferParams fileParams;
+		fileParams.forceMono = true;
 
-		const NetworkStringStore& networkStringStore = server->GetNetworkStringStore();
-		for (const auto& prefab : arenaPrefabs.prefabs)
+		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
+
+		m_soundLibrary.erase(m_soundLibrary.begin() + arenaSounds.startId, m_soundLibrary.end());
+		for (const auto& sound : arenaSounds.sounds)
 		{
-			auto prefabIt = m_prefabFactory.find(networkStringStore.GetString(prefab.visualEffectId));
-			assert(prefabIt != m_prefabFactory.end());
+			std::string filePath = assetsFolder + '/' + sound.filePath;
 
-			const Ndk::EntityHandle& entity = prefabIt->second(m_app, *m_world);
-			entity->Disable();
+			Nz::SoundBufferRef soundBuffer = Nz::SoundBuffer::New();
+			if (!soundBuffer->LoadFromFile(filePath, fileParams))
+				std::cerr << "Failed to load " << filePath << std::endl;
 
-			m_prefabs.emplace_back(entity);
+			m_soundLibrary.emplace_back(std::move(soundBuffer));
 		}
 	}
 
@@ -372,6 +370,12 @@ namespace ewn
 		entityPhys.SetPosition(createPacket.position);
 		entityPhys.SetRotation(createPacket.rotation);
 
+		if (data.entity->HasComponent<SoundEmitterComponent>())
+		{
+			auto& soundEmitter = data.entity->GetComponent<SoundEmitterComponent>();
+			soundEmitter.Play();
+		}
+
 		Nz::Color textColor = (createPacket.visualName == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
 
 		// Create entity name entity
@@ -404,6 +408,17 @@ namespace ewn
 		data.isValid = false;
 
 		OnEntityDelete(this, data);
+	}
+
+	void ServerMatchEntities::OnPlaySound(ServerConnection* server, const Packets::PlaySound& playSound)
+	{
+		Nz::Sound& sound = m_playingSounds.emplace_back();
+		sound.SetBuffer(m_soundLibrary[playSound.soundId]);
+		sound.EnableSpatialization(true);
+		sound.SetPosition(playSound.position);
+		sound.SetMinDistance(50.f);
+
+		sound.Play();
 	}
 
 	void ServerMatchEntities::ApplySnapshot(const Snapshot& snapshot)

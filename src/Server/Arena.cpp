@@ -428,53 +428,73 @@ namespace ewn
 
 	void Arena::SendArenaData(Player* player)
 	{
+		Packets::ArenaSounds arenaSoundsPacket;
+		arenaSoundsPacket.startId = 0;
+
+		arenaSoundsPacket.sounds.emplace_back();
+		arenaSoundsPacket.sounds.back().filePath = "sounds/laserTurretlow.ogg";
+
+		arenaSoundsPacket.sounds.emplace_back();
+		arenaSoundsPacket.sounds.back().filePath = "sounds/106733__crunchynut__sci-fi-loop-2.wav";
+
+		player->SendPacket(arenaSoundsPacket);
+
 		Packets::ArenaPrefabs arenaPrefabsPacket;
 		arenaPrefabsPacket.startId = 0;
 
 		// Earth
 		arenaPrefabsPacket.prefabs.emplace_back();
-		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
-		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("earth");
+		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("earth");
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().rotation = Nz::Quaternionf::Identity();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().scale = Nz::Vector3f::Unit();
 
 		// Light
 		arenaPrefabsPacket.prefabs.emplace_back();
-		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
-		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("light");
+		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("light");
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().rotation = Nz::Quaternionf::Identity();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().scale = Nz::Vector3f::Unit();
 
 		// Plasma beam
 		arenaPrefabsPacket.prefabs.emplace_back();
-		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
-		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("plasmabeam");
+		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("plasmabeam");
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().rotation = Nz::Quaternionf::Identity();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().scale = Nz::Vector3f::Unit();
 
 		// Torpedo
 		arenaPrefabsPacket.prefabs.emplace_back();
-		arenaPrefabsPacket.prefabs.back().collisionMeshId = m_app->GetNetworkStringStore().GetStringIndex("");
-		arenaPrefabsPacket.prefabs.back().visualEffectId = m_app->GetNetworkStringStore().GetStringIndex("torpedo");
+		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("torpedo");
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().rotation = Nz::Quaternionf::Identity();
+		arenaPrefabsPacket.prefabs.back().visualEffects.back().scale = Nz::Vector3f::Unit();
 
-		player->SendPacket(arenaPrefabsPacket);
-
-		// Models
-
-		Packets::ArenaModels arenaModelsPacket;
-		arenaModelsPacket.startId = arenaPrefabsPacket.prefabs.size();
+		/*arenaPrefabsPacket.prefabs.back().sounds.emplace_back();
+		arenaPrefabsPacket.prefabs.back().sounds.back().soundId = 1;
+		arenaPrefabsPacket.prefabs.back().sounds.back().position = Nz::Vector3f::Zero();*/
 
 		// Ball
-		arenaModelsPacket.models.emplace_back();
-		arenaModelsPacket.models.back().pieces.emplace_back();
-		arenaModelsPacket.models.back().pieces.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("ball/ball.obj");
-		arenaModelsPacket.models.back().pieces.back().position = Nz::Vector3f::Zero();
-		arenaModelsPacket.models.back().pieces.back().rotation = Nz::Quaternionf::Identity();
-		arenaModelsPacket.models.back().pieces.back().scale = Nz::Vector3f::Unit();
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().models.emplace_back();
+		arenaPrefabsPacket.prefabs.back().models.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("ball/ball.obj");
+		arenaPrefabsPacket.prefabs.back().models.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::Quaternionf::Identity();
+		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f::Unit();
 
 		// Spaceship
-		arenaModelsPacket.models.emplace_back();
-		arenaModelsPacket.models.back().pieces.emplace_back();
-		arenaModelsPacket.models.back().pieces.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("spaceship/spaceship.obj");
-		arenaModelsPacket.models.back().pieces.back().position = Nz::Vector3f::Zero();
-		arenaModelsPacket.models.back().pieces.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
-		arenaModelsPacket.models.back().pieces.back().scale = Nz::Vector3f(0.01f);
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().models.emplace_back();
+		arenaPrefabsPacket.prefabs.back().models.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("spaceship/spaceship.obj");
+		arenaPrefabsPacket.prefabs.back().models.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
+		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(0.01f);
 
-		player->SendPacket(arenaModelsPacket);
+		player->SendPacket(arenaPrefabsPacket);
 	}
 
 	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)

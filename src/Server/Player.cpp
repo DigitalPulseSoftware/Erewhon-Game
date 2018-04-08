@@ -131,6 +131,12 @@ namespace ewn
 		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
 
 		m_arena->CreateTorpedo(this, m_spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
+
+		Packets::PlaySound playSound;
+		playSound.position = spaceshipNode.GetPosition();
+		playSound.soundId = 0;
+
+		m_arena->BroadcastPacket(playSound, this);
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f movement, Nz::Vector3f rotation)

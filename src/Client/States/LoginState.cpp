@@ -4,6 +4,8 @@
 
 #include <Client/States/LoginState.hpp>
 #include <Nazara/Core/String.hpp>
+#include <Nazara/Renderer/DebugDrawer.hpp>
+#include <Nazara/Renderer/Renderer.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
 #include <NDK/StateMachine.hpp>
 #include <NDK/Widgets/CheckboxWidget.hpp>
@@ -162,6 +164,12 @@ namespace ewn
 
 	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
+		/*Nz::Renderer::SetMatrix(Nz::MatrixType_World, Nz::Matrix4f::Identity());
+
+		Nz::Vector2f pos = Nz::Vector2f(m_optionButton->GetPosition());// +m_optionButton->GetContentOrigin();
+		Nz::Vector2f size = m_optionButton->GetSize();
+		Nz::DebugDrawer::Draw(Nz::Boxf(pos.x, pos.y, 0.f, size.x, size.y, 1.f));*/
+
 		StateData& stateData = GetStateData();
 
 		if (m_loginSucceeded)

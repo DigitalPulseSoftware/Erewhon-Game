@@ -11,38 +11,6 @@ namespace ewn
 {
 	namespace Packets
 	{
-		void Serialize(PacketSerializer& serializer, ArenaModels& data)
-		{
-			serializer &= data.startId;
-
-			CompressedUnsigned<Nz::UInt32> modelCount;
-			if (serializer.IsWriting())
-				modelCount = Nz::UInt32(data.models.size());
-
-			serializer &= modelCount;
-			if (!serializer.IsWriting())
-				data.models.resize(modelCount);
-
-			for (auto& model : data.models)
-			{
-				CompressedUnsigned<Nz::UInt32> pieceCount;
-				if (serializer.IsWriting())
-					pieceCount = Nz::UInt32(model.pieces.size());
-
-				serializer &= pieceCount;
-				if (!serializer.IsWriting())
-					model.pieces.resize(pieceCount);
-
-				for (auto& piece : model.pieces)
-				{
-					serializer &= piece.modelId;
-					serializer &= piece.rotation;
-					serializer &= piece.position;
-					serializer &= piece.scale;
-				}
-			}
-		}
-
 		void Serialize(PacketSerializer& serializer, ArenaPrefabs& data)
 		{
 			serializer &= data.startId;
@@ -55,11 +23,67 @@ namespace ewn
 			if (!serializer.IsWriting())
 				data.prefabs.resize(prefabCount);
 
-			for (auto& prefab : data.prefabs)
+			for (auto& prefabs : data.prefabs)
 			{
-				serializer &= prefab.collisionMeshId;
-				serializer &= prefab.visualEffectId;
+				CompressedUnsigned<Nz::UInt32> modelCount;
+				CompressedUnsigned<Nz::UInt32> soundCount;
+				CompressedUnsigned<Nz::UInt32> visualEffectCount;
+				if (serializer.IsWriting())
+				{
+					modelCount = Nz::UInt32(prefabs.models.size());
+					soundCount = Nz::UInt32(prefabs.sounds.size());
+					visualEffectCount = Nz::UInt32(prefabs.visualEffects.size());
+				}
+
+				serializer &= modelCount;
+				serializer &= soundCount;
+				serializer &= visualEffectCount;
+
+				if (!serializer.IsWriting())
+				{
+					prefabs.models.resize(modelCount);
+					prefabs.sounds.resize(soundCount);
+					prefabs.visualEffects.resize(visualEffectCount);
+				}
+
+				for (auto& model : prefabs.models)
+				{
+					serializer &= model.modelId;
+					serializer &= model.rotation;
+					serializer &= model.position;
+					serializer &= model.scale;
+				}
+
+				for (auto& sound : prefabs.sounds)
+				{
+					serializer &= sound.soundId;
+					serializer &= sound.position;
+				}
+
+				for (auto& effect : prefabs.visualEffects)
+				{
+					serializer &= effect.effectNameId;
+					serializer &= effect.rotation;
+					serializer &= effect.position;
+					serializer &= effect.scale;
+				}
 			}
+		}
+
+		void Serialize(PacketSerializer& serializer, ArenaSounds& data)
+		{
+			serializer &= data.startId;
+
+			CompressedUnsigned<Nz::UInt32> soundCount;
+			if (serializer.IsWriting())
+				soundCount = Nz::UInt32(data.sounds.size());
+
+			serializer &= soundCount;
+			if (!serializer.IsWriting())
+				data.sounds.resize(soundCount);
+
+			for (auto& sound : data.sounds)
+				serializer &= sound.filePath;
 		}
 
 		void Serialize(PacketSerializer& serializer, ArenaState& data)
@@ -184,6 +208,12 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, PlayerShoot& data)
 		{
+		}
+
+		void Serialize(PacketSerializer& serializer, PlaySound& data)
+		{
+			serializer &= data.soundId;
+			serializer &= data.position;
 		}
 
 		void Serialize(PacketSerializer& serializer, Register& data)

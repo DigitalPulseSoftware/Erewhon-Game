@@ -51,8 +51,8 @@ namespace ewn
 			NazaraSignal(OnDisconnected, ServerConnection* /*server*/, Nz::UInt32 /*data*/);
 
 			// Packet reception signals
-			NazaraSignal(OnArenaModels,      ServerConnection* /*server*/, const Packets::ArenaModels&      /*data*/);
 			NazaraSignal(OnArenaPrefabs,     ServerConnection* /*server*/, const Packets::ArenaPrefabs&     /*data*/);
+			NazaraSignal(OnArenaSounds,      ServerConnection* /*server*/, const Packets::ArenaSounds&      /*data*/);
 			NazaraSignal(OnArenaState,       ServerConnection* /*server*/, const Packets::ArenaState&       /*data*/);
 			NazaraSignal(OnBotMessage,       ServerConnection* /*server*/, const Packets::BotMessage&       /*data*/);
 			NazaraSignal(OnChatMessage,      ServerConnection* /*server*/, const Packets::ChatMessage&      /*data*/);
@@ -63,6 +63,7 @@ namespace ewn
 			NazaraSignal(OnLoginFailure,     ServerConnection* /*server*/, const Packets::LoginFailure&     /*data*/);
 			NazaraSignal(OnLoginSuccess,     ServerConnection* /*server*/, const Packets::LoginSuccess&     /*data*/);
 			NazaraSignal(OnNetworkStrings,   ServerConnection* /*server*/, const Packets::NetworkStrings&   /*data*/);
+			NazaraSignal(OnPlaySound,        ServerConnection* /*server*/, const Packets::PlaySound&        /*data*/);
 			NazaraSignal(OnRegisterFailure,  ServerConnection* /*server*/, const Packets::RegisterFailure&  /*data*/);
 			NazaraSignal(OnRegisterSuccess,  ServerConnection* /*server*/, const Packets::RegisterSuccess&  /*data*/);
 			NazaraSignal(OnTimeSyncResponse, ServerConnection* /*server*/, const Packets::TimeSyncResponse& /*data*/);

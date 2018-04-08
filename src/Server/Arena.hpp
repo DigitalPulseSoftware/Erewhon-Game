@@ -38,6 +38,9 @@ namespace ewn
 			Arena(Arena&&) = delete;
 			~Arena();
 
+			template<typename T>
+			void BroadcastPacket(const T& packet, Player* exceptPlayer = nullptr);
+
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
 			const Ndk::EntityHandle& CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			const Ndk::EntityHandle& CreateTorpedo(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);

@@ -7,6 +7,8 @@
 #ifndef EREWHON_CLIENT_SERVERMATCHENTITIES_HPP
 #define EREWHON_CLIENT_SERVERMATCHENTITIES_HPP
 
+#include <Nazara/Audio/Sound.hpp>
+#include <Nazara/Audio/SoundBuffer.hpp>
 #include <Nazara/Core/Signal.hpp>
 #include <Nazara/Graphics/Material.hpp>
 #include <Nazara/Network/UdpSocket.hpp>
@@ -63,13 +65,15 @@ namespace ewn
 			struct Snapshot;
 
 			inline ServerEntity& CreateServerEntity(Nz::UInt32 id);
-			void FillPrefabFactory();
+			void FillVisualEffectFactory();
+			void HandlePlayingSounds();
 
-			void OnArenaModels(ServerConnection* server, const Packets::ArenaModels& arenaModels);
 			void OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs);
+			void OnArenaSounds(ServerConnection* server, const Packets::ArenaSounds& arenaSounds);
 			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
 			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
 			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
+			void OnPlaySound(ServerConnection* server, const Packets::PlaySound& playSound);
 
 			void ApplySnapshot(const Snapshot& snapshot);
 
@@ -89,18 +93,21 @@ namespace ewn
 				std::vector<Entity> entities;
 			};
 
-			NazaraSlot(ServerConnection, OnArenaModels,  m_onArenaModelsSlot);
 			NazaraSlot(ServerConnection, OnArenaPrefabs, m_onArenaPrefabsSlot);
+			NazaraSlot(ServerConnection, OnArenaSounds,  m_onArenaSoundsSlot);
 			NazaraSlot(ServerConnection, OnArenaState,   m_onArenaStateSlot);
 			NazaraSlot(ServerConnection, OnCreateEntity, m_onCreateEntitySlot);
 			NazaraSlot(ServerConnection, OnDeleteEntity, m_onDeleteEntitySlot);
+			NazaraSlot(ServerConnection, OnPlaySound,    m_onPlaySoundSlot);
 
-			using PrefabFactoryFunction = std::function<const Ndk::EntityHandle&(ClientApplication* app, Ndk::World& world)>;
+			using PrefabFactoryFunction = std::function<void(ClientApplication* app, const Ndk::EntityHandle& entity)>;
 
 			std::array<Snapshot, 5> m_jitterBufferData;
 			nonstd::ring_span<Snapshot> m_jitterBuffer;
-			std::unordered_map<std::string, PrefabFactoryFunction> m_prefabFactory;
+			std::unordered_map<std::string, PrefabFactoryFunction> m_visualEffectFactory;
 			std::vector<Ndk::EntityOwner> m_prefabs;
+			std::vector<Nz::Sound> m_playingSounds;
+			std::vector<Nz::SoundBufferRef> m_soundLibrary;
 			std::vector<ServerEntity> m_serverEntities;
 			Ndk::WorldHandle m_world;
 			Nz::UdpSocket m_debugStateSocket;
