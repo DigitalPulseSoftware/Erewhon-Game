@@ -739,7 +739,7 @@ namespace ewn
 			return;
 
 		m_lastShootTime = currentTime;
-		//m_shootSound.Play();
+		m_shootSound.Play();
 
 		m_server->SendPacket(Packets::PlayerShoot());
 	}
