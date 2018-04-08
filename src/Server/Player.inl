@@ -24,9 +24,9 @@ namespace ewn
 		return m_botEntity;
 	}
 
-	const Ndk::EntityHandle& Player::GetControlledSpaceship() const
+	const Ndk::EntityHandle& Player::GetControlledEntity() const
 	{
-		return m_spaceship;
+		return m_controlledEntity;
 	}
 
 	inline Nz::UInt32 Player::GetDatabaseId() const

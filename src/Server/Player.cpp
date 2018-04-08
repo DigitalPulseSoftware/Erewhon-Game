@@ -8,7 +8,9 @@
 #include <Server/Arena.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/InputComponent.hpp>
+#include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
+#include <cassert>
 
 namespace ewn
 {
@@ -75,7 +77,7 @@ namespace ewn
 
 	const Ndk::EntityHandle& Player::InstantiateBot(std::size_t spaceshipHullId)
 {
-		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
 
 		m_botEntity = m_arena->CreateSpaceship("Bot (" + m_login + ')', this, spaceshipHullId, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());
 
@@ -84,9 +86,9 @@ namespace ewn
 
 	Nz::UInt64 Player::GetLastInputProcessedTime() const
 	{
-		if (m_spaceship)
+		if (m_controlledEntity)
 		{
-			auto& controlComponent = m_spaceship->GetComponent<InputComponent>();
+			auto& controlComponent = m_controlledEntity->GetComponent<InputComponent>();
 			return controlComponent.GetLastInputTime();
 		}
 
@@ -103,14 +105,6 @@ namespace ewn
 		m_arena = arena;
 		if (m_arena)
 			m_arena->HandlePlayerJoin(this);
-
-		m_spaceship = m_arena->CreatePlayerSpaceship(this);
-
-		// Control packet
-		Packets::ControlEntity controlPacket;
-		controlPacket.id = m_spaceship->GetId();
-
-		SendPacket(controlPacket);
 	}
 
 	void Player::PrintMessage(std::string chatMessage)
@@ -128,15 +122,30 @@ namespace ewn
 
 		m_lastShootTime = ServerApplication::GetAppTime();
 
-		auto& spaceshipNode = m_spaceship->GetComponent<Ndk::NodeComponent>();
+		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
 
-		m_arena->CreateTorpedo(this, m_spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
+		m_arena->CreateTorpedo(this, m_controlledEntity, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
 
 		Packets::PlaySound playSound;
 		playSound.position = spaceshipNode.GetPosition();
 		playSound.soundId = 0;
 
 		m_arena->BroadcastPacket(playSound, this);
+	}
+
+	void Player::UpdateControlledEntity(const Ndk::EntityHandle& entity)
+	{
+		if (m_controlledEntity != entity)
+		{
+			assert(!entity || entity->HasComponent<PlayerControlledComponent>());
+
+			m_controlledEntity = entity;
+
+			// Control packet
+			Packets::ControlEntity controlPacket;
+			controlPacket.id = (m_controlledEntity) ? m_controlledEntity->GetId() : 0;
+			SendPacket(controlPacket);
+		}
 	}
 
 	void Player::UpdateInput(Nz::UInt64 lastInputTime, Nz::Vector3f movement, Nz::Vector3f rotation)
@@ -147,7 +156,7 @@ namespace ewn
 
 		m_lastInputTime = lastInputTime;
 
-		if (!m_spaceship)
+		if (!m_controlledEntity)
 			return;
 
 		if (!std::isfinite(movement.x) ||
@@ -175,7 +184,7 @@ namespace ewn
 		rotation.y = Nz::Clamp(rotation.y, -1.f, 1.f);
 		rotation.z = Nz::Clamp(rotation.z, -1.f, 1.f);
 
-		auto& controlComponent = m_spaceship->GetComponent<InputComponent>();
+		auto& controlComponent = m_controlledEntity->GetComponent<InputComponent>();
 		controlComponent.PushInput(lastInputTime, movement, rotation);
 	}
 

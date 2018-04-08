@@ -129,14 +129,17 @@ namespace ewn
 
 		if (m_controlledEntity != entityId && m_controlledEntity != std::numeric_limits<std::size_t>::max())
 		{
-			auto& oldData = m_matchEntities->GetServerEntity(m_controlledEntity);
-			if (oldData.textEntity)
-				oldData.textEntity->Enable();
+			if (m_matchEntities->IsServerEntityValid(m_controlledEntity))
+			{
+				auto& oldData = m_matchEntities->GetServerEntity(m_controlledEntity);
+				if (oldData.textEntity)
+					oldData.textEntity->Enable();
+			}
 
 			m_spaceshipController.reset();
 		}
 
-		if (m_matchEntities->IsServerEntityValid(entityId))
+		if (entityId != std::numeric_limits<std::size_t>::max() && m_matchEntities->IsServerEntityValid(entityId))
 		{
 			auto& data = m_matchEntities->GetServerEntity(entityId);
 
@@ -152,7 +155,7 @@ namespace ewn
 
 	void GameState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
 	{
-		ControlEntity(controlPacket.id);
+		ControlEntity((controlPacket.id != 0) ? controlPacket.id : std::numeric_limits<std::size_t>::max());
 	}
 
 	void GameState::OnEntityCreated(ServerMatchEntities* /*entities*/, ServerMatchEntities::ServerEntity& entityData)

@@ -35,7 +35,7 @@ namespace ewn
 
 			inline Arena* GetArena() const;
 			inline const Ndk::EntityHandle& GetBotEntity() const;
-			inline const Ndk::EntityHandle& GetControlledSpaceship() const;
+			inline const Ndk::EntityHandle& GetControlledEntity() const;
 			inline Nz::UInt32 GetDatabaseId() const;
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetLogin() const;
@@ -55,6 +55,7 @@ namespace ewn
 
 			void Shoot();
 
+			void UpdateControlledEntity(const Ndk::EntityHandle& entity);
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
 			void UpdatePermissionLevel(Nz::UInt16 permissionLevel, std::function<void(bool updateSucceeded)> databaseCallback = nullptr);
 
@@ -69,7 +70,7 @@ namespace ewn
 			std::string m_displayName;
 			std::string m_login;
 			Ndk::EntityOwner m_botEntity;
-			Ndk::EntityOwner m_spaceship;
+			Ndk::EntityOwner m_controlledEntity;
 			Nz::UInt16 m_permissionLevel;
 			Nz::UInt32 m_databaseId;
 			Nz::UInt64 m_lastInputTime;

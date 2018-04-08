@@ -101,7 +101,7 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleSuicide(ServerApplication* /*app*/, Player* player)
 	{
-		if (const Ndk::EntityHandle& playerSpaceship = player->GetControlledSpaceship())
+		if (const Ndk::EntityHandle& playerSpaceship = player->GetControlledEntity())
 		{
 			HealthComponent& spaceshipHealth = playerSpaceship->GetComponent<HealthComponent>();
 			spaceshipHealth.Damage(spaceshipHealth.GetHealth(), playerSpaceship);
