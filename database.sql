@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 10.1
+-- Dumped from database version 10.3 (Debian 10.3-1.pgdg90+1)
 -- Dumped by pg_dump version 10.1
 
 SET statement_timeout = 0;
@@ -19,10 +19,10 @@ SET search_path = public, pg_catalog;
 SET default_with_oids = false;
 
 --
--- Name: account; Type: TABLE; Schema: public; Owner: -
+-- Name: accounts; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE account (
+CREATE TABLE accounts (
     id integer NOT NULL,
     login character varying(64) NOT NULL,
     display_name character varying(64) NOT NULL,
@@ -52,7 +52,37 @@ CREATE SEQUENCE account_id_seq
 -- Name: account_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE account_id_seq OWNED BY account.id;
+ALTER SEQUENCE account_id_seq OWNED BY accounts.id;
+
+
+--
+-- Name: collision_meshes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE collision_meshes (
+    id integer NOT NULL,
+    file_path character varying(255) NOT NULL
+);
+
+
+--
+-- Name: collision_mesh_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE collision_mesh_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: collision_mesh_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE collision_mesh_id_seq OWNED BY collision_meshes.id;
 
 
 --
@@ -89,15 +119,49 @@ ALTER SEQUENCE modules_id_seq OWNED BY modules.id;
 
 
 --
--- Name: spaceship; Type: TABLE; Schema: public; Owner: -
+-- Name: spaceship_hulls; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE spaceship (
+CREATE TABLE spaceship_hulls (
+    id integer NOT NULL,
+    name character varying NOT NULL,
+    description text,
+    collision_mesh integer NOT NULL,
+    visual_mesh integer NOT NULL
+);
+
+
+--
+-- Name: spaceship_hull_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE spaceship_hull_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: spaceship_hull_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE spaceship_hull_id_seq OWNED BY spaceship_hulls.id;
+
+
+--
+-- Name: spaceships; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE spaceships (
     id integer NOT NULL,
     name character varying(64) NOT NULL,
     script text,
     owner_id integer,
-    last_update_date timestamp without time zone
+    last_update_date timestamp without time zone,
+    spaceship_hull_id integer
 );
 
 
@@ -118,7 +182,7 @@ CREATE SEQUENCE spaceship_id_seq
 -- Name: spaceship_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE spaceship_id_seq OWNED BY spaceship.id;
+ALTER SEQUENCE spaceship_id_seq OWNED BY spaceships.id;
 
 
 --
@@ -132,10 +196,47 @@ CREATE TABLE spaceship_modules (
 
 
 --
--- Name: account id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: visual_meshes; Type: TABLE; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account ALTER COLUMN id SET DEFAULT nextval('account_id_seq'::regclass);
+CREATE TABLE visual_meshes (
+    id integer NOT NULL,
+    file_path character varying(128) NOT NULL
+);
+
+
+--
+-- Name: visual_meshes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE visual_meshes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: visual_meshes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE visual_meshes_id_seq OWNED BY visual_meshes.id;
+
+
+--
+-- Name: accounts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY accounts ALTER COLUMN id SET DEFAULT nextval('account_id_seq'::regclass);
+
+
+--
+-- Name: collision_meshes id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY collision_meshes ALTER COLUMN id SET DEFAULT nextval('collision_mesh_id_seq'::regclass);
 
 
 --
@@ -146,34 +247,56 @@ ALTER TABLE ONLY modules ALTER COLUMN id SET DEFAULT nextval('modules_id_seq'::r
 
 
 --
--- Name: spaceship id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: spaceship_hulls id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY spaceship ALTER COLUMN id SET DEFAULT nextval('spaceship_id_seq'::regclass);
+ALTER TABLE ONLY spaceship_hulls ALTER COLUMN id SET DEFAULT nextval('spaceship_hull_id_seq'::regclass);
 
 
 --
--- Name: account account_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: spaceships id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account
+ALTER TABLE ONLY spaceships ALTER COLUMN id SET DEFAULT nextval('spaceship_id_seq'::regclass);
+
+
+--
+-- Name: visual_meshes id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY visual_meshes ALTER COLUMN id SET DEFAULT nextval('visual_meshes_id_seq'::regclass);
+
+
+--
+-- Name: accounts account_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY accounts
     ADD CONSTRAINT account_email_key UNIQUE (email);
 
 
 --
--- Name: account account_login_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: accounts account_login_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account
+ALTER TABLE ONLY accounts
     ADD CONSTRAINT account_login_key UNIQUE (login);
 
 
 --
--- Name: account account_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: accounts account_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY account
+ALTER TABLE ONLY accounts
     ADD CONSTRAINT account_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: collision_meshes collision_mesh_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY collision_meshes
+    ADD CONSTRAINT collision_mesh_pkey PRIMARY KEY (id);
 
 
 --
@@ -185,6 +308,14 @@ ALTER TABLE ONLY modules
 
 
 --
+-- Name: spaceship_hulls spaceship_hull_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship_hulls
+    ADD CONSTRAINT spaceship_hull_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: spaceship_modules spaceship_modules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -193,11 +324,27 @@ ALTER TABLE ONLY spaceship_modules
 
 
 --
--- Name: spaceship spaceship_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: spaceships spaceship_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY spaceship
+ALTER TABLE ONLY spaceships
     ADD CONSTRAINT spaceship_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: visual_meshes visual_meshes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY visual_meshes
+    ADD CONSTRAINT visual_meshes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: spaceship_hulls spaceship_hull_collision_mesh_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceship_hulls
+    ADD CONSTRAINT spaceship_hull_collision_mesh_fkey FOREIGN KEY (collision_mesh) REFERENCES collision_meshes(id) ON UPDATE CASCADE;
 
 
 --
@@ -213,15 +360,23 @@ ALTER TABLE ONLY spaceship_modules
 --
 
 ALTER TABLE ONLY spaceship_modules
-    ADD CONSTRAINT spaceship_modules_spaceship_id_fkey FOREIGN KEY (spaceship_id) REFERENCES spaceship(id) ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT spaceship_modules_spaceship_id_fkey FOREIGN KEY (spaceship_id) REFERENCES spaceships(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
--- Name: spaceship spaceship_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: spaceships spaceship_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY spaceship
-    ADD CONSTRAINT spaceship_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES account(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY spaceships
+    ADD CONSTRAINT spaceship_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES accounts(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: spaceships spaceship_spaceship_hull_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY spaceships
+    ADD CONSTRAINT spaceship_spaceship_hull_id_fkey FOREIGN KEY (spaceship_hull_id) REFERENCES spaceship_hulls(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 
 --
