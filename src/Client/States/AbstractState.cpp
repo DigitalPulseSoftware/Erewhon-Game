@@ -10,5 +10,7 @@ namespace ewn
 	{
 		for (Ndk::BaseWidget* widget : m_widgets)
 			widget->Destroy();
+
+		m_widgets.clear();
 	}
 }

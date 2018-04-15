@@ -21,10 +21,11 @@ namespace ewn
 			~AbstractState() = default;
 
 		protected:
+			template<typename T, typename... Args> T* CreateWidget(Args&&... args);
+			inline void DestroyWidget(Ndk::BaseWidget* widget);
+
 			inline StateData& GetStateData();
 			inline const StateData& GetStateData() const;
-
-			template<typename T, typename... Args> T* CreateWidget(Args&&... args);
 
 			void Leave(Ndk::StateMachine& fsm) override;
 
