@@ -124,7 +124,7 @@ namespace ewn
 
 		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
 
-		m_arena->CreateTorpedo(this, m_controlledEntity, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
+		m_arena->CreatePlasmaProjectile(this, m_controlledEntity, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
 
 		Packets::PlaySound playSound;
 		playSound.position = spaceshipNode.GetPosition();
