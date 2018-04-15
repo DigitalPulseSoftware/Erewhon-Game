@@ -4,8 +4,8 @@
 
 #pragma once
 
-#ifndef EREWHON_CLIENT_STATES_OPTIONSTATE_HPP
-#define EREWHON_CLIENT_STATES_OPTIONSTATE_HPP
+#ifndef EREWHON_CLIENT_STATES_OPTIONSSTATE_HPP
+#define EREWHON_CLIENT_STATES_OPTIONSSTATE_HPP
 
 #include <Client/States/AbstractState.hpp>
 #include <NDK/State.hpp>
@@ -13,11 +13,11 @@
 
 namespace ewn
 {
-	class OptionState final : public AbstractState
+	class OptionsState final : public AbstractState
 	{
 		public:
-			inline OptionState(StateData& stateData, std::shared_ptr<Ndk::State> previousState);
-			~OptionState() = default;
+			inline OptionsState(StateData& stateData, std::shared_ptr<Ndk::State> previousState);
+			~OptionsState() = default;
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
@@ -47,6 +47,6 @@ namespace ewn
 	};
 }
 
-#include <Client/States/OptionState.inl>
+#include <Client/States/OptionsState.inl>
 
-#endif // EREWHON_CLIENT_STATES_OPTIONSTATE_HPP
+#endif // EREWHON_CLIENT_STATES_OPTIONSSTATE_HPP

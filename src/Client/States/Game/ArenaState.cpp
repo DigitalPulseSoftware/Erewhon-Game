@@ -2,7 +2,7 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Client/States/GameState.hpp>
+#include <Client/States/Game/ArenaState.hpp>
 #include <Nazara/Audio/Sound.hpp>
 #include <Nazara/Core/DynLib.hpp>
 #include <Nazara/Core/Primitive.hpp>
@@ -27,7 +27,7 @@
 #include <NDK/StateMachine.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionLostState.hpp>
-#include <Client/States/MenuState.hpp>
+#include <Client/States/Game/EscapeMenuState.hpp>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -36,7 +36,7 @@
 
 namespace ewn
 {
-	void GameState::Enter(Ndk::StateMachine& /*fsm*/)
+	void ArenaState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		StateData& stateData = GetStateData();
 
@@ -50,13 +50,13 @@ namespace ewn
 		m_controlledEntity = std::numeric_limits<decltype(m_controlledEntity)>::max();
 		m_isDisconnected = !stateData.server->IsConnected();
 
-		m_onControlEntitySlot.Connect(stateData.server->OnControlEntity, this, &GameState::OnControlEntity);
-		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &GameState::OnKeyPressed);
+		m_onControlEntitySlot.Connect(stateData.server->OnControlEntity, this, &ArenaState::OnControlEntity);
+		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &ArenaState::OnKeyPressed);
 
 		m_chatbox.emplace(stateData.server, *stateData.window, stateData.canvas);
 		m_matchEntities.emplace(stateData.app, stateData.server, stateData.world3D);
-		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &GameState::OnEntityCreated);
-		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &GameState::OnEntityDelete);
+		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &ArenaState::OnEntityCreated);
+		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &ArenaState::OnEntityDelete);
 
 		Packets::JoinArena arenaPacket;
 		arenaPacket.arenaIndex = 0;
@@ -64,7 +64,7 @@ namespace ewn
 		stateData.server->SendPacket(arenaPacket);
 	}
 
-	void GameState::Leave(Ndk::StateMachine& fsm)
+	void ArenaState::Leave(Ndk::StateMachine& fsm)
 	{
 		AbstractState::Leave(fsm);
 
@@ -75,7 +75,7 @@ namespace ewn
 		m_matchEntities.reset();
 	}
 
-	bool GameState::Update(Ndk::StateMachine& fsm, float elapsedTime)
+	bool ArenaState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		StateData& stateData = GetStateData();
 
@@ -89,7 +89,7 @@ namespace ewn
 		if (m_isEnteringMenu)
 		{
 			if (fsm.IsTopState(this))
-				fsm.PushState(std::make_shared<MenuState>(stateData));
+				fsm.PushState(std::make_shared<EscapeMenuState>(stateData));
 
 			m_isEnteringMenu = false;
 		}
@@ -123,7 +123,7 @@ namespace ewn
 		return true;
 	}
 
-	void GameState::ControlEntity(std::size_t entityId)
+	void ArenaState::ControlEntity(std::size_t entityId)
 	{
 		StateData& stateData = GetStateData();
 
@@ -153,24 +153,24 @@ namespace ewn
 		m_controlledEntity = entityId;
 	}
 
-	void GameState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
+	void ArenaState::OnControlEntity(ServerConnection*, const Packets::ControlEntity& controlPacket)
 	{
 		ControlEntity((controlPacket.id != 0) ? controlPacket.id : std::numeric_limits<std::size_t>::max());
 	}
 
-	void GameState::OnEntityCreated(ServerMatchEntities* /*entities*/, ServerMatchEntities::ServerEntity& entityData)
+	void ArenaState::OnEntityCreated(ServerMatchEntities* /*entities*/, ServerMatchEntities::ServerEntity& entityData)
 	{
 		if (entityData.serverId == m_controlledEntity)
 			ControlEntity(m_controlledEntity);
 	}
 
-	void GameState::OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity & entityData)
+	void ArenaState::OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity & entityData)
 	{
 		if (entityData.serverId == m_controlledEntity)
 			ControlEntity(std::numeric_limits<std::size_t>::max());
 	}
 
-	void GameState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
+	void ArenaState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
 	{
 		if (event.code == Nz::Keyboard::F1)
 		{

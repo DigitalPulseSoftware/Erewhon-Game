@@ -2,17 +2,17 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Client/States/MenuState.hpp>
+#include <Client/States/Game/EscapeMenuState.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/DisconnectionState.hpp>
-#include <Client/States/OptionState.hpp>
+#include <Client/States/OptionsState.hpp>
 #include <iostream>
 
 namespace ewn
 {
-	void MenuState::Enter(Ndk::StateMachine& /*fsm*/)
+	void EscapeMenuState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		StateData& stateData = GetStateData();
 
@@ -43,11 +43,11 @@ namespace ewn
 		m_optionsButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y + buttonPadding });
 
 		LayoutWidgets();
-		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &MenuState::OnKeyPressed);
+		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &EscapeMenuState::OnKeyPressed);
 		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 	}
 
-	bool MenuState::Update(Ndk::StateMachine& fsm, float elapsedTime)
+	bool EscapeMenuState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		StateData& stateData = GetStateData();
 
@@ -59,12 +59,12 @@ namespace ewn
 		else if (m_isLeavingMenu)
 			fsm.PopState();
 		else if (m_isUsingOption)
-			fsm.ChangeState(std::make_shared<OptionState>(stateData, std::make_shared<MenuState>(stateData)));
+			fsm.ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 
 		return true;
 	}
 
-	void MenuState::LayoutWidgets()
+	void EscapeMenuState::LayoutWidgets()
 	{
 		Nz::Vector2f center = GetStateData().canvas->GetSize() / 2.f;
 
@@ -94,18 +94,18 @@ namespace ewn
 		cursor.y += m_disconnectButton->GetSize().y + padding;
 	}
 
-	void MenuState::OnDisconnectionPressed()
+	void EscapeMenuState::OnDisconnectionPressed()
 	{
 		m_isDisconnecting = true;
 	}
 
-	void MenuState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
+	void EscapeMenuState::OnKeyPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::KeyEvent& event)
 	{
 		if (event.code == Nz::Keyboard::Escape)
 			m_isLeavingMenu = true;
 	}
 
-	void MenuState::OnOptionsPressed()
+	void EscapeMenuState::OnOptionsPressed()
 	{
 		m_isUsingOption = true;
 	}

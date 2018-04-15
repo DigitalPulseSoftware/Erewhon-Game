@@ -37,7 +37,7 @@ namespace ewn
 
 			NazaraSlot(ServerConnection, OnTimeSyncResponse, m_onTimeSyncResponseSlot);
 			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
-			NazaraSlot(Nz::RenderTarget,  OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
+			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
@@ -53,6 +53,6 @@ namespace ewn
 	};
 }
 
-#include <Client/States/TimeSyncState.inl>
+#include <Client/States/Game/TimeSyncState.inl>
 
 #endif // EREWHON_CLIENT_STATES_TIMESYNCSTATE_HPP

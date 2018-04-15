@@ -2,13 +2,13 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Client/States/TimeSyncState.hpp>
+#include <Client/States/Game/TimeSyncState.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
 #include <NDK/StateMachine.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
-#include <Client/States/GameState.hpp>
 #include <Client/States/LoginState.hpp>
+#include <Client/States/Game/ArenaState.hpp>
 #include <cassert>
 #include <numeric>
 
@@ -75,7 +75,7 @@ namespace ewn
 				m_nextStepTime += 1.f;
 			}
 			else
-				fsm.ResetState(std::make_shared<GameState>(stateData));
+				fsm.ResetState(std::make_shared<ArenaState>(stateData));
 		}
 
 		return true;

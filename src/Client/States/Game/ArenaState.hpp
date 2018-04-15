@@ -4,8 +4,8 @@
 
 #pragma once
 
-#ifndef EREWHON_CLIENT_STATES_GAMESTATE_HPP
-#define EREWHON_CLIENT_STATES_GAMESTATE_HPP
+#ifndef EREWHON_CLIENT_STATES_ARENASTATE_HPP
+#define EREWHON_CLIENT_STATES_ARENASTATE_HPP
 
 #include <Client/MatchChatbox.hpp>
 #include <Client/ServerMatchEntities.hpp>
@@ -23,11 +23,11 @@
 
 namespace ewn
 {
-	class GameState final : public AbstractState
+	class ArenaState final : public AbstractState
 	{
 		public:
 			using AbstractState::AbstractState;
-			~GameState() = default;
+			~ArenaState() = default;
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
@@ -55,6 +55,6 @@ namespace ewn
 	};
 }
 
-#include <Client/States/GameState.inl>
+#include <Client/States/Game/ArenaState.inl>
 
-#endif // EREWHON_CLIENT_STATES_GAMESTATE_HPP
+#endif // EREWHON_CLIENT_STATES_ARENASTATE_HPP

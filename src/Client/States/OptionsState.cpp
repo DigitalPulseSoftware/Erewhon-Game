@@ -2,7 +2,7 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Client/States/OptionState.hpp>
+#include <Client/States/OptionsState.hpp>
 #include <Nazara/Core/File.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
@@ -11,7 +11,7 @@
 
 namespace ewn
 {
-	void OptionState::Enter(Ndk::StateMachine& /*fsm*/)
+	void OptionsState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		StateData& stateData = GetStateData();
 
@@ -34,6 +34,7 @@ namespace ewn
 
 		m_applyButton = CreateWidget<Ndk::ButtonWidget>();
 		m_applyButton->UpdateText(Nz::SimpleTextDrawer::Draw("Apply", 24));
+		m_applyButton->SetPadding(10.f, 10.f, 10.f, 10.f);
 		m_applyButton->ResizeToContent();
 		m_applyButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
@@ -42,17 +43,12 @@ namespace ewn
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
+		m_backButton->SetPadding(10.f, 10.f, 10.f, 10.f);
 		m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnBackPressed();
 		});
-
-		// Set both connection and register button of the same width
-		constexpr float buttonPadding = 25.f;
-		float regConnWidth = std::max(m_applyButton->GetSize().x, m_backButton->GetSize().x) + buttonPadding;
-		m_applyButton->SetSize({ regConnWidth, m_applyButton->GetSize().y + buttonPadding });
-		m_backButton->SetSize({ regConnWidth, m_backButton->GetSize().y + buttonPadding });
 
 		LayoutWidgets();
 		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
@@ -60,7 +56,7 @@ namespace ewn
 		LoadOptions();
 	}
 
-	bool OptionState::Update(Ndk::StateMachine& fsm, float elapsedTime)
+	bool OptionsState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		if (m_isReturningBack)
 			fsm.ChangeState(std::move(m_previousState));
@@ -68,7 +64,7 @@ namespace ewn
 		return true;
 	}
 
-	void OptionState::LayoutWidgets()
+	void OptionsState::LayoutWidgets()
 	{
 		StateData& stateData = GetStateData();
 
@@ -110,7 +106,7 @@ namespace ewn
 		m_applyButton->SetPosition({ center.x + extraPadding, cursor.y, 0.f });
 	}
 
-	void OptionState::OnApplyPressed()
+	void OptionsState::OnApplyPressed()
 	{
 		ApplyOptions();
 		SaveOptions();
@@ -118,12 +114,12 @@ namespace ewn
 		UpdateStatus("Options have been saved successfully, you may have to restart the game to apply them", Nz::Color::Green);
 	}
 
-	void OptionState::OnBackPressed()
+	void OptionsState::OnBackPressed()
 	{
 		m_isReturningBack = true;
 	}
 
-	void OptionState::ApplyOptions()
+	void OptionsState::ApplyOptions()
 	{
 		StateData& stateData = GetStateData();
 
@@ -136,7 +132,7 @@ namespace ewn
 		stateData.window->EnableVerticalSync(m_vsyncCheckbox->GetState() == Ndk::CheckboxState_Checked);
 	}
 
-	void OptionState::LoadOptions()
+	void OptionsState::LoadOptions()
 	{
 		StateData& stateData = GetStateData();
 		const ConfigFile& configFile = stateData.app->GetConfig();
@@ -146,7 +142,7 @@ namespace ewn
 		m_vsyncCheckbox->SetState((configFile.GetBoolOption("Options.VerticalSync")) ? Ndk::CheckboxState_Checked : Ndk::CheckboxState_Unchecked);
 	}
 
-	void OptionState::SaveOptions()
+	void OptionsState::SaveOptions()
 	{
 		StateData& stateData = GetStateData();
 
@@ -178,7 +174,7 @@ namespace ewn
 		optionFile.Write("}\n");
 	}
 
-	void OptionState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
+	void OptionsState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
 	{
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
 		m_statusLabel->ResizeToContent();

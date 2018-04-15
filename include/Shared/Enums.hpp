@@ -31,6 +31,12 @@ namespace ewn
 		LoginAlreadyTaken,
 		ServerError
 	};
+
+	enum class UpdateSpaceshipFailureReason : Nz::UInt8
+	{
+		NotFound,
+		ServerError
+	};
 }
 
 #endif // EREWHON_SHARED_ENUMS_HPP

@@ -12,9 +12,9 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/States/OptionState.hpp>
+#include <Client/States/Game/MainMenuState.hpp>
+#include <Client/States/OptionsState.hpp>
 #include <Client/States/RegisterState.hpp>
-#include <Client/States/TimeSyncState.hpp>
 #include <argon2/argon2.h>
 #include <cassert>
 #include <chrono>
@@ -63,6 +63,7 @@ namespace ewn
 
 		m_connectionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
+		m_connectionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
 		m_connectionButton->ResizeToContent();
 		m_connectionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
@@ -70,7 +71,8 @@ namespace ewn
 		});
 
 		m_optionButton = CreateWidget<Ndk::ButtonWidget>();
-		m_optionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Option", 24));
+		m_optionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Options", 24));
+		m_optionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
 		m_optionButton->ResizeToContent();
 		m_optionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
@@ -79,6 +81,7 @@ namespace ewn
 
 		m_quitButton = CreateWidget<Ndk::ButtonWidget>();
 		m_quitButton->UpdateText(Nz::SimpleTextDrawer::Draw("Quit", 24));
+		m_quitButton->SetPadding(10.f, 10.f, 10.f, 10.f);
 		m_quitButton->ResizeToContent();
 		m_quitButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
@@ -87,6 +90,7 @@ namespace ewn
 
 		m_registerButton = CreateWidget<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
+		m_registerButton->SetPadding(10.f, 10.f, 10.f, 10.f);
 		m_registerButton->ResizeToContent();
 		m_registerButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
@@ -94,12 +98,9 @@ namespace ewn
 		});
 
 		// Set both connection and register button of the same width
-		constexpr float buttonPadding = 10.f;
-		float maxButtonWidth = std::max({ m_connectionButton->GetSize().x, m_optionButton->GetSize().x, m_quitButton->GetSize().x, m_registerButton->GetSize().x }) + buttonPadding;
-		m_connectionButton->SetSize({ maxButtonWidth, m_connectionButton->GetSize().y + buttonPadding });
-		m_optionButton->SetSize({ maxButtonWidth, m_optionButton->GetSize().y + buttonPadding });
-		m_quitButton->SetSize({ maxButtonWidth, m_quitButton->GetSize().y + buttonPadding });
-		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y + buttonPadding });
+		float maxButtonWidth = std::max({ m_connectionButton->GetSize().x, m_registerButton->GetSize().x });
+		m_connectionButton->SetSize({ maxButtonWidth, m_connectionButton->GetSize().y });
+		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y });
 
 		m_onLoginFailureSlot.Connect(stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
@@ -176,12 +177,12 @@ namespace ewn
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.ChangeState(std::make_shared<TimeSyncState>(stateData));
+				fsm.ChangeState(std::make_shared<MainMenuState>(stateData, m_loginArea->GetText().ToStdString()));
 		}
 		else if (m_isRegistering)
 			fsm.ChangeState(std::make_shared<RegisterState>(stateData));
 		else if (m_isUsingOption)
-			fsm.ChangeState(std::make_shared<OptionState>(stateData, std::make_shared<LoginState>(stateData)));
+			fsm.ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 		else if (m_isLoggingIn)
 		{
 			// Computing password, wait for it
@@ -354,7 +355,7 @@ namespace ewn
 
 		Nz::String saltedPassword = m_loginArea->GetText().ToLower() + m_passwordArea->GetText();
 
-		m_passwordFuture = std::async(std::launch::async, [pwd = std::move(saltedPassword), &salt, iCost, mCost, tCost, hashLength]()->std::string
+		m_passwordFuture = std::async(std::launch::async, [pwd = std::move(saltedPassword), &salt, iCost, mCost, tCost, hashLength]() -> std::string
 		{
 			std::string hash(hashLength, '\0');
 			if (argon2_hash(iCost, mCost, tCost, pwd.GetConstBuffer(), pwd.GetSize(), salt.data(), salt.size(), hash.data(), hash.size(), nullptr, 0, argon2_type::Argon2_id, ARGON2_VERSION_13) != ARGON2_OK)

@@ -33,19 +33,26 @@ namespace ewn
 		IncomingCommand(PlaySound);
 		IncomingCommand(RegisterFailure);
 		IncomingCommand(RegisterSuccess);
+		IncomingCommand(SpaceshipInfo);
+		IncomingCommand(SpaceshipList);
 		IncomingCommand(TimeSyncResponse);
+		IncomingCommand(UpdateSpaceshipFailure);
+		IncomingCommand(UpdateSpaceshipSuccess);
 
 		// Outgoing commands
-		OutgoingCommand(CreateSpaceship, Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(DeleteSpaceship, Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(JoinArena,       Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(Login,           Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(PlayerChat,      Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(PlayerMovement,  0, 0);
-		OutgoingCommand(PlayerShoot,     Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(Register,        Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(SpawnSpaceship,  Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(TimeSyncRequest, 0, 0);
+		OutgoingCommand(CreateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(JoinArena,          Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(Login,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(PlayerChat,         Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(PlayerMovement,     0,                           0);
+		OutgoingCommand(PlayerShoot,        Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(QuerySpaceshipInfo, Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(QuerySpaceshipList, Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(Register,           Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(SpawnSpaceship,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(TimeSyncRequest,    0,                           0);
+		OutgoingCommand(UpdateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 
 #undef IncomingCommand
 #undef OutgoingCommand

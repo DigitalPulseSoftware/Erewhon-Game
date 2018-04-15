@@ -2,7 +2,7 @@
 // This file is part of the "Erewhon Shared" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Client/States/TimeSyncState.hpp>
+#include <Client/States/Game/TimeSyncState.hpp>
 
 namespace ewn
 {

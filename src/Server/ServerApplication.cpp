@@ -419,6 +419,64 @@ namespace ewn
 		player->Shoot();
 	}
 
+	void ServerApplication::HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo & data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [&, ply = player->CreateHandle()](ewn::DatabaseResult& result)
+		{
+			if (!ply)
+				return; //< Player has disconnected, ignore
+
+			Packets::SpaceshipInfo spaceshipInfo;
+
+			if (result.IsValid())
+			{
+				std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(2)));
+				std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
+
+				spaceshipInfo.hullModelPath = m_visualMeshStore.GetEntryFilePath(visualMeshId);
+			}
+			else
+				std::cerr << "FindSpaceshipByOwnerIdAndName failed:" << result.GetLastErrorMessage() << std::endl;
+
+			ply->SendPacket(spaceshipInfo);
+		});
+	}
+
+	void ServerApplication::HandleQuerySpaceshipList(std::size_t peerId, const Packets::QuerySpaceshipList& /*data*/)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		m_globalDatabase->ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [ply = player->CreateHandle()](ewn::DatabaseResult& result)
+		{
+			if (!ply)
+				return; //< Player has disconnected, ignore
+
+			Packets::SpaceshipList spaceshipList;
+
+			if (result.IsValid())
+			{
+				std::size_t rowCount = result.GetRowCount();
+
+				spaceshipList.spaceships.resize(rowCount);
+				for (std::size_t i = 0; i < rowCount; ++i)
+				{
+					auto& spaceship = spaceshipList.spaceships[i];
+					spaceship.name = std::get<std::string>(result.GetValue(1, i));
+				}
+			}
+			else
+				std::cerr << "FindSpaceshipsByOwnerId failed:" << result.GetLastErrorMessage() << std::endl;
+
+			ply->SendPacket(spaceshipList);
+		});
+	}
+
 	void ServerApplication::HandleRegister(std::size_t peerId, const Packets::Register& data)
 	{
 		Player* player = m_players[peerId];
@@ -620,6 +678,57 @@ namespace ewn
 		response.serverTime = GetAppTime();
 
 		player->SendPacket(response);
+	}
+
+	void ServerApplication::HandleUpdateSpaceship(std::size_t peerId, const Packets::UpdateSpaceship& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		if (data.spaceshipName.empty() || data.spaceshipName.size() > 64)
+			return;
+
+		if (data.newSpaceshipName.size() > 64)
+			return;
+
+		if (data.newSpaceshipName.empty())
+		{
+			player->SendPacket(Packets::UpdateSpaceshipSuccess());
+			return;
+		}
+
+		m_globalDatabase->ExecuteQuery("UpdateSpaceshipName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.newSpaceshipName }, [ply = player->CreateHandle()](ewn::DatabaseResult& result)
+		{
+			if (!ply)
+				return;
+
+			if (!result.IsValid())
+			{
+				std::cerr << "UpdateSpaceshipName failed: " << result.GetLastErrorMessage() << std::endl;
+
+				Packets::UpdateSpaceshipFailure response;
+				response.reason = UpdateSpaceshipFailureReason::ServerError;
+
+				ply->SendPacket(response);
+				return;
+			}
+
+			if (result.GetAffectedRowCount() > 0)
+			{
+				ply->SendPacket(Packets::UpdateSpaceshipSuccess());
+				return;
+			}
+			else
+			{
+				std::cerr << "Failed to update spaceship name: spaceship not found";
+
+				Packets::UpdateSpaceshipFailure response;
+				response.reason = UpdateSpaceshipFailureReason::NotFound;
+
+				ply->SendPacket(response);
+			}
+		});
 	}
 
 	bool ServerApplication::SetupNetwork(std::size_t clientPerReactor, std::size_t reactorCount, Nz::NetProtocol protocol, Nz::UInt16 firstPort)

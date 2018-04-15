@@ -4,8 +4,8 @@
 
 #pragma once
 
-#ifndef EREWHON_CLIENT_STATES_MENUSTATE_HPP
-#define EREWHON_CLIENT_STATES_MENUSTATE_HPP
+#ifndef EREWHON_CLIENT_STATES_ESCAPEMENUSTATE_HPP
+#define EREWHON_CLIENT_STATES_ESCAPEMENUSTATE_HPP
 
 #include <Client/States/AbstractState.hpp>
 #include <NDK/State.hpp>
@@ -13,11 +13,11 @@
 
 namespace ewn
 {
-	class MenuState final : public AbstractState
+	class EscapeMenuState final : public AbstractState
 	{
 		public:
 			using AbstractState::AbstractState;
-			~MenuState() = default;
+			~EscapeMenuState() = default;
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
@@ -42,6 +42,6 @@ namespace ewn
 	};
 }
 
-#include <Client/States/MenuState.inl>
+#include <Client/States/Game/EscapeMenuState.inl>
 
-#endif // EREWHON_CLIENT_STATES_MENUSTATE_HPP
+#endif // EREWHON_CLIENT_STATES_ESCAPEMENUSTATE_HPP

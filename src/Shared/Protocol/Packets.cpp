@@ -216,6 +216,15 @@ namespace ewn
 			serializer &= data.position;
 		}
 
+		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data)
+		{
+			serializer &= data.spaceshipName;
+		}
+
+		void Serialize(PacketSerializer& serializer, QuerySpaceshipList& data)
+		{
+		}
+
 		void Serialize(PacketSerializer& serializer, Register& data)
 		{
 			serializer &= data.login;
@@ -237,6 +246,26 @@ namespace ewn
 			serializer &= data.spaceshipName;
 		}
 
+		void Serialize(PacketSerializer& serializer, SpaceshipInfo& data)
+		{
+			serializer &= data.hullModelPath;
+		}
+
+		void Serialize(PacketSerializer& serializer, SpaceshipList& data)
+		{
+			CompressedUnsigned<Nz::UInt32> spaceshipCount;
+			if (serializer.IsWriting())
+				spaceshipCount = Nz::UInt32(data.spaceships.size());
+
+			serializer &= spaceshipCount;
+			if (!serializer.IsWriting())
+				data.spaceships.resize(spaceshipCount);
+
+			for (auto& spaceship : data.spaceships)
+				serializer &= spaceship.name;
+
+		}
+
 		void Serialize(PacketSerializer& serializer, TimeSyncRequest& data)
 		{
 			serializer &= data.requestId;
@@ -246,6 +275,21 @@ namespace ewn
 		{
 			serializer &= data.requestId;
 			serializer &= data.serverTime;
+		}
+
+		void Serialize(PacketSerializer& serializer, UpdateSpaceship& data)
+		{
+			serializer &= data.spaceshipName;
+			serializer &= data.newSpaceshipName;
+		}
+
+		void Serialize(PacketSerializer& serializer, UpdateSpaceshipFailure& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.reason);
+		}
+
+		void Serialize(PacketSerializer& serializer, UpdateSpaceshipSuccess& data)
+		{
 		}
 	}
 }
