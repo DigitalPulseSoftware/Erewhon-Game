@@ -37,6 +37,10 @@ namespace ewn
 		auto& nodeComponent = targetEntity->GetComponent<Ndk::NodeComponent>();
 
 		TargetInfo targetInfo;
+
+		if (targetEntity->HasComponent<SynchronizedComponent>())
+			targetInfo.name = targetEntity->GetComponent<SynchronizedComponent>().GetName();
+
 		targetInfo.position = nodeComponent.GetPosition();
 		targetInfo.rotation = nodeComponent.GetRotation();
 
@@ -152,7 +156,8 @@ namespace ewn
 				decltype(auto) result = radar->GetTargetInfo(state.Check<Ndk::EntityId>(&argIndex));
 				if (result.has_value())
 				{
-					state.PushTable(0, 4);
+					state.PushTable(0, 5);
+						state.PushField("name", result->name);
 						state.PushField("position", result->position);
 						state.PushField("rotation", result->rotation);
 						state.PushField("angularVelocity", result->angularVelocity);

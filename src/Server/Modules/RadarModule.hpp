@@ -48,6 +48,7 @@ namespace ewn
 
 			struct TargetInfo
 			{
+				std::string name;
 				ewn::LuaVec3 position;
 				ewn::LuaQuaternion rotation;
 				ewn::LuaVec3 angularVelocity;
