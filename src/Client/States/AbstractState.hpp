@@ -10,11 +10,12 @@
 #include <Client/States/StateData.hpp>
 #include <NDK/BaseWidget.hpp>
 #include <NDK/State.hpp>
+#include <memory>
 #include <vector>
 
 namespace ewn
 {
-	class AbstractState : public Ndk::State
+	class AbstractState : public Ndk::State, public std::enable_shared_from_this<AbstractState>
 	{
 		public:
 			inline AbstractState(StateData& stateData);
