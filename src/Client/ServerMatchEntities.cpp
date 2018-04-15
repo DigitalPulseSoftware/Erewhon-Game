@@ -160,14 +160,16 @@ namespace ewn
 	void ServerMatchEntities::FillVisualEffectFactory()
 	{
 		// Earth
-		m_visualEffectFactory["earth"] = [](ClientApplication* /*app*/, const Ndk::EntityHandle& entity)
+		m_visualEffectFactory["earth"] = [](ClientApplication* app, const Ndk::EntityHandle& entity)
 		{
+			const std::string& assetsFolder = app->GetConfig().GetStringOption("AssetsFolder");
+
 			Nz::MeshRef earthMesh = Nz::Mesh::New();
 			earthMesh->CreateStatic();
 			earthMesh->BuildSubMesh(Nz::Primitive::UVSphere(50.f, 40, 40));
 
 			Nz::MaterialRef earthMaterial = Nz::Material::New();
-			earthMaterial->SetDiffuseMap("Assets/earth/earthmap1k.jpg");
+			earthMaterial->SetDiffuseMap(assetsFolder + "/earth/earthmap1k.jpg");
 			earthMaterial->SetShader("PhongLighting");
 
 			Nz::ModelRef earthModel = Nz::Model::New();
