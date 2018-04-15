@@ -18,7 +18,7 @@ namespace ewn
 		m_chatBox = canvas->Add<Ndk::TextAreaWidget>();
 		m_chatBox->EnableBackground(false);
 		//m_chatBox->SetBackgroundColor(Nz::Color(70, 8, 15, 20));
-		m_chatBox->SetSize({ 320.f, maxChatLines * 30.f });
+		m_chatBox->SetSize({ 640.f, maxChatLines * 30.f });
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
 
