@@ -25,7 +25,12 @@ namespace ewn
 				if (!arg)
 					return false;
 
+#ifdef NAZARA_COMPILER_MSVC
+				// Looks like MSVC 15.6.6 doesn't like that template keyword here
+				targetPos = arg->GetComponent<Ndk::NodeComponent>().GetPosition();
+#else
 				targetPos = arg->template GetComponent<Ndk::NodeComponent>().GetPosition();
+#endif
 				return true;
 			}
 			else if constexpr (std::is_same_v<T, NoTarget>)
