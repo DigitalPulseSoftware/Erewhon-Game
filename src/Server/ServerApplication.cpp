@@ -46,7 +46,7 @@ namespace ewn
 		DatabaseLoader loader;
 		loader.RegisterStore("CollisionMeshes", &m_collisionMeshStore, {});
 		loader.RegisterStore("Modules", &m_moduleStore, {});
-		loader.RegisterStore("SpaceshipHulls", &m_spaceshipHullStore, { "CollisionMeshes" });
+		loader.RegisterStore("SpaceshipHulls", &m_spaceshipHullStore, { "CollisionMeshes", "VisualMeshes" });
 		loader.RegisterStore("VisualMeshes", &m_visualMeshStore, {});
 
 		if (!loader.LoadFromDatabase(this, globalDatabase))

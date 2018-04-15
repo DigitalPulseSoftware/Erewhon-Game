@@ -24,6 +24,7 @@ namespace ewn
 			~SpaceshipHullStore() = default;
 
 			inline std::size_t GetEntryCollisionMeshId(std::size_t entryId) const;
+			inline std::size_t GetEntryVisualMeshId(std::size_t entryId) const;
 			inline bool IsEntryLoaded(std::size_t entryId) const;
 
 		private:
@@ -32,6 +33,7 @@ namespace ewn
 			struct HullInfo 
 			{
 				std::size_t collisionMeshId;
+				std::size_t visualMeshId;
 				std::string name;
 				std::string description;
 				bool doesExist = false;

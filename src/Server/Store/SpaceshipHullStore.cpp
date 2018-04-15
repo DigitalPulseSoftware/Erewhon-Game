@@ -37,6 +37,7 @@ namespace ewn
 				hullInfo.name = std::get<std::string>(result.GetValue(1, i));
 				hullInfo.description = std::get<std::string>(result.GetValue(2, i));
 				hullInfo.collisionMeshId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(3, i)));
+				hullInfo.visualMeshId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(4, i)));
 
 				if (!collisionMeshStore.IsEntryLoaded(hullInfo.collisionMeshId))
 					throw std::runtime_error("Hull depends on collision mesh #" + std::to_string(hullInfo.collisionMeshId) + " which is not loaded");

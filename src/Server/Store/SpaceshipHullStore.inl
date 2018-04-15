@@ -18,6 +18,12 @@ namespace ewn
 		return m_hullInfos[entryId].collisionMeshId;
 	}
 
+	inline std::size_t SpaceshipHullStore::GetEntryVisualMeshId(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_hullInfos[entryId].visualMeshId;
+	}
+
 	inline bool SpaceshipHullStore::IsEntryLoaded(std::size_t entryId) const
 	{
 		assert(entryId < m_hullInfos.size());
