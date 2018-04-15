@@ -8,6 +8,8 @@
 #include <Nazara/Graphics/Billboard.hpp>
 #include <Nazara/Graphics/Model.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
+#include <Nazara/Renderer/DebugDrawer.hpp>
+#include <Nazara/Renderer/Renderer.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
 #include <Nazara/Utility/StaticMesh.hpp>
 #include <Nazara/Utility/VertexMapper.hpp>
@@ -265,12 +267,12 @@ namespace ewn
 			physComponent.SetLinearDamping(0.f);
 
 			auto& graphicsComponent = entity->AddComponent<Ndk::GraphicsComponent>();
-			for (const auto& model : prefab.models)
+			for (const auto& modelPiece : prefab.models)
 			{
-				Nz::Matrix4f transformMatrix = Nz::Matrix4f::Transform(model.position, model.rotation, model.scale);
+				Nz::Matrix4f transformMatrix = Nz::Matrix4f::Transform(modelPiece.position, modelPiece.rotation, modelPiece.scale);
 
 				// TODO: Load it once for every path
-				std::string filePath = assetsFolder + '/' + networkStringStore.GetString(model.modelId);
+				std::string filePath = assetsFolder + '/' + networkStringStore.GetString(modelPiece.modelId);
 
 				Nz::ModelRef model = Nz::Model::New();
 				if (model->LoadFromFile(filePath, params))
