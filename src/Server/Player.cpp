@@ -14,12 +14,13 @@
 
 namespace ewn
 {
-	Player::Player(ServerApplication* app, std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore) :
+	Player::Player(ServerApplication* app, std::size_t peerId, std::size_t sessionId, NetworkReactor& reactor, const ServerCommandStore& commandStore) :
 	m_arena(nullptr),
 	m_app(app),
 	m_networkReactor(reactor),
 	m_commandStore(commandStore),
 	m_peerId(peerId),
+	m_sessionId(sessionId),
 	m_permissionLevel(0),
 	m_databaseId(0),
 	m_lastInputTime(0),
@@ -33,7 +34,7 @@ namespace ewn
 			m_arena->HandlePlayerLeave(this);
 	}
 
-	void Player::Authenticate(Nz::UInt32 dbId, std::function<void(Player*, bool succeeded)> authenticationCallback)
+	void Player::Authenticate(Nz::Int32 dbId, std::function<void(Player*, bool succeeded)> authenticationCallback)
 	{
 		m_databaseId = dbId;
 

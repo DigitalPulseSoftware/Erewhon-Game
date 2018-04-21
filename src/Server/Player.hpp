@@ -26,22 +26,23 @@ namespace ewn
 		friend class ServerCommandStore;
 
 		public:
-			Player(ServerApplication* app, std::size_t peerId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
+			Player(ServerApplication* app, std::size_t peerId, std::size_t sessionId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
 			~Player();
 
-			void Authenticate(Nz::UInt32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
+			void Authenticate(Nz::Int32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
 
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
 			inline const Ndk::EntityHandle& GetBotEntity() const;
 			inline const Ndk::EntityHandle& GetControlledEntity() const;
-			inline Nz::UInt32 GetDatabaseId() const;
+			inline Nz::Int32 GetDatabaseId() const;
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetLogin() const;
 			inline Nz::UInt16 GetPermissionLevel() const;
 			inline const std::string& GetName() const;
 			inline std::size_t GetPeerId() const;
+			inline std::size_t GetSessionId() const;
 
 			const Ndk::EntityHandle& InstantiateBot(std::size_t spaceshipHullId);
 
@@ -67,12 +68,13 @@ namespace ewn
 			NetworkReactor& m_networkReactor;
 			const ServerCommandStore& m_commandStore;
 			std::size_t m_peerId;
+			std::size_t m_sessionId;
 			std::string m_displayName;
 			std::string m_login;
 			Ndk::EntityOwner m_botEntity;
 			Ndk::EntityOwner m_controlledEntity;
+			Nz::Int32 m_databaseId;
 			Nz::UInt16 m_permissionLevel;
-			Nz::UInt32 m_databaseId;
 			Nz::UInt64 m_lastInputTime;
 			Nz::UInt64 m_lastShootTime;
 			bool m_authenticated;

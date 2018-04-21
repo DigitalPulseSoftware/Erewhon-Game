@@ -19,7 +19,8 @@ namespace ewn
 	ServerApplication::ServerApplication() :
 	m_playerPool(sizeof(Player)),
 	m_chatCommandStore(this),
-	m_commandStore(this)
+	m_commandStore(this),
+	m_nextSessionId(0)
 	{
 		RegisterConfigOptions();
 		RegisterNetworkedStrings();
@@ -106,11 +107,12 @@ namespace ewn
 			return result;
 		});
 
-		m_globalDatabase->ExecuteTransaction(std::move(trans), [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+		m_globalDatabase->ExecuteTransaction(std::move(trans), [this, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
 		{
 			if (!transactionSucceeded)
 				std::cerr << "Create spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
 
+			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
 				return;
 
@@ -127,11 +129,12 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Delete spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
 
+			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
 				return;
 
@@ -149,8 +152,11 @@ namespace ewn
 		if (peerId >= m_players.size())
 			m_players.resize(peerId + 1);
 
-		m_players[peerId] = m_playerPool.New<Player>(this, peerId, *reactor, m_commandStore);
+		m_players[peerId] = m_playerPool.New<Player>(this, peerId, m_nextSessionId, *reactor, m_commandStore);
 		std::cout << "Client #" << peerId << " connected with data " << data << std::endl;
+
+		m_sessionIdToPlayer.insert_or_assign(m_nextSessionId, peerId);
+		m_nextSessionId++;
 
 		// Send newtorked strings
 		m_players[peerId]->SendPacket(m_stringStore.BuildPacket(0));
@@ -159,6 +165,8 @@ namespace ewn
 	void ServerApplication::HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data)
 	{
 		std::cout << "Client #" << peerId << " disconnected with data " << data << std::endl;
+
+		m_sessionIdToPlayer.erase(m_players[peerId]->GetSessionId());
 
 		m_playerPool.Delete(m_players[peerId]);
 		m_players[peerId] = nullptr;
@@ -425,8 +433,9 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [&, ply = player->CreateHandle()](ewn::DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [&, sessionId = player->GetSessionId()](ewn::DatabaseResult& result)
 		{
+			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
 				return; //< Player has disconnected, ignore
 
@@ -452,8 +461,9 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [ply = player->CreateHandle()](ewn::DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [this, sessionId = player->GetSessionId()](ewn::DatabaseResult& result)
 		{
+			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
 				return; //< Player has disconnected, ignore
 
@@ -522,7 +532,7 @@ namespace ewn
 		int tCost = m_config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
 		int hashLength = m_config.GetIntegerOption<int>("Security.HashLength");
 
-		DispatchWork([this, ply = player->CreateHandle(), s = std::move(salt), uSalt = std::move(userSalt), data, iCost, mCost, tCost, hashLength]()
+		DispatchWork([this, sessionId = player->GetSessionId(), s = std::move(salt), uSalt = std::move(userSalt), data, iCost, mCost, tCost, hashLength]()
 		{
 			Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
 
@@ -553,8 +563,9 @@ namespace ewn
 				outputHex.resize(hashLength * 2);
 
 				m_globalDatabase->ExecuteQuery("RegisterAccount", { data.login, std::move(outputHex), uSalt.ToStdString(), data.email },
-				[ply, login = data.login](DatabaseResult& result)
+				[this, sessionId, login = data.login](DatabaseResult& result)
 				{
+					Player* ply = GetPlayerBySession(sessionId);
 					if (!ply)
 						return;
 
@@ -576,8 +587,9 @@ namespace ewn
 			}
 			else
 			{
-				RegisterCallback([ply]()
+				RegisterCallback([this, sessionId]()
 				{
+					Player* ply = GetPlayerBySession(sessionId);
 					if (!ply)
 						return;
 
@@ -596,11 +608,12 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
 
+			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
 				return;
 

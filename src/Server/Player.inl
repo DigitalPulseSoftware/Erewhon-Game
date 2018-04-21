@@ -29,7 +29,7 @@ namespace ewn
 		return m_controlledEntity;
 	}
 
-	inline Nz::UInt32 Player::GetDatabaseId() const
+	inline Nz::Int32 Player::GetDatabaseId() const
 	{
 		return m_databaseId;
 	}
@@ -52,6 +52,11 @@ namespace ewn
 	inline std::size_t Player::GetPeerId() const
 	{
 		return m_peerId;
+	}
+
+	inline std::size_t Player::GetSessionId() const
+	{
+		return m_sessionId;
 	}
 
 	inline bool Player::IsAuthenticated() const

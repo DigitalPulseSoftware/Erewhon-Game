@@ -39,12 +39,13 @@ namespace ewn
 
 			inline void DispatchWork(WorkerFunction workFunc);
 
-			inline Database& GetGlobalDatabase();
 			inline CollisionMeshStore& GetCollisionMeshStore();
 			inline const CollisionMeshStore& GetCollisionMeshStore() const;
+			inline Database& GetGlobalDatabase();
 			inline ModuleStore& GetModuleStore();
 			inline const ModuleStore& GetModuleStore() const;
 			inline std::size_t GetPeerPerReactor() const;
+			inline Player* GetPlayerBySession(std::size_t sessionId);
 			inline const NetworkStringStore& GetNetworkStringStore() const;
 			inline SpaceshipHullStore& GetSpaceshipHullStore();
 			inline const SpaceshipHullStore& GetSpaceshipHullStore() const;
@@ -91,6 +92,8 @@ namespace ewn
 
 			std::optional<GlobalDatabase> m_globalDatabase;
 			std::size_t m_peerPerReactor;
+			std::size_t m_nextSessionId;
+			std::unordered_map<std::size_t /*sessionId*/, std::size_t> m_sessionIdToPlayer;
 			std::vector<std::unique_ptr<GameWorker>> m_workers;
 			std::vector<Player*> m_players;
 			std::vector<std::unique_ptr<Arena>> m_arenas;

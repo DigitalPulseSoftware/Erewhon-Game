@@ -42,6 +42,15 @@ namespace ewn
 		return m_peerPerReactor;
 	}
 
+	inline Player* ServerApplication::GetPlayerBySession(std::size_t sessionId)
+	{
+		auto it = m_sessionIdToPlayer.find(sessionId);
+		if (it != m_sessionIdToPlayer.end())
+			return m_players[it->second];
+		else
+			return nullptr;
+	}
+
 	inline const NetworkStringStore& ServerApplication::GetNetworkStringStore() const
 	{
 		return m_stringStore;
