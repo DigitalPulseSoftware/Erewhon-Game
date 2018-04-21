@@ -25,6 +25,16 @@ namespace ewn
 		ServerError
 	};
 
+	enum class ModuleType : Nz::UInt8
+	{
+		Engine,
+		Navigation,
+		Radar,
+		Weapon,
+
+		Max = Weapon
+	};
+
 	enum class RegisterFailureReason : Nz::UInt8
 	{
 		EmailAlreadyTaken,
@@ -37,6 +47,8 @@ namespace ewn
 		NotFound,
 		ServerError
 	};
+
+	const char* EnumToString(ModuleType moduleType);
 }
 
 #endif // EREWHON_SHARED_ENUMS_HPP

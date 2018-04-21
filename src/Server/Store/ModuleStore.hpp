@@ -8,6 +8,7 @@
 #define EREWHON_SERVER_MODULESTORE_HPP
 
 #include <Server/DatabaseStore.hpp>
+#include <Shared/Enums.hpp>
 #include <NDK/Entity.hpp>
 #include <json/json.hpp>
 #include <any>
@@ -30,6 +31,15 @@ namespace ewn
 
 			std::shared_ptr<SpaceshipModule> BuildModule(std::size_t moduleId, SpaceshipCore* core, const Ndk::EntityHandle& spaceship) const;
 
+			inline std::size_t GetEntryByName(const std::string& entryName) const;
+			inline std::size_t GetEntryCount() const;
+			inline const std::string& GetEntryClassName(std::size_t entryId) const;
+			inline const std::string& GetEntryDescription(std::size_t entryId) const;
+			inline const std::string& GetEntryName(std::size_t entryId) const;
+			inline ModuleType GetEntryType(std::size_t entryId) const;
+
+			inline bool IsEntryLoaded(std::size_t entryId) const;
+
 		private:
 			using DecodeClassInfoFunction = std::function<std::any(const nlohmann::json& classInfo)>;
 			using FactoryFunction = std::function<std::shared_ptr<SpaceshipModule>(SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& classInfo)>;
@@ -47,6 +57,7 @@ namespace ewn
 
 			struct ModuleInfo 
 			{
+				ModuleType type;
 				std::any classInfo;
 				std::string className;
 				std::string name;
@@ -56,6 +67,7 @@ namespace ewn
 			};
 
 			std::unordered_map<std::string, FactoryData> m_factory;
+			std::unordered_map<std::string, std::size_t> m_moduleIndices;
 			std::vector<ModuleInfo> m_moduleInfos;
 	};
 }

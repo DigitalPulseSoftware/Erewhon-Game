@@ -255,7 +255,15 @@ namespace ewn
 
 		DeclarePacket(SpaceshipInfo)
 		{
+			struct ModuleInfo
+			{
+				ModuleType type;
+				CompressedUnsigned<Nz::UInt16> currentModule;
+				std::vector<std::string> availableModules;
+			};
+
 			std::string hullModelPath;
+			std::vector<ModuleInfo> modules;
 		};
 
 		DeclarePacket(SpaceshipList)
@@ -286,8 +294,16 @@ namespace ewn
 
 		DeclarePacket(UpdateSpaceship)
 		{
+			struct ModuleInfo
+			{
+				ModuleType type;
+				std::string oldModuleName; //< disgusting!!
+				std::string moduleName;
+			};
+
 			std::string spaceshipName;
 			std::string newSpaceshipName;
+			std::vector<ModuleInfo> modifiedModules;
 		};
 
 		DeclarePacket(UpdateSpaceshipFailure)

@@ -22,6 +22,8 @@ namespace ewn
 	{
 		StateData& stateData = GetStateData();
 
+		m_labelDisappearanceAccumulator = 0.f;
+
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
 		m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
@@ -96,6 +98,10 @@ namespace ewn
 			return false;
 		}
 
+		m_labelDisappearanceAccumulator -= elapsedTime;
+		if (m_labelDisappearanceAccumulator < 0.f)
+			m_statusLabel->Show(false);
+
 		if (m_nextState)
 			fsm.ChangeState(m_nextState);
 
@@ -122,6 +128,15 @@ namespace ewn
 
 		m_updateButton->CenterHorizontal();
 		m_updateButton->SetPosition(m_updateButton->GetPosition().x, m_nameTextArea->GetPosition().y + m_nameTextArea->GetSize().y + 20.f);
+
+		static constexpr float buttonPadding = 10.f;
+
+		Nz::Vector2f cursor(canvasSize.x * 0.15f, canvasSize.y * 0.2f);
+		for (const auto& buttonData : m_moduleButtons)
+		{
+			buttonData.button->SetPosition({ cursor.x - buttonData.button->GetSize().x / 2.f, cursor.y, 0.f });
+			cursor.y += buttonData.button->GetSize().y + buttonPadding;
+		}
 	}
 
 	void SpaceshipEditState::OnBackPressed()
@@ -129,32 +144,17 @@ namespace ewn
 		m_nextState = m_previousState;
 	}
 
-	void SpaceshipEditState::OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket)
+	void SpaceshipEditState::OnModuleSwitch(std::size_t moduleId)
 	{
-		std::string reason;
-		switch (updatePacket.reason)
-		{
-			case UpdateSpaceshipFailureReason::NotFound:
-				reason = "spaceship not found";
-				break;
+		ModuleInfo& moduleInfo = m_moduleButtons[moduleId];
+		moduleInfo.currentChoice++;
+		if (moduleInfo.currentChoice >= moduleInfo.availableChoices.size())
+			moduleInfo.currentChoice = 0;
 
-			case UpdateSpaceshipFailureReason::ServerError:
-				reason = "server error, please try again later";
-				break;
+		moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleInfo.moduleType)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice] + ')', 18));
+		moduleInfo.button->ResizeToContent();
 
-			default:
-				reason = "<packet error>";
-				break;
-		}
-
-		UpdateStatus("Failed to update spaceship: " + reason, Nz::Color::Red);
-	}
-
-	void SpaceshipEditState::OnUpdateSpaceshipSuccess(ServerConnection* server, const Packets::UpdateSpaceshipSuccess& updatePacket)
-	{
-		UpdateStatus("Spaceship successfully updated", Nz::Color::Green);
-
-		m_spaceshipName = m_nameTextArea->GetText().ToStdString();
+		LayoutWidgets();
 	}
 
 	void SpaceshipEditState::OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& listPacket)
@@ -188,6 +188,56 @@ namespace ewn
 		Nz::Matrix4f transformMatrix = Nz::Matrix4f::Scale(Nz::Vector3f::Unit() / boundingRadius);
 
 		entityGfx.Attach(m_spaceshipModel, transformMatrix);
+
+		// Module buttons
+		m_moduleButtons.clear();
+		for (const auto& moduleData : listPacket.modules)
+		{
+			ModuleInfo& moduleInfo = m_moduleButtons.emplace_back();
+			moduleInfo.availableChoices = moduleData.availableModules;
+			moduleInfo.currentChoice    = moduleData.currentModule;
+			moduleInfo.moduleType       = moduleData.type;
+			moduleInfo.originalChoice   = moduleInfo.currentChoice;
+
+			moduleInfo.button = CreateWidget<Ndk::ButtonWidget>();
+			moduleInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
+			moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleData.type)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice] + ')', 18));
+			moduleInfo.button->ResizeToContent();
+			moduleInfo.button->OnButtonTrigger.Connect([&, moduleId = m_moduleButtons.size() - 1](const Ndk::ButtonWidget* button)
+			{
+				OnModuleSwitch(moduleId);
+			});
+		}
+
+		LayoutWidgets();
+	}
+
+	void SpaceshipEditState::OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket)
+	{
+		std::string reason;
+		switch (updatePacket.reason)
+		{
+			case UpdateSpaceshipFailureReason::NotFound:
+				reason = "spaceship not found";
+				break;
+
+			case UpdateSpaceshipFailureReason::ServerError:
+				reason = "server error, please try again later";
+				break;
+
+			default:
+				reason = "<packet error>";
+				break;
+		}
+
+		UpdateStatus("Failed to update spaceship: " + reason, Nz::Color::Red);
+	}
+
+	void SpaceshipEditState::OnUpdateSpaceshipSuccess(ServerConnection* server, const Packets::UpdateSpaceshipSuccess& updatePacket)
+	{
+		UpdateStatus("Spaceship successfully updated", Nz::Color::Green);
+
+		m_spaceshipName = m_nameTextArea->GetText().ToStdString();
 	}
 
 	void SpaceshipEditState::OnUpdatePressed()
@@ -195,6 +245,19 @@ namespace ewn
 		Packets::UpdateSpaceship updateSpaceship;
 		updateSpaceship.spaceshipName = m_spaceshipName;
 		updateSpaceship.newSpaceshipName = m_nameTextArea->GetText().ToStdString();
+		if (updateSpaceship.newSpaceshipName == updateSpaceship.spaceshipName)
+			updateSpaceship.newSpaceshipName.clear(); //< Don't send new-name
+
+		for (const auto& buttonData : m_moduleButtons)
+		{
+			if (buttonData.originalChoice != buttonData.currentChoice)
+			{
+				auto& modifiedModule = updateSpaceship.modifiedModules.emplace_back();
+				modifiedModule.moduleName = buttonData.availableChoices[buttonData.currentChoice];
+				modifiedModule.oldModuleName = buttonData.availableChoices[buttonData.originalChoice];
+				modifiedModule.type = buttonData.moduleType;
+			}
+		}
 
 		GetStateData().server->SendPacket(updateSpaceship);
 	}
@@ -216,6 +279,8 @@ namespace ewn
 		m_statusLabel->Show(true);
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
 		m_statusLabel->ResizeToContent();
+
+		m_labelDisappearanceAccumulator = status.GetLength() / 10.f;
 
 		LayoutWidgets();
 	}

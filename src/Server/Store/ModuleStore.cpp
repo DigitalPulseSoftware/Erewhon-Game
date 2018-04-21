@@ -125,9 +125,11 @@ namespace ewn
 					throw std::runtime_error("Class name \"" + moduleInfo.className + "\" does not exist");
 
 				moduleInfo.classInfo = it->second.decodeFunc(jsonClassInfo);
+				moduleInfo.type = static_cast<ModuleType>(std::get<Nz::Int16>(result.GetValue(5, i)));
 
 				moduleInfo.isLoaded = true;
 				moduleLoaded++;
+				m_moduleIndices.emplace(moduleInfo.name, id);
 			}
 			catch (const std::exception& e)
 			{

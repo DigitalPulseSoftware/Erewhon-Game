@@ -439,19 +439,75 @@ namespace ewn
 			if (!ply)
 				return; //< Player has disconnected, ignore
 
-			Packets::SpaceshipInfo spaceshipInfo;
-
-			if (result.IsValid())
+			if (!result)
 			{
-				std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(2)));
-				std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
-
-				spaceshipInfo.hullModelPath = m_visualMeshStore.GetEntryFilePath(visualMeshId);
+				ply->SendPacket(Packets::SpaceshipInfo{});
+				return;
 			}
-			else
-				std::cerr << "FindSpaceshipByOwnerIdAndName failed:" << result.GetLastErrorMessage() << std::endl;
 
-			ply->SendPacket(spaceshipInfo);
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+
+			std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(2)));
+			std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
+
+			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [=](ewn::DatabaseResult& result)
+			{
+				if (!ply)
+					return; //< Player has disconnected, ignore
+
+				Packets::SpaceshipInfo spaceshipInfo;
+
+				if (result.IsValid())
+				{
+					std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0)));
+					std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
+
+					spaceshipInfo.hullModelPath = m_visualMeshStore.GetEntryFilePath(visualMeshId);
+
+					if (!result)
+					{
+						ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+						return;
+					}
+
+					// Spaceship actual modules
+					try
+					{
+						std::size_t moduleCount = result.GetRowCount();
+
+						spaceshipInfo.modules.reserve(moduleCount);
+						for (std::size_t i = 0; i < moduleCount; ++i)
+						{
+							std::size_t moduleId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+
+							auto& moduleInfo = spaceshipInfo.modules.emplace_back();
+							moduleInfo.type = m_moduleStore.GetEntryType(moduleId);
+
+							for (std::size_t i = 0; i < m_moduleStore.GetEntryCount(); ++i)
+							{
+								if (m_moduleStore.IsEntryLoaded(i) && m_moduleStore.GetEntryType(i) == moduleInfo.type)
+									moduleInfo.availableModules.emplace_back(m_moduleStore.GetEntryName(i));
+							}
+
+							auto it = std::find(moduleInfo.availableModules.begin(), moduleInfo.availableModules.end(), m_moduleStore.GetEntryName(moduleId));
+							if (it == moduleInfo.availableModules.end())
+								throw std::runtime_error("Current module unknown for type " + std::string(EnumToString(m_moduleStore.GetEntryType(moduleId))));
+
+							moduleInfo.currentModule = Nz::UInt16(std::distance(moduleInfo.availableModules.begin(), it));
+						}
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+						ply->SendPacket(Packets::SpaceshipInfo{});
+						return;
+					}
+				}
+				else
+					std::cerr << "FindSpaceshipByOwnerIdAndName failed:" << result.GetLastErrorMessage() << std::endl;
+
+				ply->SendPacket(spaceshipInfo);
+			});
 		});
 	}
 
@@ -705,42 +761,80 @@ namespace ewn
 		if (data.newSpaceshipName.size() > 64)
 			return;
 
-		if (data.newSpaceshipName.empty())
+		for (const auto& moduleInfo : data.modifiedModules)
 		{
-			player->SendPacket(Packets::UpdateSpaceshipSuccess());
-			return;
+			if (m_moduleStore.GetEntryByName(moduleInfo.moduleName) == ModuleStore::InvalidEntryId)
+				return;
+
+			if (m_moduleStore.GetEntryByName(moduleInfo.oldModuleName) == ModuleStore::InvalidEntryId)
+				return;
+
+			if (moduleInfo.type > ModuleType::Max)
+				return;
 		}
 
-		m_globalDatabase->ExecuteQuery("UpdateSpaceshipName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.newSpaceshipName }, [ply = player->CreateHandle()](ewn::DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipIdByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [=, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
-			if (!ply)
-				return;
-
-			if (!result.IsValid())
+			if (!result)
 			{
-				std::cerr << "UpdateSpaceshipName failed: " << result.GetLastErrorMessage() << std::endl;
+				std::cerr << "FindSpaceshipIdByOwnerIdAndName failed: " << result.GetLastErrorMessage();
 
-				Packets::UpdateSpaceshipFailure response;
-				response.reason = UpdateSpaceshipFailureReason::ServerError;
+				if (Player* ply = GetPlayerBySession(sessionId))
+				{
+					Packets::UpdateSpaceshipFailure response;
+					response.reason = UpdateSpaceshipFailureReason::ServerError;
 
-				ply->SendPacket(response);
+					ply->SendPacket(response);
+				}
 				return;
 			}
 
-			if (result.GetAffectedRowCount() > 0)
+			if (result.GetRowCount() == 0)
 			{
+				if (Player* ply = GetPlayerBySession(sessionId))
+				{
+					Packets::UpdateSpaceshipFailure response;
+					response.reason = UpdateSpaceshipFailureReason::NotFound;
+
+					ply->SendPacket(response);
+				}
+
+				return;
+			}
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+			DatabaseTransaction transaction;
+			if (!data.newSpaceshipName.empty())
+				transaction.AppendPreparedStatement("UpdateSpaceshipNameById", { spaceshipId, data.newSpaceshipName });
+
+			if (!data.modifiedModules.empty())
+			{
+				for (const auto& moduleInfo : data.modifiedModules)
+				{
+					std::size_t oldModuleId = m_moduleStore.GetEntryByName(moduleInfo.oldModuleName);
+					std::size_t newModuleId = m_moduleStore.GetEntryByName(moduleInfo.moduleName);
+
+					transaction.AppendPreparedStatement("UpdateSpaceshipModule", { spaceshipId, Nz::Int32(oldModuleId), Nz::Int32(newModuleId) });
+				}
+			}
+
+			m_globalDatabase->ExecuteTransaction(std::move(transaction), [this, sessionId](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+			{
+				Player* ply = GetPlayerBySession(sessionId);
+				if (!ply)
+					return;
+
+				if (!transactionSucceeded)
+				{
+					Packets::UpdateSpaceshipFailure response;
+					response.reason = UpdateSpaceshipFailureReason::ServerError;
+
+					ply->SendPacket(response);
+					return;
+				}
+
 				ply->SendPacket(Packets::UpdateSpaceshipSuccess());
-				return;
-			}
-			else
-			{
-				std::cerr << "Failed to update spaceship name: spaceship not found";
-
-				Packets::UpdateSpaceshipFailure response;
-				response.reason = UpdateSpaceshipFailureReason::NotFound;
-
-				ply->SendPacket(response);
-			}
+			});
 		});
 	}
 

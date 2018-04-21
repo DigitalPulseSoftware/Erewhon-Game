@@ -29,6 +29,7 @@ namespace ewn
 			void LayoutWidgets();
 
 			void OnBackPressed();
+			void OnModuleSwitch(std::size_t moduleId);
 			void OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& listPacket);
 			void OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket);
 			void OnUpdateSpaceshipSuccess(ServerConnection* server, const Packets::UpdateSpaceshipSuccess& updatePacket);
@@ -42,6 +43,15 @@ namespace ewn
 			NazaraSlot(ServerConnection, OnUpdateSpaceshipSuccess, m_onUpdateSpaceshipSuccessSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
+			struct ModuleInfo
+			{
+				ModuleType moduleType;
+				Ndk::ButtonWidget* button;
+				std::size_t currentChoice;
+				std::size_t originalChoice;
+				std::vector<std::string> availableChoices;
+			};
+
 			Ndk::ButtonWidget* m_backButton;
 			Ndk::ButtonWidget* m_updateButton;
 			Ndk::LabelWidget* m_statusLabel;
@@ -54,6 +64,8 @@ namespace ewn
 			std::shared_ptr<Ndk::State> m_previousState;
 			std::shared_ptr<Ndk::State> m_nextState;
 			std::string m_spaceshipName;
+			std::vector<ModuleInfo> m_moduleButtons;
+			float m_labelDisappearanceAccumulator;
 	};
 }
 
