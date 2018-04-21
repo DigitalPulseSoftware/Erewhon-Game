@@ -117,24 +117,27 @@ int main()
 
 	Nz::MaterialLibrary::Register("SpaceshipText", std::move(textMaterial));
 
+	Ndk::StateMachine fsm(nullptr);
+
 	ewn::StateData stateData;
 	stateData.app = &app;
 	stateData.camera2D = camera2D;
 	stateData.camera3D = camera3D;
 	stateData.canvas = &canvas;
+	stateData.fsm = &fsm;
 	stateData.server = &serverConnection;
 	stateData.window = &window;
 	stateData.world2D = world2D.CreateHandle();
 	stateData.world3D = world3D.CreateHandle();
 
-	Ndk::StateMachine fsm(std::make_shared<ewn::BackgroundState>(stateData));
+	fsm.PushState(std::make_shared<ewn::BackgroundState>(stateData));
 	fsm.PushState(std::make_shared<ewn::LoginState>(stateData));
 
 	// Handle exit
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
 	{
 		fsm.ResetState(std::make_shared<ewn::BackgroundState>(stateData));
-		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData));
+		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData, true));
 	});
 
 	// Handle size change
