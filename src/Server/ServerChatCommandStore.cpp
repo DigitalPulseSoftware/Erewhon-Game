@@ -34,6 +34,7 @@ namespace ewn
 		RegisterCommand("reloadmodules", &ServerChatCommandStore::HandleReloadModules);
 		RegisterCommand("resetarena", &ServerChatCommandStore::HandleResetArena);
 		RegisterCommand("suicide", &ServerChatCommandStore::HandleSuicide);
+		RegisterCommand("spawnfleet", &ServerChatCommandStore::HandleSpawnFleet);
 		RegisterCommand("stopserver", &ServerChatCommandStore::HandleStopServer);
 		RegisterCommand("updatepermission", &ServerChatCommandStore::HandleUpdatePermission);
 	}
@@ -95,6 +96,14 @@ namespace ewn
 
 		if (Arena* arena = player->GetArena())
 			arena->Reset();
+
+		return true;
+	}
+
+	bool ServerChatCommandStore::HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName)
+	{
+		if (Arena* arena = player->GetArena())
+			arena->SpawnFleet(player, fleetName);
 
 		return true;
 	}

@@ -78,7 +78,7 @@ namespace ewn
 			it->second = false;
 		}
 
-		std::cout << "Executing " << callback.callbackName << " (late by " << (now - callback.triggerTime) << "ms)" << std::endl;
+		//std::cout << "Executing " << callback.callbackName << " (late by " << (now - callback.triggerTime) << "ms)" << std::endl;
 
 		return std::make_pair(callback.callbackName, std::move(callback.argFunc));
 	}

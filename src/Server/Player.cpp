@@ -77,7 +77,7 @@ namespace ewn
 	}
 
 	const Ndk::EntityHandle& Player::InstantiateBot(std::size_t spaceshipHullId)
-{
+	{
 		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
 
 		m_botEntity = m_arena->CreateSpaceship("Bot (" + m_login + ')', this, spaceshipHullId, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());

@@ -28,6 +28,7 @@ namespace ewn
 			static bool HandleKillBot(ServerApplication* app, Player* player);
 			static bool HandleReloadModules(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
+			static bool HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName);
 			static bool HandleSuicide(ServerApplication* app, Player* player);
 			static bool HandleStopServer(ServerApplication* app, Player* player);
 			static bool HandleUpdatePermission(ServerApplication* app, Player* player, Player* target, Nz::UInt16 permissionLevel);

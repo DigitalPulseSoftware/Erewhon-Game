@@ -51,6 +51,10 @@ namespace ewn
 
 			void Reset();
 
+			void SpawnFleet(Player* owner, const std::string& fleetName);
+			void SpawnSpaceship(Player* owner, const std::string& spaceshipName, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			void SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+
 			void Update(float elapsedTime);
 
 			Arena& operator=(const Arena&) = delete;
@@ -70,6 +74,8 @@ namespace ewn
 			void OnBroadcastStateUpdate(const BroadcastSystem* system, Packets::ArenaState& statePacket);
 
 			void SendArenaData(Player* player);
+
+			void SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, std::string code, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 
 			struct PlayerData
 			{

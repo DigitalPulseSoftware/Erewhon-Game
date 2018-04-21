@@ -100,7 +100,7 @@ namespace ewn
 		return projectile;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateTorpedo(Player * owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
+	const Ndk::EntityHandle& Arena::CreateTorpedo(Player* owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
 	{
 		const Ndk::EntityHandle& projectile = CreateEntity("torpedo", {}, owner, position, rotation);
 		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
@@ -143,6 +143,140 @@ namespace ewn
 
 		// Space ball entity
 		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
+	}
+
+	void Arena::SpawnFleet(Player* owner, const std::string& fleetName)
+	{
+		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { owner->GetDatabaseId(), fleetName }, [this, fleetName, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		{
+			if (!result)
+			{
+				if (Player* ply = m_app->GetPlayerBySession(sessionId))
+					ply->PrintMessage("An error occurred");
+
+				std::cerr << "FindFleetByOwnerIdAndName failed: " << result.GetLastErrorMessage() << std::endl;
+				return;
+			}
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("Fleet " + fleetName + " not found");
+				return;
+			}
+
+			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
+			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipByFleetId", { fleetId }, [this, fleetName, sessionId](DatabaseResult& result)
+			{
+				if (!result)
+				{
+					if (Player* ply = m_app->GetPlayerBySession(sessionId))
+						ply->PrintMessage("An error occurred");
+
+					std::cerr << "FindFleetSpaceshipByFleetId failed: " << result.GetLastErrorMessage() << std::endl;
+					return;
+				}
+
+				Player* ply = m_app->GetPlayerBySession(sessionId);
+				if (!ply)
+					return;
+
+				std::size_t rowCount = result.GetRowCount();
+				if (rowCount == 0)
+				{
+					ply->PrintMessage("An error occurred: fleet " + fleetName + " has no spaceship");
+					return;
+				}
+
+
+
+				Nz::Vector3f spawnPos;
+				Nz::Quaternionf spawnRot;
+				if (const Ndk::EntityHandle& spaceship = ply->GetControlledEntity(); spaceship != Ndk::EntityHandle::InvalidHandle)
+				{
+					Ndk::NodeComponent& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+
+					spawnRot = spaceshipNode.GetRotation();
+					spawnPos = spaceshipNode.GetPosition() + spawnRot * Nz::Vector3f::Down() * 10.f;
+				}
+				else
+				{
+					spawnPos = Nz::Vector3f::Zero();
+					spawnRot = Nz::Quaternionf::Identity();
+				}
+
+				for (std::size_t i = 0; i < rowCount; ++i)
+				{
+					std::size_t spaceshipCount = static_cast<std::size_t>(std::get<Nz::Int16>(result.GetValue(1)));
+					for (std::size_t j = 0; j < spaceshipCount; ++j)
+					{
+						SpawnSpaceship(ply, std::get<Nz::Int32>(result.GetValue(0)), spawnPos, spawnRot);
+
+						spawnPos += spawnRot * Nz::Vector3f::Left() * 10.f;
+					}
+
+					spawnPos += spawnRot * Nz::Vector3f::Backward() * 10.f;
+				}
+			});
+		});
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, const std::string& spaceshipName, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { owner->GetDatabaseId(), spaceshipName }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result)
+			{
+				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
+				return;
+			}
+
+			if (result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
+				return;
+			}
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+			std::string code = std::get<std::string>(result.GetValue(1));
+			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
+
+			SpawnSpaceship(ply, spaceshipId, std::move(code), spaceshipHullId, position, rotation);
+		});
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByIdAndOwnerId", { spaceshipId, owner->GetDatabaseId() }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result || result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("Failed to spawn spaceship id " + std::to_string(spaceshipId) + ", please contact an admin");
+				return;
+			}
+
+			std::string code = std::get<std::string>(result.GetValue(1));
+			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
+
+			SpawnSpaceship(ply, spaceshipId, std::move(code), spaceshipHullId, position, rotation);
+		});
 	}
 
 	void Arena::Update(float elapsedTime)
@@ -288,10 +422,9 @@ namespace ewn
 		{
 			const Ndk::EntityHandle& entity = health->GetEntity();
 
-			if (entity->HasComponent<PlayerControlledComponent>() && attacker->HasComponent<OwnerComponent>())
+			if (entity->HasComponent<PlayerControlledComponent>())
 			{
 				auto& shipOwner = entity->GetComponent<PlayerControlledComponent>();
-				auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
 
 				Player* shipOwnerPlayer = shipOwner.GetOwner();
 				if (!shipOwnerPlayer)
@@ -302,10 +435,15 @@ namespace ewn
 
 				it->second.deathTime = ServerApplication::GetAppTime();
 
-				Player* attackerPlayer = attackerOwner.GetOwner();
-				Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
+				if (attacker->HasComponent<OwnerComponent>())
+				{
+					auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
 
-				DispatchChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
+					Player* attackerPlayer = attackerOwner.GetOwner();
+					Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
+
+					DispatchChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
+				}
 			}
 
 			entity->Kill();
@@ -439,6 +577,55 @@ namespace ewn
 		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(0.01f);
 
 		player->SendPacket(arenaPrefabsPacket);
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, std::string code, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, position, rotation, sessionId = owner->GetSessionId(), spaceshipHullId, spaceshipCode = std::move(code)](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result)
+			{
+				ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+				return;
+			}
+
+			std::size_t moduleCount = result.GetRowCount();
+
+			std::vector<std::size_t> moduleIds(moduleCount);
+			try
+			{
+				for (std::size_t i = 0; i < moduleCount; ++i)
+					moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+
+				ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+				return;
+			}
+
+			const Ndk::EntityHandle& spaceship = CreateSpaceship("Bot (" + ply->GetName() + ')', ply, spaceshipHullId, position, rotation);
+			ScriptComponent& botScript = spaceship->AddComponent<ScriptComponent>();
+			if (!botScript.Initialize(m_app, moduleIds))
+			{
+				ply->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
+				return;
+			}
+
+			Nz::String lastError;
+			if (botScript.Execute(std::move(spaceshipCode), &lastError))
+				ply->PrintMessage("Server: Script loaded with success");
+			else
+				ply->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
+		});
 	}
 
 	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
