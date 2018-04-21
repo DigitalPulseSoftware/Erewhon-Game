@@ -248,7 +248,7 @@ namespace ewn
 		if (updateSpaceship.newSpaceshipName == updateSpaceship.spaceshipName)
 			updateSpaceship.newSpaceshipName.clear(); //< Don't send new-name
 
-		for (const auto& buttonData : m_moduleButtons)
+		for (auto& buttonData : m_moduleButtons)
 		{
 			if (buttonData.originalChoice != buttonData.currentChoice)
 			{
@@ -256,6 +256,8 @@ namespace ewn
 				modifiedModule.moduleName = buttonData.availableChoices[buttonData.currentChoice];
 				modifiedModule.oldModuleName = buttonData.availableChoices[buttonData.originalChoice];
 				modifiedModule.type = buttonData.moduleType;
+
+				buttonData.originalChoice = buttonData.currentChoice;
 			}
 		}
 
