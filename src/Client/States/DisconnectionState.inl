@@ -6,4 +6,9 @@
 
 namespace ewn
 {
+	inline DisconnectionState::DisconnectionState(StateData& stateData, bool quitApp) :
+	AbstractState(stateData),
+	m_shouldQuitApp(quitApp)
+	{
+	}
 }

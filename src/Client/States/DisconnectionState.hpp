@@ -22,7 +22,7 @@ namespace ewn
 	class DisconnectionState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline DisconnectionState(StateData& stateData, bool quitApp);
 			~DisconnectionState() = default;
 
 		private:
@@ -40,6 +40,7 @@ namespace ewn
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
 			bool m_disconnected;
+			bool m_shouldQuitApp;
 			float m_accumulator;
 			float m_timeout;
 			unsigned int m_dotCounter;

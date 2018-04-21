@@ -60,7 +60,12 @@ namespace ewn
 		{
 			constexpr float messageTime = 0.2f;
 			if (m_accumulator > messageTime)
-				GetStateData().app->Quit();
+			{
+				if (m_shouldQuitApp)
+					GetStateData().app->Quit();
+				else
+					fsm.ChangeState(std::make_shared<LoginState>(GetStateData()));
+			}
 		}
 		else
 		{
