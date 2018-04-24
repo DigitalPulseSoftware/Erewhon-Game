@@ -92,7 +92,7 @@ namespace ewn
 
 			auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
 
-			moduleHandle->PushCallback("OnRadarObjectDestroyed", [id = entity->GetId(), lastPos = nodeComponent.GetPosition()](Nz::LuaState& state)
+			moduleHandle->PushCallback("OnRadarLockedObjectDestroyed", [id = entity->GetId(), lastPos = nodeComponent.GetPosition()](Nz::LuaState& state)
 			{
 				state.Push(id);
 				state.Push(LuaVec3(lastPos));
@@ -108,7 +108,7 @@ namespace ewn
 
 			auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
 
-			moduleHandle->PushCallback("OnRadarObjectLeftRange", [id = entity->GetId(), lastPos = nodeComponent.GetPosition()](Nz::LuaState& state)
+			moduleHandle->PushCallback("OnRadarLockedObjectLeftRange", [id = entity->GetId(), lastPos = nodeComponent.GetPosition()](Nz::LuaState& state)
 			{
 				state.Push(id);
 				state.Push(LuaVec3(lastPos));
