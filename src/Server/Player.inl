@@ -9,6 +9,11 @@
 
 namespace ewn
 {
+	inline void Player::ClearBots()
+	{
+		m_botEntities.clear();
+	}
+
 	inline void Player::Disconnect(Nz::UInt32 data)
 	{
 		m_networkReactor.DisconnectPeer(m_peerId, data);
@@ -17,11 +22,6 @@ namespace ewn
 	inline Arena* Player::GetArena() const
 	{
 		return m_arena;
-	}
-
-	inline const Ndk::EntityHandle& Player::GetBotEntity() const
-	{
-		return m_botEntity;
 	}
 
 	const Ndk::EntityHandle& Player::GetControlledEntity() const

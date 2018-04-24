@@ -27,16 +27,23 @@ namespace ewn
 
 	void ServerChatCommandStore::BuildStore(ServerApplication* /*app*/)
 	{
+		RegisterCommand("clearbots", &ServerChatCommandStore::HandleClearBots);
 		RegisterCommand("crashserver", &ServerChatCommandStore::HandleCrashServer);
 		RegisterCommand("kamikaze", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("kick", &ServerChatCommandStore::HandleKickPlayer);
-		RegisterCommand("killbot", &ServerChatCommandStore::HandleKillBot);
 		RegisterCommand("reloadmodules", &ServerChatCommandStore::HandleReloadModules);
 		RegisterCommand("resetarena", &ServerChatCommandStore::HandleResetArena);
 		RegisterCommand("suicide", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("spawnfleet", &ServerChatCommandStore::HandleSpawnFleet);
 		RegisterCommand("stopserver", &ServerChatCommandStore::HandleStopServer);
 		RegisterCommand("updatepermission", &ServerChatCommandStore::HandleUpdatePermission);
+	}
+
+	bool ServerChatCommandStore::HandleClearBots(ServerApplication* /*app*/, Player* player)
+	{
+		player->ClearBots();
+
+		return true;
 	}
 
 	bool ServerChatCommandStore::HandleCrashServer(ServerApplication* /*app*/, Player* player)
@@ -61,14 +68,6 @@ namespace ewn
 		}
 
 		target->Disconnect();
-		return true;
-	}
-
-	bool ServerChatCommandStore::HandleKillBot(ServerApplication* /*app*/, Player* player)
-	{
-		if (const Ndk::EntityHandle& botEntity = player->GetBotEntity())
-			botEntity->Kill();
-
 		return true;
 	}
 

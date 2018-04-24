@@ -23,9 +23,9 @@ namespace ewn
 		private:
 			void BuildStore(ServerApplication* app);
 
+			static bool HandleClearBots(ServerApplication* app, Player* player);
 			static bool HandleCrashServer(ServerApplication* app, Player* player);
 			static bool HandleKickPlayer(ServerApplication* app, Player* player, Player* target);
-			static bool HandleKillBot(ServerApplication* app, Player* player);
 			static bool HandleReloadModules(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
 			static bool HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName);

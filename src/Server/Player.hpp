@@ -31,10 +31,11 @@ namespace ewn
 
 			void Authenticate(Nz::Int32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
 
+			inline void ClearBots();
+
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;
-			inline const Ndk::EntityHandle& GetBotEntity() const;
 			inline const Ndk::EntityHandle& GetControlledEntity() const;
 			inline Nz::Int32 GetDatabaseId() const;
 			Nz::UInt64 GetLastInputProcessedTime() const;
@@ -44,7 +45,7 @@ namespace ewn
 			inline std::size_t GetPeerId() const;
 			inline std::size_t GetSessionId() const;
 
-			const Ndk::EntityHandle& InstantiateBot(std::size_t spaceshipHullId);
+			const Ndk::EntityHandle& InstantiateBot(const std::string& name, std::size_t spaceshipHullId);
 
 			inline bool IsAuthenticated() const;
 
@@ -71,7 +72,7 @@ namespace ewn
 			std::size_t m_sessionId;
 			std::string m_displayName;
 			std::string m_login;
-			Ndk::EntityOwner m_botEntity;
+			std::vector<Ndk::EntityOwner> m_botEntities;
 			Ndk::EntityOwner m_controlledEntity;
 			Nz::Int32 m_databaseId;
 			Nz::UInt16 m_permissionLevel;

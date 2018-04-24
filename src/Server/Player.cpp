@@ -76,13 +76,30 @@ namespace ewn
 		});
 	}
 
-	const Ndk::EntityHandle& Player::InstantiateBot(std::size_t spaceshipHullId)
+	const Ndk::EntityHandle& Player::InstantiateBot(const std::string& name, std::size_t spaceshipHullId)
 	{
-		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
+		constexpr std::size_t MaxBots = 10;
 
-		m_botEntity = m_arena->CreateSpaceship("Bot (" + m_login + ')', this, spaceshipHullId, spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f, spaceshipNode.GetRotation());
+		Nz::Vector3f position;
+		Nz::Quaternionf rotation;
+		if (m_controlledEntity->HasComponent<Ndk::NodeComponent>())
+		{
+			auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
+			position = spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f;
+			rotation = spaceshipNode.GetRotation();
+		}
+		else
+		{
+			position = Nz::Vector3f::Zero();
+			rotation = Nz::Quaternionf::Identity();
+		}
 
-		return m_botEntity;
+		if (m_botEntities.size() >= MaxBots)
+			m_botEntities.erase(m_botEntities.begin());
+
+		m_botEntities.emplace_back(m_arena->CreateSpaceship(name + " bot (" + m_login + ')', this, spaceshipHullId, position, rotation));
+
+		return m_botEntities.back();
 	}
 
 	Nz::UInt64 Player::GetLastInputProcessedTime() const
