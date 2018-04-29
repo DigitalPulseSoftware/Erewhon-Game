@@ -46,6 +46,7 @@ namespace ewn
 		OutgoingCommand(DeleteSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(JoinArena,          Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Login,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(LoginByToken,       Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerChat,         Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement,     0,                           0);
 		OutgoingCommand(PlayerShoot,        Nz::ENetPacketFlag_Reliable, 0);

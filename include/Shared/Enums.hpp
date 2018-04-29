@@ -22,7 +22,10 @@ namespace ewn
 	{
 		AccountNotFound,
 		PasswordMismatch,
-		ServerError
+		ServerError,
+
+		// Waiting for Build24:
+		InvalidToken
 	};
 
 	enum class ModuleType : Nz::UInt8

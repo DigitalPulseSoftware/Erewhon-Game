@@ -203,6 +203,24 @@ namespace ewn
 		{
 			serializer &= data.login;
 			serializer &= data.passwordHash;
+
+			serializer.Serialize<Nz::UInt8>(data.generateConnectionToken);
+		}
+
+		void Serialize(PacketSerializer& serializer, LoginByToken& data)
+		{
+			CompressedUnsigned<Nz::UInt32> tokenLength;
+			if (serializer.IsWriting())
+				tokenLength = Nz::UInt32(data.connectionToken.size());
+
+			serializer &= tokenLength;
+			if (!serializer.IsWriting())
+				data.connectionToken.resize(tokenLength);
+
+			for (auto& data : data.connectionToken)
+				serializer &= data;
+
+			serializer.Serialize<Nz::UInt8>(data.generateConnectionToken);
 		}
 
 		void Serialize(PacketSerializer& serializer, LoginFailure& data)
@@ -212,6 +230,16 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, LoginSuccess& data)
 		{
+			CompressedUnsigned<Nz::UInt32> tokenLength;
+			if (serializer.IsWriting())
+				tokenLength = Nz::UInt32(data.connectionToken.size());
+
+			serializer &= tokenLength;
+			if (!serializer.IsWriting())
+				data.connectionToken.resize(tokenLength);
+
+			for (auto& data : data.connectionToken)
+				serializer &= data;
 		}
 
 		void Serialize(PacketSerializer& serializer, NetworkStrings& data)

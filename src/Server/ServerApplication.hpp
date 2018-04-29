@@ -57,6 +57,7 @@ namespace ewn
 			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
 			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
+			void HandleLoginByToken(std::size_t peerId, const Packets::LoginByToken& data);
 			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
 			void HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
@@ -81,6 +82,8 @@ namespace ewn
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) override;
+
+			void HandleLoginSucceeded(Player* player, Nz::Int32 databaseId, bool regenerateToken);
 
 			void InitGameWorkers(std::size_t workerCount);
 			void InitGlobalDatabase(std::size_t workerCount, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName);

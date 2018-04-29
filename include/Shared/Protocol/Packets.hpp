@@ -60,6 +60,7 @@ namespace ewn
 		// Waiting for Build24
 		ArenaParticleSystems,
 		InstantiateParticleSystem,
+		LoginByToken
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -218,6 +219,13 @@ namespace ewn
 		{
 			std::string login;
 			std::string passwordHash;
+			bool generateConnectionToken;
+		};
+
+		DeclarePacket(LoginByToken)
+		{
+			std::vector<Nz::UInt8> connectionToken;
+			bool generateConnectionToken;
 		};
 
 		DeclarePacket(LoginFailure)
@@ -227,6 +235,7 @@ namespace ewn
 
 		DeclarePacket(LoginSuccess)
 		{
+			std::vector<Nz::UInt8> connectionToken;
 		};
 
 		DeclarePacket(NetworkStrings)
@@ -361,6 +370,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
 		void Serialize(PacketSerializer& serializer, JoinArena& data);
 		void Serialize(PacketSerializer& serializer, Login& data);
+		void Serialize(PacketSerializer& serializer, LoginByToken& data);
 		void Serialize(PacketSerializer& serializer, LoginFailure& data);
 		void Serialize(PacketSerializer& serializer, LoginSuccess& data);
 		void Serialize(PacketSerializer& serializer, NetworkStrings& data);

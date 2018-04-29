@@ -11,6 +11,7 @@
 #include <NDK/State.hpp>
 #include <NDK/Widgets.hpp>
 #include <future>
+#include <vector>
 
 namespace ewn
 {
@@ -56,8 +57,10 @@ namespace ewn
 			Ndk::TextAreaWidget* m_loginArea;
 			Ndk::TextAreaWidget* m_passwordArea;
 			std::future<std::string> m_passwordFuture;
+			std::vector<Nz::UInt8> m_connectionToken;
 			bool m_loginSucceeded;
 			bool m_isLoggingIn;
+			bool m_isLoggingInByToken;
 			bool m_isUsingOption;
 			bool m_isRegistering;
 			float m_loginAccumulator;

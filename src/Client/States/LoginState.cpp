@@ -21,14 +21,17 @@
 
 namespace ewn
 {
+	static constexpr const char* TokenFile = "connectiontoken.rememberme";
+
 	void LoginState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		StateData& stateData = GetStateData();
 
 		m_isLoggingIn = false;
-		m_loginSucceeded = false;
+		m_isLoggingInByToken = false;
 		m_isRegistering = false;
 		m_isUsingOption = false;
+		m_loginSucceeded = false;
 
 		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
@@ -111,6 +114,10 @@ namespace ewn
 					reason = "account not found";
 					break;
 
+				case LoginFailureReason::InvalidToken:
+					reason = "automatic connection token expired";
+					break;
+
 				case LoginFailureReason::PasswordMismatch:
 					reason = "password mismatch";
 					break;
@@ -126,29 +133,90 @@ namespace ewn
 
 			UpdateStatus("Login failed: " + reason, Nz::Color::Red);
 			m_isLoggingIn = false;
+			m_isLoggingInByToken = false;
 		});
 
-		m_onLoginSuccess.Connect(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
+		m_onLoginSuccess.Connect(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess& loginPacket)
 		{
 			UpdateStatus("Login succeeded", Nz::Color::Green);
 
 			m_loginSucceeded = true;
 			m_loginAccumulator = 0.f;
+
+			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked && !loginPacket.connectionToken.empty())
+			{
+				Nz::File loginFile(TokenFile);
+				if (loginFile.Open(Nz::OpenMode_Truncate | Nz::OpenMode_WriteOnly))
+				{
+					Nz::String login = m_loginArea->GetText();
+					Nz::String tokenAsString(loginPacket.connectionToken.size() * 2, '\0');
+					for (std::size_t i = 0; i < loginPacket.connectionToken.size(); ++i)
+						std::sprintf(&tokenAsString[i * 2], "%02x", loginPacket.connectionToken[i]);
+
+					loginFile.Write(login + '\n' + tokenAsString);
+				}
+				else
+					std::cerr << "Failed to open remember me file" << std::endl;
+			}
 		});
 
 		LayoutWidgets();
 		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
-		// Fill with data from lastlogin.rememberme if present
-		Nz::File loginFile("lastlogin.rememberme");
+		Nz::File loginFile(TokenFile);
 		if (loginFile.Open(Nz::OpenMode_ReadOnly))
 		{
 			Nz::String login = loginFile.ReadLine();
-			Nz::String pass = loginFile.ReadLine();
+			Nz::String token = loginFile.ReadLine();
+			if (token.GetSize() == 128)
+			{
+				std::vector<Nz::UInt8> binToken;
+				binToken.reserve(64);
+				for (std::size_t i = 0; i < 128; i += 2)
+				{
+					static const char* hexadecimal = "0123456789abcdef";
 
-			m_loginArea->SetText(login);
-			m_passwordArea->SetText(pass);
-			m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
+					char c1 = token[i];
+					char c2 = token[i + 1];
+
+					const char* p1 = std::strchr(hexadecimal, c1);
+					const char* p2 = std::strchr(hexadecimal, c2);
+					if (!p1 || !p2)
+						return;
+
+					std::size_t v1 = p1 - hexadecimal;
+					std::size_t v2 = p2 - hexadecimal;
+
+					binToken.push_back((v1 * 16) + v2);
+				}
+
+				m_loginArea->SetText(login);
+				m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
+
+				if (!stateData.server->IsConnected())
+				{
+					// Connect to server
+					if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+					{
+						UpdateStatus("Connecting...");
+						m_connectionToken = std::move(binToken);
+						m_isLoggingInByToken = true;
+					}
+					else
+						UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+				}
+				else
+				{
+					UpdateStatus("Auto-logging in...");
+					m_isLoggingInByToken = true;
+
+					Packets::LoginByToken loginPacket;
+					loginPacket.connectionToken = std::move(m_connectionToken);
+					loginPacket.generateConnectionToken = true;
+
+					stateData.server->SendPacket(loginPacket);
+				}
+			}
 		}
 	}
 
@@ -200,7 +268,7 @@ namespace ewn
 	{
 		StateData& stateData = GetStateData();
 
-		if (m_isLoggingIn)
+		if (m_isLoggingIn || m_isLoggingInByToken)
 			return;
 
 		Nz::String login = m_loginArea->GetText();
@@ -223,23 +291,13 @@ namespace ewn
 			return;
 		}
 
-		Nz::File loginFile("lastlogin.rememberme");
-		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked)
-		{
-			if (loginFile.Open(Nz::OpenMode_Truncate | Nz::OpenMode_WriteOnly))
-				loginFile.Write(m_loginArea->GetText() + '\n' + m_passwordArea->GetText());
-			else
-				std::cerr << "Failed to open remember.me file" << std::endl;
-		}
-		else if (loginFile.Exists())
-			loginFile.Delete();
-
 		ComputePassword();
+
+		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
+			Nz::File::Delete(TokenFile);
 
 		if (!stateData.server->IsConnected())
 		{
-			m_isLoggingIn = true;
-
 			// Connect to server
 			if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
 			{
@@ -256,9 +314,19 @@ namespace ewn
 		}
 	}
 
-	void LoginState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
+	void LoginState::OnConnected(ServerConnection* server, Nz::UInt32 /*data*/)
 	{
-		if (m_isLoggingIn)
+		if (m_isLoggingInByToken)
+		{
+			Packets::LoginByToken loginPacket;
+			loginPacket.connectionToken = std::move(m_connectionToken);
+			loginPacket.generateConnectionToken = true;
+
+			server->SendPacket(loginPacket);
+
+			UpdateStatus("Auto-logging in...");
+		}
+		else if (m_isLoggingIn)
 			UpdateStatus("Logging in...");
 	}
 
@@ -281,7 +349,7 @@ namespace ewn
 
 	void LoginState::OnRegisterPressed()
 	{
-		if (m_isLoggingIn)
+		if (m_isLoggingIn || m_isLoggingInByToken)
 			return;
 
 		m_isRegistering = true;
@@ -376,6 +444,7 @@ namespace ewn
 		}
 
 		Packets::Login loginPacket;
+		loginPacket.generateConnectionToken = (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked);
 		loginPacket.login = m_loginArea->GetText().ToStdString();
 		loginPacket.passwordHash = hashedPassword;
 

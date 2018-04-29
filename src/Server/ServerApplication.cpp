@@ -180,6 +180,79 @@ namespace ewn
 			m_players[peerId]->Disconnect();
 	}
 
+	void ServerApplication::HandleLoginSucceeded(Player* player, Nz::Int32 databaseId, bool regenerateToken)
+	{
+		// Generate connection token
+		SecureRandomGenerator gen;
+
+		std::vector<Nz::UInt8> token(64);
+		if (regenerateToken && !gen(token.data(), token.size()))
+		{
+			std::cerr << "SecureRandomGenerator failed" << std::endl;
+			token.clear();
+		}
+
+		RegisterCallback([this, sessionId = player->GetSessionId(), databaseId, connectionToken = std::move(token)]()
+		{
+			Player* ply = GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			ply->Authenticate(databaseId, [this, playerToken = std::move(connectionToken)](Player* player, bool loginSuccess)
+			{
+				if (loginSuccess)
+				{
+					if (!playerToken.empty())
+					{
+						std::string tokenAsString(128, ' ');
+						for (std::size_t i = 0; i < playerToken.size(); ++i)
+							std::sprintf(&tokenAsString[i * 2], "%02x", playerToken[i]);
+
+						DatabaseTransaction dbTransaction;
+						dbTransaction.AppendPreparedStatement("DeleteAccountTokenByAccountId", { player->GetDatabaseId() });
+						dbTransaction.AppendPreparedStatement("CreateAccountToken", { player->GetDatabaseId(), tokenAsString });
+
+						m_globalDatabase->ExecuteTransaction(std::move(dbTransaction), [this, packetToken = std::move(playerToken), sessionId = player->GetSessionId()](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+						{
+							Player* player = GetPlayerBySession(sessionId);
+							if (!player)
+								return;
+
+							if (transactionSucceeded)
+							{
+								Packets::LoginSuccess loginSuccess;
+								loginSuccess.connectionToken = std::move(packetToken);
+
+								player->SendPacket(loginSuccess);
+								std::cout << "Player #" << player->GetPeerId() << " authenticated as " << player->GetName() << " and regenerated a connection token" << std::endl;
+							}
+							else
+							{
+								std::cout << "Failed to save token: " << queryResults.back().GetLastErrorMessage() << std::endl;
+								player->SendPacket(Packets::LoginSuccess());
+								std::cout << "Player #" << player->GetPeerId() << " authenticated as " << player->GetName() << std::endl;
+							}
+						});
+					}
+					else
+					{
+						player->SendPacket(Packets::LoginSuccess());
+						std::cout << "Player #" << player->GetPeerId() << " authenticated as " << player->GetName() << std::endl;
+					}
+				}
+				else
+				{
+					std::cerr << "Failed to authenticate player #" << player->GetPeerId() << ": Database authentication failed" << std::endl;
+
+					Packets::LoginFailure loginFailure;
+					loginFailure.reason = LoginFailureReason::ServerError;
+
+					player->SendPacket(loginFailure);
+				}
+			});
+		});
+	}
+
 	void ServerApplication::InitGameWorkers(std::size_t workerCount)
 	{
 		m_workers.reserve(workerCount);
@@ -218,8 +291,9 @@ namespace ewn
 			return;
 
 		m_globalDatabase->ExecuteQuery("FindAccountByLogin", { data.login },
-		[this, ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash](DatabaseResult& result)
+		[this, sessionId = player->GetSessionId(), login = data.login, pwd = data.passwordHash, needToken = data.generateConnectionToken](DatabaseResult& result)
 		{
+			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
 				return;
 
@@ -259,7 +333,7 @@ namespace ewn
 			int tCost = m_config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
 			int hashLength = m_config.GetIntegerOption<int>("Security.HashLength");
 
-			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, ply, login, iCost, mCost, tCost, hashLength]()
+			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, sessionId, login, iCost, mCost, tCost, hashLength, needToken]()
 			{
 				Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
 				Nz::StackArray<char> outputHex = NazaraStackAllocationNoInit(char, hashLength * 2 + 1);
@@ -302,35 +376,17 @@ namespace ewn
 
 				if (!failure)
 				{
-					RegisterCallback([ply, id]()
-					{
-						if (!ply)
-							return;
+					Player* ply = GetPlayerBySession(sessionId);
+					if (!ply)
+						return;
 
-						ply->Authenticate(id, [](Player* player, bool loginSuccess)
-						{
-							if (loginSuccess)
-							{
-								player->SendPacket(Packets::LoginSuccess());
-
-								std::cout << "Player #" << player->GetPeerId() << " authenticated as " << player->GetName() << std::endl;
-							}
-							else
-							{
-								std::cerr << "Failed to authenticate player #" << player->GetPeerId() << ": Database authentication failed" << std::endl;
-
-								Packets::LoginFailure loginFailure;
-								loginFailure.reason = LoginFailureReason::ServerError;
-
-								player->SendPacket(loginFailure);
-							}
-						});
-					});
+					HandleLoginSucceeded(ply, id, needToken);
 				}
 				else
 				{
-					RegisterCallback([ply, login, reason = failure.value(), argon2Ret]()
+					RegisterCallback([this, sessionId, login, reason = failure.value(), argon2Ret]()
 					{
+						Player* ply = GetPlayerBySession(sessionId);
 						if (!ply)
 							return;
 
@@ -357,6 +413,57 @@ namespace ewn
 					});
 				}
 			});
+		});
+	}
+
+	void ServerApplication::HandleLoginByToken(std::size_t peerId, const Packets::LoginByToken& data)
+	{
+		Player* player = m_players[peerId];
+		if (player->IsAuthenticated())
+			return;
+
+		if (data.connectionToken.size() != 64)
+			return;
+
+		std::string tokenAsString(128, ' ');
+		for (std::size_t i = 0; i < data.connectionToken.size(); ++i)
+			std::sprintf(&tokenAsString[i * 2], "%02x", data.connectionToken[i]);
+
+		DatabaseTransaction trans;
+		trans.AppendPreparedStatement("FindAccountByToken", { tokenAsString }, [](DatabaseTransaction& transaction, DatabaseResult result) -> DatabaseResult
+		{
+			if (result && result.GetRowCount() != 0)
+			{
+				// Delete token after retrieving it
+
+				Nz::Int32 dbId = std::get<Nz::Int32>(result.GetValue(0));
+
+				transaction.AppendPreparedStatement("DeleteAccountTokenByAccountId", { dbId });
+			}
+
+			return result;
+		});
+
+		std::size_t accountResultId = trans.GetBeginResultIndex() + 1;
+		m_globalDatabase->ExecuteTransaction(std::move(trans), [this, sessionId = player->GetSessionId(), accountResultId, generateNewToken = data.generateConnectionToken](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+		{
+			Player* ply = GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!transactionSucceeded || queryResults[accountResultId].GetRowCount() == 0)
+			{
+				std::cout << "Player #" << ply->GetPeerId() << " authentication via token failed" << std::endl;
+
+				Packets::LoginFailure loginFailure;
+				loginFailure.reason = LoginFailureReason::InvalidToken;
+
+				ply->SendPacket(loginFailure);
+				return;
+			}
+
+			Nz::Int32 dbId = std::get<Nz::Int32>(queryResults[accountResultId].GetValue(0));
+			HandleLoginSucceeded(ply, dbId, generateNewToken);
 		});
 	}
 

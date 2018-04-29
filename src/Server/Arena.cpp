@@ -531,6 +531,7 @@ namespace ewn
 
 	void Arena::SendArenaData(Player* player)
 	{
+
 		Packets::ArenaParticleSystems arenaParticleSystems;
 		arenaParticleSystems.startId = 0;
 

@@ -22,6 +22,7 @@ namespace ewn
 		IncomingCommand(DeleteSpaceship);
 		IncomingCommand(JoinArena);
 		IncomingCommand(Login);
+		IncomingCommand(LoginByToken);
 		IncomingCommand(PlayerChat);
 		IncomingCommand(PlayerMovement);
 		IncomingCommand(PlayerShoot);

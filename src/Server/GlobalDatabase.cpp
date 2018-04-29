@@ -12,9 +12,12 @@ namespace ewn
 		try
 		{
 			PrepareStatement(conn, "AddSpaceshipModule", "INSERT INTO spaceship_modules(spaceship_id, module_id) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Int32 });
+			PrepareStatement(conn, "CreateAccountToken", "INSERT INTO account_tokens(account_id, token) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "CreateSpaceship", "INSERT INTO spaceships(name, script, owner_id, spaceship_hull_id, last_update_date) VALUES(LOWER($2), $3, $1, $4, NOW()) RETURNING id;", { DatabaseType::Int32, DatabaseType::Text, DatabaseType::Text, DatabaseType::Int32 });
+			PrepareStatement(conn, "DeleteAccountTokenByAccountId", "DELETE FROM account_tokens WHERE account_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "DeleteSpaceship", "DELETE FROM spaceships WHERE owner_id = $1 AND name = LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)", { DatabaseType::Text });
+			PrepareStatement(conn, "FindAccountByToken", "SELECT account_id FROM account_tokens WHERE token=$1", { DatabaseType::Text });
 			PrepareStatement(conn, "FindFleetByOwnerIdAndName", "SELECT id FROM fleets WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindFleetSpaceshipByFleetId", "SELECT spaceship_id, spaceship_count FROM fleet_spaceships WHERE fleet_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "FindSpaceshipByOwnerIdAndName", "SELECT id, script, spaceship_hull_id FROM spaceships WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
