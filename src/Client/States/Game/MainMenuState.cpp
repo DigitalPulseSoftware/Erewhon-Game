@@ -9,6 +9,7 @@
 #include <Shared/Protocol/Packets.hpp>
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionLostState.hpp>
+#include <Client/States/DisconnectionState.hpp>
 #include <Client/States/Game/SpaceshipListState.hpp>
 #include <Client/States/Game/TimeSyncState.hpp>
 #include <cassert>
@@ -20,6 +21,15 @@ namespace ewn
 		StateData& stateData = GetStateData();
 
 		m_nextState.reset();
+
+		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
+		m_disconnectButton->UpdateText(Nz::SimpleTextDrawer::Draw("Disconnect", 24));
+		m_disconnectButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		m_disconnectButton->ResizeToContent();
+		m_disconnectButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		{
+			OnDisconnectPressed();
+		});
 
 		m_playButton = CreateWidget<Ndk::ButtonWidget>();
 		m_playButton->UpdateText(Nz::SimpleTextDrawer::Draw("Play", 36));
@@ -77,10 +87,18 @@ namespace ewn
 		m_welcomeTextLabel->CenterHorizontal();
 		m_welcomeTextLabel->SetPosition({ m_welcomeTextLabel->GetPosition().x, m_welcomeTextLabel->GetSize().y * 2.f, 0.f });
 
+		m_disconnectButton->CenterHorizontal();
+		m_disconnectButton->SetPosition({ m_disconnectButton->GetPosition().x, canvasSize.y - m_disconnectButton->GetSize().y * 2.f, 0.f });
+
 		m_playButton->CenterHorizontal();
-		m_playButton->SetPosition({ m_playButton->GetPosition().x, canvasSize.y - m_playButton->GetSize().y * 2.f, 0.f });
+		m_playButton->SetPosition({ m_playButton->GetPosition().x, m_disconnectButton->GetPosition().y - m_playButton->GetSize().y - 10.f, 0.f });
 	
 		m_spaceshipButton->SetPosition({ canvasSize.x / 6.f - m_spaceshipButton->GetSize().x / 2.f, canvasSize.y / 4.f - m_spaceshipButton->GetSize().y / 2.f, 0.f });
+	}
+
+	void MainMenuState::OnDisconnectPressed()
+	{
+		m_nextState = std::make_shared<DisconnectionState>(GetStateData(), false);
 	}
 
 	void MainMenuState::OnPlayPressed()

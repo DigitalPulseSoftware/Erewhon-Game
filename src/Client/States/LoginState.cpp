@@ -189,32 +189,35 @@ namespace ewn
 
 					binToken.push_back((v1 * 16) + v2);
 				}
+				m_connectionToken = std::move(binToken);
 
 				m_loginArea->SetText(login);
 				m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
 
-				if (!stateData.server->IsConnected())
+				if (m_shouldAutoLogin)
 				{
-					// Connect to server
-					if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+					if (!stateData.server->IsConnected())
 					{
-						UpdateStatus("Connecting...");
-						m_connectionToken = std::move(binToken);
-						m_isLoggingInByToken = true;
+						// Connect to server
+						if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+						{
+							UpdateStatus("Connecting...");
+							m_isLoggingInByToken = true;
+						}
+						else
+							UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 					}
 					else
-						UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
-				}
-				else
-				{
-					UpdateStatus("Auto-logging in...");
-					m_isLoggingInByToken = true;
+					{
+						UpdateStatus("Auto-logging in...");
+						m_isLoggingInByToken = true;
 
-					Packets::LoginByToken loginPacket;
-					loginPacket.connectionToken = std::move(m_connectionToken);
-					loginPacket.generateConnectionToken = true;
+						Packets::LoginByToken loginPacket;
+						loginPacket.connectionToken = std::move(m_connectionToken);
+						loginPacket.generateConnectionToken = true;
 
-					stateData.server->SendPacket(loginPacket);
+						stateData.server->SendPacket(loginPacket);
+					}
 				}
 			}
 		}
@@ -285,32 +288,59 @@ namespace ewn
 		}
 
 		Nz::String password = m_passwordArea->GetText();
-		if (password.GetLength() < 8)
+		if (password.IsEmpty() && !m_connectionToken.empty())
 		{
-			UpdateStatus("Error: password is too short (at least 8 characters required)", Nz::Color::Red);
-			return;
-		}
+			// Use login by token if password is empty
+			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
+				Nz::File::Delete(TokenFile);
 
-		ComputePassword();
-
-		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
-			Nz::File::Delete(TokenFile);
-
-		if (!stateData.server->IsConnected())
-		{
-			// Connect to server
-			if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+			if (!stateData.server->IsConnected())
 			{
-				UpdateStatus("Connecting...");
-				m_isLoggingIn = true;
+				// Connect to server
+				if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+				{
+					UpdateStatus("Connecting...");
+					m_isLoggingInByToken = true;
+				}
+				else
+					UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 			}
 			else
-				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+			{
+				UpdateStatus("Auto-logging in...");
+				m_isLoggingInByToken = true;
+				SendLoginByTokenPacket();
+			}
 		}
 		else
 		{
-			UpdateStatus("Logging in...");
-			m_isLoggingIn = true;
+			if (password.GetLength() < 8)
+			{
+				UpdateStatus("Error: password is too short (at least 8 characters required)", Nz::Color::Red);
+				return;
+			}
+
+			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
+				Nz::File::Delete(TokenFile);
+
+			ComputePassword();
+
+			if (!stateData.server->IsConnected())
+			{
+				// Connect to server
+				if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+				{
+					UpdateStatus("Connecting...");
+					m_isLoggingIn = true;
+				}
+				else
+					UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+			}
+			else
+			{
+				UpdateStatus("Logging in...");
+				m_isLoggingIn = true;
+			}
 		}
 	}
 
@@ -318,12 +348,7 @@ namespace ewn
 	{
 		if (m_isLoggingInByToken)
 		{
-			Packets::LoginByToken loginPacket;
-			loginPacket.connectionToken = std::move(m_connectionToken);
-			loginPacket.generateConnectionToken = true;
-
-			server->SendPacket(loginPacket);
-
+			SendLoginByTokenPacket();
 			UpdateStatus("Auto-logging in...");
 		}
 		else if (m_isLoggingIn)
@@ -449,6 +474,17 @@ namespace ewn
 		loginPacket.passwordHash = hashedPassword;
 
 		GetStateData().server->SendPacket(loginPacket);
+	}
+
+	void LoginState::SendLoginByTokenPacket()
+	{
+		Packets::LoginByToken loginPacket;
+		loginPacket.connectionToken = std::move(m_connectionToken);
+		loginPacket.generateConnectionToken = true;
+
+		GetStateData().server->SendPacket(loginPacket);
+
+		m_connectionToken.clear(); //< Ensure state of connection token
 	}
 
 	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)

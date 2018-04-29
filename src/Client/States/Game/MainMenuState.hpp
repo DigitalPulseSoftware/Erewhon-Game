@@ -27,11 +27,13 @@ namespace ewn
 
 			void LayoutWidgets();
 
+			void OnDisconnectPressed();
 			void OnPlayPressed();
 			void OnSpaceshipFactoryPressed();
 
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
+			Ndk::ButtonWidget* m_disconnectButton;
 			Ndk::ButtonWidget* m_playButton;
 			Ndk::ButtonWidget* m_spaceshipButton;
 			Ndk::LabelWidget* m_welcomeTextLabel;

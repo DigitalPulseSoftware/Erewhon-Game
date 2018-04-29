@@ -6,4 +6,9 @@
 
 namespace ewn
 {
+	inline LoginState::LoginState(StateData & stateData, bool shouldAutoLogin) :
+	AbstractState(stateData),
+	m_shouldAutoLogin(shouldAutoLogin)
+	{
+	}
 }

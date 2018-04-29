@@ -18,7 +18,7 @@ namespace ewn
 	class LoginState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline LoginState(StateData& stateData, bool shouldAutoLogin = false);
 			~LoginState() = default;
 
 		private:
@@ -37,6 +37,7 @@ namespace ewn
 
 			void ComputePassword();
 			void SendLoginPacket();
+			void SendLoginByTokenPacket();
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
 
@@ -58,11 +59,12 @@ namespace ewn
 			Ndk::TextAreaWidget* m_passwordArea;
 			std::future<std::string> m_passwordFuture;
 			std::vector<Nz::UInt8> m_connectionToken;
-			bool m_loginSucceeded;
 			bool m_isLoggingIn;
 			bool m_isLoggingInByToken;
 			bool m_isUsingOption;
 			bool m_isRegistering;
+			bool m_loginSucceeded;
+			bool m_shouldAutoLogin;
 			float m_loginAccumulator;
 	};
 }
