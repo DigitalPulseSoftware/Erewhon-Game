@@ -83,7 +83,7 @@ namespace ewn
 			};
 
 			Nz::UdpSocket m_debugSocket;
-			Ndk::EntityOwner m_attractionPoint;
+			Ndk::EntityOwner m_earth;
 			Ndk::EntityOwner m_light;
 			Ndk::EntityOwner m_spaceball;
 			Ndk::EntityList m_scriptControlledEntities;

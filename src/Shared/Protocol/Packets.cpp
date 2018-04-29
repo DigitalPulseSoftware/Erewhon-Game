@@ -28,6 +28,7 @@ namespace ewn
 				CompressedUnsigned<Nz::UInt32> modelCount;
 				CompressedUnsigned<Nz::UInt32> soundCount;
 				CompressedUnsigned<Nz::UInt32> visualEffectCount;
+
 				if (serializer.IsWriting())
 				{
 					modelCount = Nz::UInt32(prefabs.models.size());
@@ -67,6 +68,33 @@ namespace ewn
 					serializer &= effect.position;
 					serializer &= effect.scale;
 				}
+			}
+		}
+
+		void Serialize(PacketSerializer& serializer, ArenaParticleSystems& data)
+		{
+			serializer &= data.startId;
+
+			CompressedUnsigned<Nz::UInt32> particleSystemCount;
+			if (serializer.IsWriting())
+				particleSystemCount = Nz::UInt32(data.particleSystems.size());
+
+			serializer &= particleSystemCount;
+			if (!serializer.IsWriting())
+				data.particleSystems.resize(particleSystemCount);
+
+			for (auto& particleSystem : data.particleSystems)
+			{
+				CompressedUnsigned<Nz::UInt32> particleGroupCount;
+				if (serializer.IsWriting())
+					particleGroupCount = Nz::UInt32(particleSystem.particleGroups.size());
+
+				serializer &= particleGroupCount;
+				if (!serializer.IsWriting())
+					particleSystem.particleGroups.resize(particleGroupCount);
+
+				for (auto& particleGroup : particleSystem.particleGroups)
+					serializer &= particleGroup.particleGroupNameId;
 			}
 		}
 
@@ -151,6 +179,14 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data)
 		{
 			serializer &= data.spaceshipName;
+		}
+
+		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data)
+		{
+			serializer &= data.particleSystemId;
+			serializer &= data.rotation;
+			serializer &= data.position;
+			serializer &= data.scale;
 		}
 
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data)

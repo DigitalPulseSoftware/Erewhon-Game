@@ -136,13 +136,20 @@ namespace ewn
 	void Arena::Reset()
 	{
 		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 60.f, Nz::Quaternionf::Identity());
+		m_earth = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 60.f, Nz::Quaternionf::Identity());
 
 		// Light entity
 		m_light = CreateEntity("light", "", nullptr, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
 
 		// Space ball entity
 		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
+
+		for (auto& [player, playerData] : m_players)
+		{
+			NazaraUnused(playerData);
+
+			player->ClearBots();
+		}
 	}
 
 	void Arena::SpawnFleet(Player* owner, const std::string& fleetName)
@@ -446,6 +453,20 @@ namespace ewn
 				}
 			}
 
+			Ndk::NodeComponent& entityNode = entity->GetComponent<Ndk::NodeComponent>();
+
+			Packets::InstantiateParticleSystem particlePacket;
+			particlePacket.particleSystemId = 0; //< Explosion
+			particlePacket.position = entityNode.GetPosition();
+			particlePacket.rotation = entityNode.GetRotation();
+			particlePacket.scale = Nz::Vector3f(1.f);
+			BroadcastPacket(particlePacket);
+
+			Packets::PlaySound soundPacket;
+			soundPacket.position = entityNode.GetPosition();
+			soundPacket.soundId = 2;
+			BroadcastPacket(soundPacket);
+
 			entity->Kill();
 		});
 
@@ -510,6 +531,21 @@ namespace ewn
 
 	void Arena::SendArenaData(Player* player)
 	{
+		Packets::ArenaParticleSystems arenaParticleSystems;
+		arenaParticleSystems.startId = 0;
+
+		arenaParticleSystems.particleSystems.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_flare");
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_fire");
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_smoke");
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_wave");
+
+		player->SendPacket(arenaParticleSystems);
+
 		Packets::ArenaSounds arenaSoundsPacket;
 		arenaSoundsPacket.startId = 0;
 
@@ -518,6 +554,9 @@ namespace ewn
 
 		arenaSoundsPacket.sounds.emplace_back();
 		arenaSoundsPacket.sounds.back().filePath = "sounds/106733__crunchynut__sci-fi-loop-2.wav";
+
+		arenaSoundsPacket.sounds.emplace_back();
+		arenaSoundsPacket.sounds.back().filePath = "sounds/spaceship_explosion.wav";
 
 		player->SendPacket(arenaSoundsPacket);
 

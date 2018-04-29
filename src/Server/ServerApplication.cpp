@@ -886,5 +886,9 @@ namespace ewn
 		m_stringStore.RegisterString("light");
 		m_stringStore.RegisterString("plasmabeam");
 		m_stringStore.RegisterString("torpedo");
+		m_stringStore.RegisterString("explosion_flare");
+		m_stringStore.RegisterString("explosion_fire");
+		m_stringStore.RegisterString("explosion_smoke");
+		m_stringStore.RegisterString("explosion_wave");
 	}
 }

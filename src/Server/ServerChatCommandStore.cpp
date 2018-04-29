@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerChatCommandStore.hpp>
+#include <NDK/Components/NodeComponent.hpp>
 #include <Server/Arena.hpp>
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
@@ -29,6 +30,7 @@ namespace ewn
 	{
 		RegisterCommand("clearbots", &ServerChatCommandStore::HandleClearBots);
 		RegisterCommand("crashserver", &ServerChatCommandStore::HandleCrashServer);
+		RegisterCommand("debugparticles", &ServerChatCommandStore::HandleDebugParticles);
 		RegisterCommand("kamikaze", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("kick", &ServerChatCommandStore::HandleKickPlayer);
 		RegisterCommand("reloadmodules", &ServerChatCommandStore::HandleReloadModules);
@@ -54,6 +56,26 @@ namespace ewn
 		*static_cast<volatile int*>(nullptr) = 42;
 
 		return true;
+	}
+
+	bool ServerChatCommandStore::HandleDebugParticles(ServerApplication* app, Player* player, unsigned int particleSystemId)
+	{
+		if (const Ndk::EntityHandle& playerSpaceship = player->GetControlledEntity())
+		{
+			auto& spaceshipNode = playerSpaceship->GetComponent<Ndk::NodeComponent>();
+
+			Nz::Vector3f targetPos = spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 10.f;
+
+			Packets::InstantiateParticleSystem packet;
+			packet.particleSystemId = particleSystemId;
+			packet.position = targetPos;
+			packet.rotation = spaceshipNode.GetRotation();
+			packet.scale = Nz::Vector3f(1.f);
+
+			player->GetArena()->BroadcastPacket(packet);
+		}
+
+		return false;
 	}
 
 	bool ServerChatCommandStore::HandleKickPlayer(ServerApplication* app, Player* player, Player* target)

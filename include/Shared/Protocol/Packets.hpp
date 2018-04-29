@@ -55,7 +55,11 @@ namespace ewn
 		TimeSyncResponse,
 		UpdateSpaceship,
 		UpdateSpaceshipFailure,
-		UpdateSpaceshipSuccess
+		UpdateSpaceshipSuccess,
+
+		// Waiting for Build24
+		ArenaParticleSystems,
+		InstantiateParticleSystem,
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -101,6 +105,23 @@ namespace ewn
 			};
 
 			std::vector<Prefab> prefabs;
+		};
+
+		DeclarePacket(ArenaParticleSystems)
+		{
+			CompressedUnsigned<Nz::UInt32> startId;
+
+			struct ParticleSystem
+			{
+				struct ParticleGroup
+				{
+					CompressedUnsigned<Nz::UInt32> particleGroupNameId; //< Temporary
+				};
+
+				std::vector<ParticleGroup> particleGroups;
+			};
+
+			std::vector<ParticleSystem> particleSystems;
 		};
 
 		DeclarePacket(ArenaSounds)
@@ -173,6 +194,14 @@ namespace ewn
 		DeclarePacket(DeleteSpaceship)
 		{
 			std::string spaceshipName;
+		};
+
+		DeclarePacket(InstantiateParticleSystem)
+		{
+			CompressedUnsigned<Nz::UInt32> particleSystemId;
+			Nz::Quaternionf rotation;
+			Nz::Vector3f position;
+			Nz::Vector3f scale;
 		};
 
 		DeclarePacket(IntegrityUpdate)
@@ -318,6 +347,7 @@ namespace ewn
 #undef DeclarePacket
 
 		void Serialize(PacketSerializer& serializer, ArenaPrefabs& data);
+		void Serialize(PacketSerializer& serializer, ArenaParticleSystems& data);
 		void Serialize(PacketSerializer& serializer, ArenaSounds& data);
 		void Serialize(PacketSerializer& serializer, ArenaState& data);
 		void Serialize(PacketSerializer& serializer, BotMessage& data);
@@ -327,6 +357,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data);
 		void Serialize(PacketSerializer& serializer, DeleteEntity& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data);
+		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data);
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
 		void Serialize(PacketSerializer& serializer, JoinArena& data);
 		void Serialize(PacketSerializer& serializer, Login& data);

@@ -18,6 +18,7 @@
 #include <Client/ServerConnection.hpp>
 #include <nonstd/ring_span.hpp>
 #include <array>
+#include <random>
 #include <vector>
 
 namespace ewn
@@ -35,7 +36,6 @@ namespace ewn
 			~ServerMatchEntities();
 
 			inline void EnableSnapshotHandling(bool enable);
-
 			inline ServerEntity& GetServerEntity(std::size_t id);
 			inline std::size_t GetServerEntityCount() const;
 			inline bool IsSnapshotHandlingEnabled() const;
@@ -69,13 +69,27 @@ namespace ewn
 			void HandlePlayingSounds();
 
 			void OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs);
+			void OnArenaParticleSystems(ServerConnection* server, const Packets::ArenaParticleSystems& arenaParticleSystems);
 			void OnArenaSounds(ServerConnection* server, const Packets::ArenaSounds& arenaSounds);
 			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
 			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
 			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
+			void OnInstantiateParticleSystem(ServerConnection* server, const Packets::InstantiateParticleSystem& instantiatePacket);
 			void OnPlaySound(ServerConnection* server, const Packets::PlaySound& playSound);
 
 			void ApplySnapshot(const Snapshot& snapshot);
+
+			struct ParticleSystem
+			{
+				struct ParticleGroup
+				{
+					using InstantiationFunc = std::function<void(const Ndk::EntityHandle& group, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)>;
+
+					Ndk::EntityOwner particleGroup;
+					InstantiationFunc instantiate; //< Temporary
+				};
+				std::vector<ParticleGroup> particleGroups;
+			};
 
 			struct Snapshot
 			{
@@ -93,20 +107,24 @@ namespace ewn
 				std::vector<Entity> entities;
 			};
 
-			NazaraSlot(ServerConnection, OnArenaPrefabs, m_onArenaPrefabsSlot);
-			NazaraSlot(ServerConnection, OnArenaSounds,  m_onArenaSoundsSlot);
-			NazaraSlot(ServerConnection, OnArenaState,   m_onArenaStateSlot);
-			NazaraSlot(ServerConnection, OnCreateEntity, m_onCreateEntitySlot);
-			NazaraSlot(ServerConnection, OnDeleteEntity, m_onDeleteEntitySlot);
-			NazaraSlot(ServerConnection, OnPlaySound,    m_onPlaySoundSlot);
+			NazaraSlot(ServerConnection, OnArenaParticleSystems,      m_onArenaParticleSystemsSlot);
+			NazaraSlot(ServerConnection, OnArenaPrefabs,              m_onArenaPrefabsSlot);
+			NazaraSlot(ServerConnection, OnArenaSounds,               m_onArenaSoundsSlot);
+			NazaraSlot(ServerConnection, OnArenaState,                m_onArenaStateSlot);
+			NazaraSlot(ServerConnection, OnCreateEntity,              m_onCreateEntitySlot);
+			NazaraSlot(ServerConnection, OnDeleteEntity,              m_onDeleteEntitySlot);
+			NazaraSlot(ServerConnection, OnInstantiateParticleSystem, m_onInstantiateParticleSystemSlot);
+			NazaraSlot(ServerConnection, OnPlaySound,                 m_onPlaySoundSlot);
 
 			using PrefabFactoryFunction = std::function<void(ClientApplication* app, const Ndk::EntityHandle& entity)>;
 
 			std::array<Snapshot, 5> m_jitterBufferData;
 			nonstd::ring_span<Snapshot> m_jitterBuffer;
+			std::mt19937 m_randomGenerator;
 			std::unordered_map<std::string, PrefabFactoryFunction> m_visualEffectFactory;
 			std::vector<Ndk::EntityOwner> m_prefabs;
 			std::vector<Nz::Sound> m_playingSounds;
+			std::vector<ParticleSystem> m_particleSystems;
 			std::vector<Nz::SoundBufferRef> m_soundLibrary;
 			std::vector<ServerEntity> m_serverEntities;
 			Ndk::WorldHandle m_world;

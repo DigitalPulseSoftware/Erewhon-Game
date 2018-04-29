@@ -19,6 +19,7 @@ namespace ewn
 
 		// Incoming commands
 		IncomingCommand(ArenaPrefabs);
+		IncomingCommand(ArenaParticleSystems);
 		IncomingCommand(ArenaSounds);
 		IncomingCommand(ArenaState);
 		IncomingCommand(BotMessage);
@@ -26,6 +27,7 @@ namespace ewn
 		IncomingCommand(ControlEntity);
 		IncomingCommand(CreateEntity);
 		IncomingCommand(DeleteEntity);
+		IncomingCommand(InstantiateParticleSystem);
 		IncomingCommand(IntegrityUpdate);
 		IncomingCommand(LoginFailure);
 		IncomingCommand(LoginSuccess);
