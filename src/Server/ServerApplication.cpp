@@ -910,9 +910,13 @@ namespace ewn
 			}
 
 			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+
 			DatabaseTransaction transaction;
 			if (!data.newSpaceshipName.empty())
 				transaction.AppendPreparedStatement("UpdateSpaceshipNameById", { spaceshipId, data.newSpaceshipName });
+
+			if (!data.newSpaceshipCode.empty())
+				transaction.AppendPreparedStatement("UpdateSpaceshipScriptById", { spaceshipId, data.newSpaceshipCode });
 
 			if (!data.modifiedModules.empty())
 			{
@@ -924,6 +928,11 @@ namespace ewn
 					transaction.AppendPreparedStatement("UpdateSpaceshipModule", { spaceshipId, Nz::Int32(oldModuleId), Nz::Int32(newModuleId) });
 				}
 			}
+
+			if (transaction.empty())
+				return;
+
+			transaction.AppendPreparedStatement("UpdateSpaceshipUpdateDate", { spaceshipId });
 
 			m_globalDatabase->ExecuteTransaction(std::move(transaction), [this, sessionId](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
 			{

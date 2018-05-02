@@ -23,26 +23,29 @@ namespace ewn
 {
 	enum class PacketType
 	{
+		ArenaParticleSystems,
 		ArenaPrefabs,
 		ArenaSounds,
 		ArenaState,
 		BotMessage,
 		ChatMessage,
-		CreateSpaceship,
 		ControlEntity,
 		CreateEntity,
+		CreateSpaceship,
 		DeleteEntity,
 		DeleteSpaceship,
+		InstantiateParticleSystem,
 		IntegrityUpdate,
 		JoinArena,
 		Login,
+		LoginByToken,
 		LoginFailure,
 		LoginSuccess,
 		NetworkStrings,
+		PlaySound,
 		PlayerChat,
 		PlayerMovement,
 		PlayerShoot,
-		PlaySound,
 		QuerySpaceshipInfo,
 		QuerySpaceshipList,
 		Register,
@@ -56,11 +59,6 @@ namespace ewn
 		UpdateSpaceship,
 		UpdateSpaceshipFailure,
 		UpdateSpaceshipSuccess,
-
-		// Waiting for Build24
-		ArenaParticleSystems,
-		InstantiateParticleSystem,
-		LoginByToken
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -341,6 +339,7 @@ namespace ewn
 
 			std::string spaceshipName;
 			std::string newSpaceshipName;
+			std::string newSpaceshipCode;
 			std::vector<ModuleInfo> modifiedModules;
 		};
 

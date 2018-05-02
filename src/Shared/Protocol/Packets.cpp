@@ -372,6 +372,7 @@ namespace ewn
 		{
 			serializer &= data.spaceshipName;
 			serializer &= data.newSpaceshipName;
+			serializer &= data.newSpaceshipCode;
 
 			CompressedUnsigned<Nz::UInt32> modifiedModuleCount;
 			if (serializer.IsWriting())

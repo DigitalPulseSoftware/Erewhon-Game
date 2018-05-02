@@ -21,11 +21,9 @@ namespace ewn
 	enum class LoginFailureReason : Nz::UInt8
 	{
 		AccountNotFound,
+		InvalidToken,
 		PasswordMismatch,
-		ServerError,
-
-		// Waiting for Build24:
-		InvalidToken
+		ServerError
 	};
 
 	enum class ModuleType : Nz::UInt8

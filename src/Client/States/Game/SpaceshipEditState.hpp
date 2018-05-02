@@ -29,6 +29,7 @@ namespace ewn
 			void LayoutWidgets();
 
 			void OnBackPressed();
+			void OnLoadCodePressed();
 			void OnModuleSwitch(std::size_t moduleId);
 			void OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& listPacket);
 			void OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket);
@@ -53,12 +54,16 @@ namespace ewn
 			};
 
 			Ndk::ButtonWidget* m_backButton;
+			Ndk::ButtonWidget* m_codeLoadButton;
 			Ndk::ButtonWidget* m_updateButton;
 			Ndk::LabelWidget* m_statusLabel;
 			Ndk::LabelWidget* m_titleLabel;
 			Ndk::LabelWidget* m_nameLabel;
+			Ndk::LabelWidget* m_codeFilenameLabel;
+			Ndk::TextAreaWidget* m_codeFilenameTextArea;
 			Ndk::TextAreaWidget* m_nameTextArea;
 			Nz::ModelRef m_spaceshipModel;
+			Nz::String m_spaceshipCode;
 			Ndk::EntityOwner m_light;
 			Ndk::EntityOwner m_spaceship;
 			std::shared_ptr<Ndk::State> m_previousState;

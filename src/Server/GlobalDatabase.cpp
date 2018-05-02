@@ -34,8 +34,9 @@ namespace ewn
 			PrepareStatement(conn, "UpdateLastLoginDate", "UPDATE accounts SET last_login_date=NOW() WHERE id=$1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "UpdatePermissionLevel", "UPDATE accounts SET permission_level=$2 WHERE id=$1", { DatabaseType::Int32, DatabaseType::Int16 });
 			PrepareStatement(conn, "UpdateSpaceshipModule", "UPDATE spaceship_modules SET module_id=$3 WHERE spaceship_id=$1 AND module_id=$2", { DatabaseType::Int32, DatabaseType::Int32, DatabaseType::Int32 });
-			PrepareStatement(conn, "UpdateSpaceshipName", "UPDATE spaceships SET name=LOWER($3) WHERE owner_id=$1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text, DatabaseType::Text });
 			PrepareStatement(conn, "UpdateSpaceshipNameById", "UPDATE spaceships SET name=LOWER($2) WHERE id=$1", { DatabaseType::Int32, DatabaseType::Text });
+			PrepareStatement(conn, "UpdateSpaceshipScriptById", "UPDATE spaceships SET script=$2 WHERE id=$1", { DatabaseType::Int32, DatabaseType::Text });
+			PrepareStatement(conn, "UpdateSpaceshipUpdateData", "UPDATE spaceships SET last_update_date=NOW() WHERE id=$1", { DatabaseType::Int32 });
 		}
 		catch (const std::exception& e)
 		{

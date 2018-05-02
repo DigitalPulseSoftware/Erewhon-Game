@@ -4,6 +4,7 @@
 
 #include <Client/States/Game/SpaceshipEditState.hpp>
 #include <Nazara/Core/String.hpp>
+#include <Nazara/Lua/LuaInstance.hpp>
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/LightComponent.hpp>
@@ -21,6 +22,8 @@ namespace ewn
 	void SpaceshipEditState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		StateData& stateData = GetStateData();
+
+		const ConfigFile& config = stateData.app->GetConfig();
 
 		m_labelDisappearanceAccumulator = 0.f;
 
@@ -52,6 +55,26 @@ namespace ewn
 		m_nameTextArea->EnableBackground(true);
 		m_nameTextArea->SetBackgroundColor(Nz::Color::White);
 		m_nameTextArea->SetTextColor(Nz::Color::Black);
+
+		m_codeLoadButton = CreateWidget<Ndk::ButtonWidget>();
+		m_codeLoadButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		m_codeLoadButton->UpdateText(Nz::SimpleTextDrawer::Draw("Load code", 24));
+		m_codeLoadButton->ResizeToContent();
+		m_codeLoadButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
+		{
+			OnLoadCodePressed();
+		});
+
+		m_codeFilenameLabel = CreateWidget<Ndk::LabelWidget>();
+		m_codeFilenameLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Code input (file name):", 24));
+		m_codeFilenameLabel->ResizeToContent();
+
+		m_codeFilenameTextArea = CreateWidget<Ndk::TextAreaWidget>();
+		m_codeFilenameTextArea->SetContentSize({ 300.f, 30.f });
+		m_codeFilenameTextArea->SetText(config.GetStringOption("ServerScript.Filename"));
+		m_codeFilenameTextArea->EnableBackground(true);
+		m_codeFilenameTextArea->SetBackgroundColor(Nz::Color::White);
+		m_codeFilenameTextArea->SetTextColor(Nz::Color::Black);
 
 		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_titleLabel = CreateWidget<Ndk::LabelWidget>();
@@ -114,10 +137,11 @@ namespace ewn
 	{
 		Nz::Vector2f canvasSize = GetStateData().canvas->GetSize();
 
+		// Central
 		m_backButton->SetPosition(20.f, canvasSize.y - m_backButton->GetSize().y - 20.f);
 
 		m_statusLabel->CenterHorizontal();
-		m_statusLabel->SetPosition(m_statusLabel->GetPosition().x, canvasSize.y * 0.2f);
+		m_statusLabel->SetPosition(m_statusLabel->GetPosition().x, canvasSize.y * 0.1f);
 
 		m_titleLabel->CenterHorizontal();
 		m_titleLabel->SetPosition(m_titleLabel->GetPosition().x, canvasSize.y * 0.8f - m_titleLabel->GetSize().y / 2.f);
@@ -129,19 +153,73 @@ namespace ewn
 		m_updateButton->CenterHorizontal();
 		m_updateButton->SetPosition(m_updateButton->GetPosition().x, m_nameTextArea->GetPosition().y + m_nameTextArea->GetSize().y + 20.f);
 
-		static constexpr float buttonPadding = 10.f;
+		Nz::Vector2f cursor;
 
-		Nz::Vector2f cursor(canvasSize.x * 0.15f, canvasSize.y * 0.2f);
+		// Left menu (modules)
+		static constexpr float modulePadding = 10.f;
+
+		cursor = Nz::Vector2f(canvasSize.x * 0.15f, canvasSize.y * 0.2f);
 		for (const auto& buttonData : m_moduleButtons)
 		{
 			buttonData.button->SetPosition({ cursor.x - buttonData.button->GetSize().x / 2.f, cursor.y, 0.f });
-			cursor.y += buttonData.button->GetSize().y + buttonPadding;
+			cursor.y += buttonData.button->GetSize().y + modulePadding;
 		}
+
+		// Right menu (code)
+		static constexpr float padding = 10.f;
+
+		cursor = Nz::Vector2f(canvasSize.x * 0.85f, canvasSize.y * 0.2f);
+
+		m_codeFilenameLabel->SetPosition(cursor.x - m_codeFilenameLabel->GetSize().x / 2.f, cursor.y);
+		cursor.y += m_codeFilenameLabel->GetSize().y + padding;
+
+		m_codeFilenameTextArea->SetPosition(cursor.x - m_codeFilenameTextArea->GetSize().x / 2.f, cursor.y);
+		cursor.y += m_codeFilenameTextArea->GetSize().y + padding;
+
+		m_codeLoadButton->SetPosition(cursor.x - m_codeLoadButton->GetSize().x / 2.f, cursor.y);
+		cursor.y += m_codeLoadButton->GetSize().y + padding * 3.f;
 	}
 
 	void SpaceshipEditState::OnBackPressed()
 	{
 		m_nextState = m_previousState;
+	}
+
+	void SpaceshipEditState::OnLoadCodePressed()
+	{
+		Nz::String fileName = m_codeFilenameTextArea->GetText();
+		if (fileName.IsEmpty())
+		{
+			UpdateStatus("Invalid filename", Nz::Color::Red);
+			return;
+		}
+
+		Nz::File file(fileName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
+		if (!file.IsOpen())
+		{
+			UpdateStatus("Failed to open " + fileName, Nz::Color::Red);
+			return;
+		}
+
+		Nz::String content;
+		content.Reserve(file.GetSize());
+
+		while (!file.EndOfFile())
+		{
+			content += file.ReadLine();
+			content += '\n';
+		}
+
+		Nz::LuaInstance lua;
+		if (!lua.Load(content))
+		{
+			std::cerr << "Parsing error in " << fileName << ": " << lua.GetLastError() << std::endl;
+			UpdateStatus("Parsing error: " + lua.GetLastError(), Nz::Color::Red);
+			return;
+		}
+
+		m_spaceshipCode = content;
+		UpdateStatus(fileName + " successfully loaded");
 	}
 
 	void SpaceshipEditState::OnModuleSwitch(std::size_t moduleId)
@@ -248,6 +326,9 @@ namespace ewn
 		if (updateSpaceship.newSpaceshipName == updateSpaceship.spaceshipName)
 			updateSpaceship.newSpaceshipName.clear(); //< Don't send new-name
 
+		updateSpaceship.newSpaceshipCode = m_spaceshipCode.ToStdString();
+		m_spaceshipCode.Clear(true);
+
 		for (auto& buttonData : m_moduleButtons)
 		{
 			if (buttonData.originalChoice != buttonData.currentChoice)
@@ -260,6 +341,8 @@ namespace ewn
 				buttonData.originalChoice = buttonData.currentChoice;
 			}
 		}
+
+		//TODO: Check for any change
 
 		GetStateData().server->SendPacket(updateSpaceship);
 	}
