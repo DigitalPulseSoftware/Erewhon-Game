@@ -186,11 +186,15 @@ namespace ewn
 		// Generate connection token
 		SecureRandomGenerator gen;
 
-		std::vector<Nz::UInt8> token(64);
-		if (regenerateToken && !gen(token.data(), token.size()))
+		std::vector<Nz::UInt8> token;
+		if (regenerateToken)
 		{
-			std::cerr << "SecureRandomGenerator failed" << std::endl;
-			token.clear();
+			token.resize(64);
+			if (!gen(token.data(), token.size()))
+			{
+				std::cerr << "SecureRandomGenerator failed" << std::endl;
+				token.clear();
+			}
 		}
 
 		RegisterCallback([this, sessionId = player->GetSessionId(), databaseId, connectionToken = std::move(token)]()
