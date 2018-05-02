@@ -131,7 +131,7 @@ int main()
 	stateData.world3D = world3D.CreateHandle();
 
 	fsm.PushState(std::make_shared<ewn::BackgroundState>(stateData));
-	fsm.PushState(std::make_shared<ewn::LoginState>(stateData));
+	fsm.PushState(std::make_shared<ewn::LoginState>(stateData, true));
 
 	// Handle exit
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
