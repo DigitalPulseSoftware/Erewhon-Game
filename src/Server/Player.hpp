@@ -45,7 +45,7 @@ namespace ewn
 			inline std::size_t GetPeerId() const;
 			inline std::size_t GetSessionId() const;
 
-			const Ndk::EntityHandle& InstantiateBot(const std::string& name, std::size_t spaceshipHullId);
+			const Ndk::EntityHandle& InstantiateBot(const std::string& name, std::size_t spaceshipHullId, Nz::Vector3f positionOffset = Nz::Vector3f::Zero());
 
 			inline bool IsAuthenticated() const;
 

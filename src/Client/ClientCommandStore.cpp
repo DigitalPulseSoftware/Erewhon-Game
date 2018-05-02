@@ -18,6 +18,7 @@ namespace ewn
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
+		IncomingCommand(ArenaList);
 		IncomingCommand(ArenaPrefabs);
 		IncomingCommand(ArenaParticleSystems);
 		IncomingCommand(ArenaSounds);
@@ -50,10 +51,10 @@ namespace ewn
 		OutgoingCommand(PlayerChat,         Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement,     0,                           0);
 		OutgoingCommand(PlayerShoot,        Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(QueryArenaList,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QuerySpaceshipInfo, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QuerySpaceshipList, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Register,           Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(SpawnSpaceship,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncRequest,    0,                           0);
 		OutgoingCommand(UpdateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 

@@ -76,7 +76,7 @@ namespace ewn
 		});
 	}
 
-	const Ndk::EntityHandle& Player::InstantiateBot(const std::string& name, std::size_t spaceshipHullId)
+	const Ndk::EntityHandle& Player::InstantiateBot(const std::string& name, std::size_t spaceshipHullId, Nz::Vector3f positionOffset)
 	{
 		constexpr std::size_t MaxBots = 10;
 
@@ -93,6 +93,8 @@ namespace ewn
 			position = Nz::Vector3f::Zero();
 			rotation = Nz::Quaternionf::Identity();
 		}
+
+		position += positionOffset;
 
 		if (m_botEntities.size() >= MaxBots)
 			m_botEntities.erase(m_botEntities.begin());

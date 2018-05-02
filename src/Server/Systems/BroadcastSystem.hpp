@@ -10,6 +10,7 @@
 #include <NDK/EntityList.hpp>
 #include <NDK/System.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <vector>
 
 namespace ewn
 {
@@ -35,6 +36,13 @@ namespace ewn
 			void OnEntityValidation(Ndk::Entity* entity, bool justAdded) override;
 			void OnUpdate(float elapsedTime) override;
 
+			struct EntityPriority
+			{
+				Ndk::Entity* entity;
+				Nz::UInt16 priority;
+			};
+
+			std::vector<EntityPriority> m_priorityQueue;
 			Ndk::EntityList m_movingEntities;
 			Nz::UInt16 m_snapshotId;
 			Packets::ArenaState m_arenaStatePacket;

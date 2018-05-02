@@ -10,8 +10,8 @@
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionLostState.hpp>
 #include <Client/States/DisconnectionState.hpp>
+#include <Client/States/Game/ArenaState.hpp>
 #include <Client/States/Game/SpaceshipListState.hpp>
-#include <Client/States/Game/TimeSyncState.hpp>
 #include <cassert>
 
 namespace ewn
@@ -19,8 +19,6 @@ namespace ewn
 	void MainMenuState::Enter(Ndk::StateMachine& /*fsm*/)
 	{
 		StateData& stateData = GetStateData();
-
-		m_nextState.reset();
 
 		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
 		m_disconnectButton->UpdateText(Nz::SimpleTextDrawer::Draw("Disconnect", 24));
@@ -31,13 +29,13 @@ namespace ewn
 			OnDisconnectPressed();
 		});
 
-		m_playButton = CreateWidget<Ndk::ButtonWidget>();
-		m_playButton->UpdateText(Nz::SimpleTextDrawer::Draw("Play", 36));
-		m_playButton->SetPadding(40.f, 10.f, 40.f, 10.f);
-		m_playButton->ResizeToContent();
-		m_playButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		m_refreshButton = CreateWidget<Ndk::ButtonWidget>();
+		m_refreshButton->UpdateText(Nz::SimpleTextDrawer::Draw("Refresh arenas", 24));
+		m_refreshButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		m_refreshButton->ResizeToContent();
+		m_refreshButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
-			OnPlayPressed();
+			OnRefreshPressed();
 		});
 
 		m_spaceshipButton = CreateWidget<Ndk::ButtonWidget>();
@@ -54,13 +52,20 @@ namespace ewn
 		m_welcomeTextLabel->ResizeToContent();
 
 		LayoutWidgets();
+
+		m_onArenaListSlot.Connect(stateData.server->OnArenaList, this, &MainMenuState::OnArenaList);
 		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
+
+		stateData.server->SendPacket(Packets::QueryArenaList{});
 	}
 
 	void MainMenuState::Leave(Ndk::StateMachine& fsm)
 	{
 		AbstractState::Leave(fsm);
 
+		m_arenaButtons.clear();
+
+		m_onArenaListSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 	}
 
@@ -73,9 +78,6 @@ namespace ewn
 			fsm.ChangeState(std::make_shared<ConnectionLostState>(stateData));
 			return false;
 		}
-
-		if (m_nextState)
-			fsm.ChangeState(m_nextState);
 
 		return true;
 	}
@@ -90,25 +92,66 @@ namespace ewn
 		m_disconnectButton->CenterHorizontal();
 		m_disconnectButton->SetPosition({ m_disconnectButton->GetPosition().x, canvasSize.y - m_disconnectButton->GetSize().y * 2.f, 0.f });
 
-		m_playButton->CenterHorizontal();
-		m_playButton->SetPosition({ m_playButton->GetPosition().x, m_disconnectButton->GetPosition().y - m_playButton->GetSize().y - 10.f, 0.f });
+		m_refreshButton->CenterHorizontal();
+		m_refreshButton->SetPosition({ m_refreshButton->GetPosition().x, m_disconnectButton->GetPosition().y - m_refreshButton->GetSize().y - 10.f, 0.f });
 	
 		m_spaceshipButton->SetPosition({ canvasSize.x / 6.f - m_spaceshipButton->GetSize().x / 2.f, canvasSize.y / 4.f - m_spaceshipButton->GetSize().y / 2.f, 0.f });
+
+		static constexpr float modulePadding = 10.f;
+
+		Nz::Vector2f cursor(canvasSize.x * 0.5f, canvasSize.y * 0.3f);
+		for (Ndk::ButtonWidget* button : m_arenaButtons)
+		{
+			button->SetPosition({ cursor.x - button->GetSize().x / 2.f, cursor.y, 0.f });
+			cursor.y += button->GetSize().y + modulePadding;
+		}
+	}
+
+	void MainMenuState::OnArenaButtonPressed(std::size_t arenaId)
+	{
+		GetStateData().fsm->ResetState(std::make_shared<ArenaState>(GetStateData(), static_cast<Nz::UInt8>(arenaId)));
+	}
+
+	void MainMenuState::OnArenaList(ServerConnection* server, const Packets::ArenaList& arenaList)
+	{
+		for (Ndk::ButtonWidget* button : m_arenaButtons)
+			DestroyWidget(button);
+
+		m_arenaButtons.clear();
+
+		std::size_t arenaIndex = 0;
+		for (const auto& arenaData : arenaList.arenas)
+		{
+			Ndk::ButtonWidget* button = CreateWidget<Ndk::ButtonWidget>();
+			button->UpdateText(Nz::SimpleTextDrawer::Draw("Join arena #" + std::to_string(arenaIndex) + ": " + arenaData.arenaName, 24));
+			button->SetPadding(10.f, 10.f, 10.f, 10.f);
+			button->ResizeToContent();
+			button->OnButtonTrigger.Connect([this, arenaIndex](const Ndk::ButtonWidget*)
+			{
+				OnArenaButtonPressed(arenaIndex);
+			});
+
+			m_arenaButtons.push_back(button);
+
+			arenaIndex++;
+		}
+
+		LayoutWidgets();
 	}
 
 	void MainMenuState::OnDisconnectPressed()
 	{
-		m_nextState = std::make_shared<DisconnectionState>(GetStateData(), false);
+		GetStateData().fsm->ChangeState(std::make_shared<DisconnectionState>(GetStateData(), false));
 	}
 
-	void MainMenuState::OnPlayPressed()
+	void MainMenuState::OnRefreshPressed()
 	{
-		m_nextState = std::make_shared<TimeSyncState>(GetStateData());
+		GetStateData().server->SendPacket(Packets::QueryArenaList{});
 	}
 
 	void MainMenuState::OnSpaceshipFactoryPressed()
 	{
-		m_nextState = std::make_shared<SpaceshipListState>(GetStateData(), shared_from_this());
+		GetStateData().fsm->ChangeState(std::make_shared<SpaceshipListState>(GetStateData(), shared_from_this()));
 	}
 }
 

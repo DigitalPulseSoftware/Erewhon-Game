@@ -91,11 +91,11 @@ namespace ewn
 		spaceshipNode.SetPosition(Nz::Vector3f::Forward() * 2.f);
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
+		m_onSpaceshipInfoSlot.Connect(stateData.server->OnSpaceshipInfo, this, &SpaceshipEditState::OnSpaceshipInfo);
+		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 		m_onUpdateSpaceshipFailureSlot.Connect(stateData.server->OnUpdateSpaceshipFailure, this, &SpaceshipEditState::OnUpdateSpaceshipFailure);
 		m_onUpdateSpaceshipSuccessSlot.Connect(stateData.server->OnUpdateSpaceshipSuccess, this, &SpaceshipEditState::OnUpdateSpaceshipSuccess);
-		m_onSpaceshipInfoSlot.Connect(stateData.server->OnSpaceshipInfo, this, &SpaceshipEditState::OnSpaceshipInfo);
 
 		QuerySpaceshipInfo();
 	}
@@ -194,6 +194,7 @@ namespace ewn
 			return;
 		}
 
+		// Load file content
 		Nz::File file(fileName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
 		if (!file.IsOpen())
 		{
@@ -210,6 +211,7 @@ namespace ewn
 			content += '\n';
 		}
 
+		// Check Lua syntax
 		Nz::LuaInstance lua;
 		if (!lua.Load(content))
 		{

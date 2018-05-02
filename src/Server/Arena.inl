@@ -16,4 +16,9 @@ namespace ewn
 				pair.first->SendPacket(packet);
 		}
 	}
+
+	inline const std::string& Arena::GetName() const
+	{
+		return m_name;
+	}
 }

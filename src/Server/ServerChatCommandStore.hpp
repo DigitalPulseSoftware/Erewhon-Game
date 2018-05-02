@@ -29,6 +29,7 @@ namespace ewn
 			static bool HandleKickPlayer(ServerApplication* app, Player* player, Player* target);
 			static bool HandleReloadModules(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
+			static bool HandleSpawnBot(ServerApplication* app, Player* player, std::string spaceshipName, std::size_t spaceshipCount);
 			static bool HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName);
 			static bool HandleSuicide(ServerApplication* app, Player* player);
 			static bool HandleStopServer(ServerApplication* app, Player* player);

@@ -33,7 +33,7 @@ namespace ewn
 		friend Player;
 
 		public:
-			Arena(ServerApplication* app);
+			Arena(ServerApplication* app, std::string name);
 			Arena(const Arena&) = delete;
 			Arena(Arena&&) = delete;
 			~Arena();
@@ -48,6 +48,8 @@ namespace ewn
 			void DispatchChatMessage(const Nz::String& message);
 
 			Player* FindPlayerByName(const std::string& name) const;
+
+			inline const std::string& GetName() const;
 
 			void Reset();
 
@@ -88,6 +90,7 @@ namespace ewn
 			Ndk::EntityOwner m_spaceball;
 			Ndk::EntityList m_scriptControlledEntities;
 			Ndk::World m_world;
+			std::string m_name;
 			std::unordered_map<Player*, PlayerData> m_players;
 			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;

@@ -12,7 +12,7 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/States/Game/MainMenuState.hpp>
+#include <Client/States/Game/TimeSyncState.hpp>
 #include <Client/States/OptionsState.hpp>
 #include <Client/States/RegisterState.hpp>
 #include <argon2/argon2.h>
@@ -248,7 +248,7 @@ namespace ewn
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.ChangeState(std::make_shared<MainMenuState>(stateData, m_loginArea->GetText().ToStdString()));
+				fsm.ChangeState(std::make_shared<TimeSyncState>(stateData, m_loginArea->GetText().ToStdString()));
 		}
 		else if (m_isRegistering)
 			fsm.ChangeState(std::make_shared<RegisterState>(stateData));

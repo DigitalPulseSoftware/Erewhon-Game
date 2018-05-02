@@ -32,7 +32,8 @@ namespace ewn
 {
 	static constexpr bool sendServerGhosts = false;
 
-	Arena::Arena(ServerApplication* app) :
+	Arena::Arena(ServerApplication* app, std::string name) :
+	m_name(std::move(name)),
 	m_app(app),
 	m_stateBroadcastAccumulator(0.f)
 	{

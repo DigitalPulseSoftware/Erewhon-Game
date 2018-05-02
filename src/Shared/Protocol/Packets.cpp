@@ -11,6 +11,20 @@ namespace ewn
 {
 	namespace Packets
 	{
+		void Serialize(PacketSerializer& serializer, ArenaList& data)
+		{
+			CompressedUnsigned<Nz::UInt32> arenaCount;
+			if (serializer.IsWriting())
+				arenaCount = Nz::UInt32(data.arenas.size());
+
+			serializer &= arenaCount;
+			if (!serializer.IsWriting())
+				data.arenas.resize(arenaCount);
+
+			for (auto& arenaData : data.arenas)
+				serializer &= arenaData.arenaName;
+		}
+
 		void Serialize(PacketSerializer& serializer, ArenaPrefabs& data)
 		{
 			serializer &= data.startId;
@@ -280,6 +294,10 @@ namespace ewn
 			serializer &= data.position;
 		}
 
+		void Serialize(PacketSerializer& serializer, QueryArenaList& data)
+		{
+		}
+
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data)
 		{
 			serializer &= data.spaceshipName;
@@ -303,11 +321,6 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, RegisterSuccess& data)
 		{
-		}
-
-		void Serialize(PacketSerializer& serializer, SpawnSpaceship& data)
-		{
-			serializer &= data.spaceshipName;
 		}
 
 		void Serialize(PacketSerializer& serializer, SpaceshipInfo& data)

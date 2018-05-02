@@ -62,10 +62,10 @@ namespace ewn
 			void HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
 			void HandlePlayerShoot(std::size_t peerId, const Packets::PlayerShoot& data);
+			void HandleQueryArenaList(std::size_t peerId, const Packets::QueryArenaList& data);
 			void HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo& data);
 			void HandleQuerySpaceshipList(std::size_t peerId, const Packets::QuerySpaceshipList& data);
 			void HandleRegister(std::size_t peerId, const Packets::Register& data);
-			void HandleSpawnSpaceship(std::size_t peerId, const Packets::SpawnSpaceship& data);
 			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
 			void HandleUpdateSpaceship(std::size_t peerId, const Packets::UpdateSpaceship& data);
 

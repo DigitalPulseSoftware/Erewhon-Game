@@ -51,28 +51,29 @@ namespace ewn
 			NazaraSignal(OnDisconnected, ServerConnection* /*server*/, Nz::UInt32 /*data*/);
 
 			// Packet reception signals
-			NazaraSignal(OnArenaPrefabs,              ServerConnection* /*server*/, const Packets::ArenaPrefabs&     /*data*/);
+			NazaraSignal(OnArenaList,                 ServerConnection* /*server*/, const Packets::ArenaList&                 /*data*/);
+			NazaraSignal(OnArenaPrefabs,              ServerConnection* /*server*/, const Packets::ArenaPrefabs&              /*data*/);
 			NazaraSignal(OnArenaParticleSystems,      ServerConnection* /*server*/, const Packets::ArenaParticleSystems&      /*data*/);
-			NazaraSignal(OnArenaSounds,               ServerConnection* /*server*/, const Packets::ArenaSounds&      /*data*/);
-			NazaraSignal(OnArenaState,                ServerConnection* /*server*/, const Packets::ArenaState&       /*data*/);
-			NazaraSignal(OnBotMessage,                ServerConnection* /*server*/, const Packets::BotMessage&       /*data*/);
-			NazaraSignal(OnChatMessage,               ServerConnection* /*server*/, const Packets::ChatMessage&      /*data*/);
-			NazaraSignal(OnControlEntity,             ServerConnection* /*server*/, const Packets::ControlEntity&    /*data*/);
-			NazaraSignal(OnCreateEntity,              ServerConnection* /*server*/, const Packets::CreateEntity&     /*data*/);
-			NazaraSignal(OnDeleteEntity,              ServerConnection* /*server*/, const Packets::DeleteEntity&     /*data*/);
-			NazaraSignal(OnInstantiateParticleSystem, ServerConnection* /*server*/, const Packets::InstantiateParticleSystem&  /*data*/);
-			NazaraSignal(OnIntegrityUpdate,           ServerConnection* /*server*/, const Packets::IntegrityUpdate&  /*data*/);
-			NazaraSignal(OnLoginFailure,              ServerConnection* /*server*/, const Packets::LoginFailure&     /*data*/);
-			NazaraSignal(OnLoginSuccess,              ServerConnection* /*server*/, const Packets::LoginSuccess&     /*data*/);
-			NazaraSignal(OnNetworkStrings,            ServerConnection* /*server*/, const Packets::NetworkStrings&   /*data*/);
-			NazaraSignal(OnPlaySound,                 ServerConnection* /*server*/, const Packets::PlaySound&        /*data*/);
-			NazaraSignal(OnRegisterFailure,           ServerConnection* /*server*/, const Packets::RegisterFailure&  /*data*/);
-			NazaraSignal(OnRegisterSuccess,           ServerConnection* /*server*/, const Packets::RegisterSuccess&  /*data*/);
-			NazaraSignal(OnSpaceshipInfo,             ServerConnection* /*server*/, const Packets::SpaceshipInfo&    /*data*/);
-			NazaraSignal(OnSpaceshipList,             ServerConnection* /*server*/, const Packets::SpaceshipList&    /*data*/);
-			NazaraSignal(OnTimeSyncResponse,          ServerConnection* /*server*/, const Packets::TimeSyncResponse& /*data*/);
-			NazaraSignal(OnUpdateSpaceshipFailure,    ServerConnection* /*server*/, const Packets::UpdateSpaceshipFailure& /*data*/);
-			NazaraSignal(OnUpdateSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::UpdateSpaceshipSuccess& /*data*/);
+			NazaraSignal(OnArenaSounds,               ServerConnection* /*server*/, const Packets::ArenaSounds&               /*data*/);
+			NazaraSignal(OnArenaState,                ServerConnection* /*server*/, const Packets::ArenaState&                /*data*/);
+			NazaraSignal(OnBotMessage,                ServerConnection* /*server*/, const Packets::BotMessage&                /*data*/);
+			NazaraSignal(OnChatMessage,               ServerConnection* /*server*/, const Packets::ChatMessage&               /*data*/);
+			NazaraSignal(OnControlEntity,             ServerConnection* /*server*/, const Packets::ControlEntity&             /*data*/);
+			NazaraSignal(OnCreateEntity,              ServerConnection* /*server*/, const Packets::CreateEntity&              /*data*/);
+			NazaraSignal(OnDeleteEntity,              ServerConnection* /*server*/, const Packets::DeleteEntity&              /*data*/);
+			NazaraSignal(OnInstantiateParticleSystem, ServerConnection* /*server*/, const Packets::InstantiateParticleSystem& /*data*/);
+			NazaraSignal(OnIntegrityUpdate,           ServerConnection* /*server*/, const Packets::IntegrityUpdate&           /*data*/);
+			NazaraSignal(OnLoginFailure,              ServerConnection* /*server*/, const Packets::LoginFailure&              /*data*/);
+			NazaraSignal(OnLoginSuccess,              ServerConnection* /*server*/, const Packets::LoginSuccess&              /*data*/);
+			NazaraSignal(OnNetworkStrings,            ServerConnection* /*server*/, const Packets::NetworkStrings&            /*data*/);
+			NazaraSignal(OnPlaySound,                 ServerConnection* /*server*/, const Packets::PlaySound&                 /*data*/);
+			NazaraSignal(OnRegisterFailure,           ServerConnection* /*server*/, const Packets::RegisterFailure&           /*data*/);
+			NazaraSignal(OnRegisterSuccess,           ServerConnection* /*server*/, const Packets::RegisterSuccess&           /*data*/);
+			NazaraSignal(OnSpaceshipInfo,             ServerConnection* /*server*/, const Packets::SpaceshipInfo&             /*data*/);
+			NazaraSignal(OnSpaceshipList,             ServerConnection* /*server*/, const Packets::SpaceshipList&             /*data*/);
+			NazaraSignal(OnTimeSyncResponse,          ServerConnection* /*server*/, const Packets::TimeSyncResponse&          /*data*/);
+			NazaraSignal(OnUpdateSpaceshipFailure,    ServerConnection* /*server*/, const Packets::UpdateSpaceshipFailure&    /*data*/);
+			NazaraSignal(OnUpdateSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::UpdateSpaceshipSuccess&    /*data*/);
 
 		private:
 			inline void DispatchIncomingPacket(Nz::NetPacket&& packet);

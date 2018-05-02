@@ -59,7 +59,7 @@ namespace ewn
 		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &ArenaState::OnEntityDelete);
 
 		Packets::JoinArena arenaPacket;
-		arenaPacket.arenaIndex = 0;
+		arenaPacket.arenaIndex = m_arenaIndex;
 
 		stateData.server->SendPacket(arenaPacket);
 	}

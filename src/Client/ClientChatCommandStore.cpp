@@ -14,7 +14,6 @@ namespace ewn
 	{
 		RegisterCommand("createbot", &ClientChatCommandStore::HandleCreateBot, app->GetConfig().GetStringOption("ServerScript.Filename"));
 		RegisterCommand("deletebot", &ClientChatCommandStore::HandleDeleteBot);
-		RegisterCommand("spawnbot", &ClientChatCommandStore::HandleSpawnBot);
 	}
 
 	bool ClientChatCommandStore::HandleCreateBot(ClientApplication* app, ServerConnection* server, std::string botName, const std::string& scriptName)
@@ -48,16 +47,6 @@ namespace ewn
 	bool ClientChatCommandStore::HandleDeleteBot(ClientApplication* app, ServerConnection* server, std::string botName)
 	{
 		Packets::DeleteSpaceship packet;
-		packet.spaceshipName = std::move(botName);
-
-		server->SendPacket(packet);
-
-		return true;
-	}
-
-	bool ClientChatCommandStore::HandleSpawnBot(ClientApplication* app, ServerConnection* server, std::string botName)
-	{
-		Packets::SpawnSpaceship packet;
 		packet.spaceshipName = std::move(botName);
 
 		server->SendPacket(packet);

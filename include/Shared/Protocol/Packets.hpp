@@ -23,6 +23,7 @@ namespace ewn
 {
 	enum class PacketType
 	{
+		ArenaList,
 		ArenaParticleSystems,
 		ArenaPrefabs,
 		ArenaSounds,
@@ -46,6 +47,7 @@ namespace ewn
 		PlayerChat,
 		PlayerMovement,
 		PlayerShoot,
+		QueryArenaList,
 		QuerySpaceshipInfo,
 		QuerySpaceshipList,
 		Register,
@@ -53,12 +55,11 @@ namespace ewn
 		RegisterSuccess,
 		SpaceshipInfo,
 		SpaceshipList,
-		SpawnSpaceship,
 		TimeSyncRequest,
 		TimeSyncResponse,
 		UpdateSpaceship,
 		UpdateSpaceshipFailure,
-		UpdateSpaceshipSuccess,
+		UpdateSpaceshipSuccess
 	};
 
 	template<PacketType PT> struct PacketTag
@@ -69,6 +70,16 @@ namespace ewn
 	namespace Packets
 	{
 #define DeclarePacket(Type) struct Type : PacketTag<PacketType:: Type >
+
+		DeclarePacket(ArenaList)
+		{
+			struct ArenaData
+			{
+				std::string arenaName;
+			};
+
+			std::vector<ArenaData> arenas;
+		};
 
 		DeclarePacket(ArenaPrefabs)
 		{
@@ -264,6 +275,10 @@ namespace ewn
 			Nz::Vector3f position;
 		};
 
+		DeclarePacket(QueryArenaList)
+		{
+		};
+
 		DeclarePacket(QuerySpaceshipInfo)
 		{
 			std::string spaceshipName;
@@ -312,11 +327,6 @@ namespace ewn
 			std::vector<Spaceship> spaceships;
 		};
 
-		DeclarePacket(SpawnSpaceship)
-		{
-			std::string spaceshipName;
-		};
-
 		DeclarePacket(TimeSyncRequest)
 		{
 			Nz::UInt8 requestId;
@@ -354,6 +364,7 @@ namespace ewn
 
 #undef DeclarePacket
 
+		void Serialize(PacketSerializer& serializer, ArenaList& data);
 		void Serialize(PacketSerializer& serializer, ArenaPrefabs& data);
 		void Serialize(PacketSerializer& serializer, ArenaParticleSystems& data);
 		void Serialize(PacketSerializer& serializer, ArenaSounds& data);
@@ -377,12 +388,12 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, PlayerMovement& data);
 		void Serialize(PacketSerializer& serializer, PlayerShoot& data);
 		void Serialize(PacketSerializer& serializer, PlaySound& data);
+		void Serialize(PacketSerializer& serializer, QueryArenaList& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipList& data);
 		void Serialize(PacketSerializer& serializer, Register& data);
 		void Serialize(PacketSerializer& serializer, RegisterFailure& data);
 		void Serialize(PacketSerializer& serializer, RegisterSuccess& data);
-		void Serialize(PacketSerializer& serializer, SpawnSpaceship& data);
 		void Serialize(PacketSerializer& serializer, SpaceshipInfo& data);
 		void Serialize(PacketSerializer& serializer, SpaceshipList& data);
 		void Serialize(PacketSerializer& serializer, TimeSyncRequest& data);

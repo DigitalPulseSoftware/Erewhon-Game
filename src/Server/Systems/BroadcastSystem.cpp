@@ -59,28 +59,25 @@ namespace ewn
 		static constexpr std::size_t EntityMaxSize = 1300;
 		static constexpr std::size_t MaxEntityPerUpdate = EntityMaxSize / EntitySize;
 
-		struct EntityPriority 
-		{
-			Ndk::Entity* entity;
-			Nz::UInt16 priority;
-		};
-
 		// Allocate a temporary array on the stack to sort entities by their priority accumulator
-		Nz::StackArray<EntityPriority> priorityQueue = NazaraStackAllocationNoInit(EntityPriority, m_movingEntities.size());
+		m_priorityQueue.clear();
+		m_priorityQueue.reserve(m_movingEntities.size());
 
-		std::size_t i = 0;
 		for (const Ndk::EntityHandle& entities : m_movingEntities)
 		{
 			auto& entitySync = entities->GetComponent<SynchronizedComponent>();
 			entitySync.AccumulatePriority();
 
-			priorityQueue[i].entity = entities;
-			priorityQueue[i].priority = entitySync.GetPriorityAccumulator();
+			Nz::UInt16 priorityAccumulator = entitySync.GetPriorityAccumulator();
+			if (priorityAccumulator == 0)
+				continue;
 
-			i++;
+			auto& priorityData = m_priorityQueue.emplace_back();
+			priorityData.entity = entities;
+			priorityData.priority = priorityAccumulator;
 		}
 
-		std::sort(priorityQueue.begin(), priorityQueue.end(), [](const EntityPriority& lhs, const EntityPriority& rhs)
+		std::sort(m_priorityQueue.begin(), m_priorityQueue.end(), [](const EntityPriority& lhs, const EntityPriority& rhs)
 		{
 			return lhs.priority > rhs.priority;
 		});
@@ -92,7 +89,7 @@ namespace ewn
 		std::size_t counter = 0;
 
 		m_arenaStatePacket.entities.clear();
-		for (const EntityPriority& priority : priorityQueue)
+		for (const EntityPriority& priority : m_priorityQueue)
 		{
 			if (++counter > MaxEntityPerUpdate)
 				break;

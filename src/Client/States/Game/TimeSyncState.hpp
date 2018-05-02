@@ -22,7 +22,7 @@ namespace ewn
 	class TimeSyncState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline TimeSyncState(StateData& stateData, std::string playerName);
 			~TimeSyncState() = default;
 
 		private:
@@ -44,6 +44,7 @@ namespace ewn
 			Nz::UInt8 m_expectedRequestId;
 			Nz::UInt64 m_pingAccumulator;
 			Nz::UInt64 m_requestTime;
+			std::string m_playerName;
 			std::vector<Nz::UInt64> m_results;
 			bool m_connected;
 			bool m_finished;

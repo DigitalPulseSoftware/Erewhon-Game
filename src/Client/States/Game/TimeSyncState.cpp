@@ -8,7 +8,7 @@
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <Client/States/LoginState.hpp>
-#include <Client/States/Game/ArenaState.hpp>
+#include <Client/States/Game/MainMenuState.hpp>
 #include <cassert>
 #include <numeric>
 
@@ -75,7 +75,7 @@ namespace ewn
 				m_nextStepTime += 1.f;
 			}
 			else
-				fsm.ResetState(std::make_shared<ArenaState>(stateData));
+				fsm.ChangeState(std::make_shared<MainMenuState>(stateData, m_playerName));
 		}
 
 		return true;

@@ -6,4 +6,9 @@
 
 namespace ewn
 {
+	inline ArenaState::ArenaState(StateData& stateData, Nz::UInt8 arenaIndex) :
+	AbstractState(stateData),
+	m_arenaIndex(arenaIndex)
+	{
+	}
 }

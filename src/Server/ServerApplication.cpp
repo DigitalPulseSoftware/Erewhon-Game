@@ -25,7 +25,8 @@ namespace ewn
 		RegisterConfigOptions();
 		RegisterNetworkedStrings();
 
-		m_arenas.emplace_back(std::make_unique<Arena>(this));
+		m_arenas.emplace_back(std::make_unique<Arena>(this, "Le Royaume de Belgique"));
+		m_arenas.emplace_back(std::make_unique<Arena>(this, "La Cinquième République"));
 	}
 
 	ServerApplication::~ServerApplication()
@@ -495,8 +496,14 @@ namespace ewn
 			std::string_view command = data.text;
 			command.remove_prefix(1);
 
-			if (m_chatCommandStore.ExecuteCommand(player, command))
-				return; // Don't show command if it succeeded
+			std::optional<bool> result = m_chatCommandStore.ExecuteCommand(player, command);
+			if (result)
+			{
+				if (!*result)
+					player->PrintMessage("Error in parsing command, you may be missing parameters");
+
+				return; // Don't show command if it was recognized
+			}
 		}
 
 		if (Arena* arena = player->GetArena())
@@ -532,6 +539,24 @@ namespace ewn
 			return;
 
 		player->Shoot();
+	}
+
+	void ewn::ServerApplication::HandleQueryArenaList(std::size_t peerId, const Packets::QueryArenaList& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		Packets::ArenaList listPacket;
+		listPacket.arenas.reserve(m_arenas.size());
+
+		for (const auto& arenaPtr : m_arenas)
+		{
+			auto& arenaData = listPacket.arenas.emplace_back();
+			arenaData.arenaName = arenaPtr->GetName();
+		}
+
+		player->SendPacket(listPacket);
 	}
 
 	void ServerApplication::HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo & data)
@@ -762,84 +787,6 @@ namespace ewn
 					ply->SendPacket(loginFailure);
 				});
 			}
-		});
-	}
-
-	void ServerApplication::HandleSpawnSpaceship(std::size_t peerId, const Packets::SpawnSpaceship& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](DatabaseResult& result)
-		{
-			if (!result)
-				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
-
-			Player* ply = GetPlayerBySession(sessionId);
-			if (!ply)
-				return;
-
-			if (!result)
-			{
-				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
-				return;
-			}
-
-			if (result.GetRowCount() == 0)
-			{
-				ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
-				return;
-			}
-
-			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
-			std::string code = std::get<std::string>(result.GetValue(1));
-			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
-
-			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, ply, spaceshipHullId, spaceshipName, spaceshipCode = std::move(code)](DatabaseResult& result)
-			{
-				if (!result)
-					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
-
-				if (!ply)
-					return;
-
-				if (!result)
-				{
-					ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-					return;
-				}
-
-				std::size_t moduleCount = result.GetRowCount();
-
-				std::vector<std::size_t> moduleIds(moduleCount);
-				try
-				{
-					for (std::size_t i = 0; i < moduleCount; ++i)
-						moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
-				}
-				catch (const std::exception& e)
-				{
-					std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
-
-					ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-					return;
-				}
-
-				const Ndk::EntityHandle& playerBot = ply->InstantiateBot(spaceshipName, spaceshipHullId);
-				ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
-				if (!botScript.Initialize(this, moduleIds))
-				{
-					ply->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
-					return;
-				}
-
-				Nz::String lastError;
-				if (botScript.Execute(spaceshipCode, &lastError))
-					ply->PrintMessage("Server: Script loaded with success");
-				else
-					ply->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
-			});
 		});
 	}
 

@@ -26,7 +26,7 @@ namespace ewn
 	class ArenaState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline ArenaState(StateData& stateData, Nz::UInt8 arenaIndex);
 			~ArenaState() = default;
 
 		private:
@@ -50,6 +50,7 @@ namespace ewn
 			std::optional<ServerMatchEntities> m_matchEntities;
 			std::optional<SpaceshipController> m_spaceshipController;
 			std::size_t m_controlledEntity;
+			Nz::UInt8 m_arenaIndex;
 			bool m_isDisconnected;
 			bool m_isEnteringMenu;
 	};

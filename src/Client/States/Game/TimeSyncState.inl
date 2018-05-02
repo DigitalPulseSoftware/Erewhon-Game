@@ -6,4 +6,9 @@
 
 namespace ewn
 {
+	inline TimeSyncState::TimeSyncState(StateData& stateData, std::string playerName) :
+	AbstractState(stateData),
+	m_playerName(playerName)
+	{
+	}
 }

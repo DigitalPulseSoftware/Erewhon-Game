@@ -8,6 +8,7 @@
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/ScriptComponent.hpp>
 
 namespace ewn
 {
@@ -35,9 +36,10 @@ namespace ewn
 		RegisterCommand("kick", &ServerChatCommandStore::HandleKickPlayer);
 		RegisterCommand("reloadmodules", &ServerChatCommandStore::HandleReloadModules);
 		RegisterCommand("resetarena", &ServerChatCommandStore::HandleResetArena);
-		RegisterCommand("suicide", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("spawnfleet", &ServerChatCommandStore::HandleSpawnFleet);
 		RegisterCommand("stopserver", &ServerChatCommandStore::HandleStopServer);
+		RegisterCommand("suicide", &ServerChatCommandStore::HandleSuicide);
+		RegisterCommand("spawnbot", &ServerChatCommandStore::HandleSpawnBot);
 		RegisterCommand("updatepermission", &ServerChatCommandStore::HandleUpdatePermission);
 	}
 
@@ -125,6 +127,91 @@ namespace ewn
 	{
 		if (Arena* arena = player->GetArena())
 			arena->SpawnFleet(player, fleetName);
+
+		return true;
+	}
+
+	bool ServerChatCommandStore::HandleSpawnBot(ServerApplication* app, Player* player, std::string spaceshipName, std::size_t spaceshipCount)
+	{
+		if (spaceshipCount < 1 || spaceshipCount > 10)
+		{
+			player->PrintMessage("Invalid count, must be in range [1,10]");
+			return false;
+		}
+
+		app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), spaceshipName }, [app, spaceshipCount, sessionId = player->GetSessionId(), shipName = std::move(spaceshipName)](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result)
+			{
+				ply->PrintMessage("Failed to spawn spaceship \"" + shipName + "\", please contact an admin");
+				return;
+			}
+
+			if (result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("You have no spaceship named \"" + shipName + "\"");
+				return;
+			}
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+			std::string code = std::get<std::string>(result.GetValue(1));
+			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
+
+			app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, ply, spaceshipHullId, spaceshipCount, spaceshipName = std::move(shipName), spaceshipCode = std::move(code)](DatabaseResult& result)
+			{
+				if (!result)
+					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
+
+				if (!ply)
+					return;
+
+				if (!result)
+				{
+					ply->PrintMessage("Failed to retrieve spaceship modules, please contact an administrator");
+					return;
+				}
+
+				std::size_t moduleCount = result.GetRowCount();
+
+				std::vector<std::size_t> moduleIds(moduleCount);
+				try
+				{
+					for (std::size_t i = 0; i < moduleCount; ++i)
+						moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+				}
+				catch (const std::exception& e)
+				{
+					std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+
+					ply->PrintMessage("Failed to retrieve spaceship modules, please contact an administrator");
+					return;
+				}
+
+				for (std::size_t i = 0; i < spaceshipCount; ++i)
+				{
+					const Ndk::EntityHandle& playerBot = ply->InstantiateBot(spaceshipName, spaceshipHullId, float(i) * Nz::Vector3f::Right() * 10.f);
+					ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
+					if (!botScript.Initialize(app, moduleIds))
+					{
+						ply->PrintMessage("Failed to initialize bot #" + std::to_string(i) + ", please contact an administrator");
+						return;
+					}
+
+					Nz::String lastError;
+					if (!botScript.Execute(spaceshipCode, &lastError))
+						ply->PrintMessage("Failed to execute script for bot #" + std::to_string(i) + ": " + lastError.ToStdString());
+				}
+
+				ply->PrintMessage("Bot(s) loaded with success");
+			});
+		});
 
 		return true;
 	}

@@ -26,14 +26,15 @@ namespace ewn
 		IncomingCommand(PlayerChat);
 		IncomingCommand(PlayerMovement);
 		IncomingCommand(PlayerShoot);
+		IncomingCommand(QueryArenaList);
 		IncomingCommand(QuerySpaceshipInfo);
 		IncomingCommand(QuerySpaceshipList);
 		IncomingCommand(Register);
-		IncomingCommand(SpawnSpaceship);
 		IncomingCommand(TimeSyncRequest);
 		IncomingCommand(UpdateSpaceship);
 
 		// Outgoing commands
+		OutgoingCommand(ArenaList,                 Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ArenaPrefabs,              Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ArenaParticleSystems,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ArenaSounds,               Nz::ENetPacketFlag_Reliable, 0);

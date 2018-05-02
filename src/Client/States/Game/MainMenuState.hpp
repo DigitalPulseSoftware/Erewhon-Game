@@ -27,18 +27,21 @@ namespace ewn
 
 			void LayoutWidgets();
 
+			void OnArenaButtonPressed(std::size_t arenaId);
+			void OnArenaList(ServerConnection* server, const Packets::ArenaList& arenaList);
 			void OnDisconnectPressed();
-			void OnPlayPressed();
+			void OnRefreshPressed();
 			void OnSpaceshipFactoryPressed();
 
+			NazaraSlot(ServerConnection, OnArenaList, m_onArenaListSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::ButtonWidget* m_disconnectButton;
-			Ndk::ButtonWidget* m_playButton;
+			Ndk::ButtonWidget* m_refreshButton;
 			Ndk::ButtonWidget* m_spaceshipButton;
 			Ndk::LabelWidget* m_welcomeTextLabel;
-			std::shared_ptr<Ndk::State> m_nextState;
 			std::string m_playerName;
+			std::vector<Ndk::ButtonWidget*> m_arenaButtons;
 	};
 }
 
