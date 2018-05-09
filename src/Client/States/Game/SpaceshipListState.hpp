@@ -29,6 +29,7 @@ namespace ewn
 			void QuerySpaceships();
 
 			void OnBackPressed();
+			void OnCreatePressed();
 			void OnSpaceshipList(ServerConnection* server, const Packets::SpaceshipList& listPacket);
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
@@ -37,6 +38,7 @@ namespace ewn
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::ButtonWidget* m_backButton;
+			Ndk::ButtonWidget* m_createButton;
 			Ndk::LabelWidget* m_statusLabel;
 			Ndk::LabelWidget* m_titleLabel;
 			std::shared_ptr<Ndk::State> m_previousState;

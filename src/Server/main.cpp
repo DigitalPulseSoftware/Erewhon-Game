@@ -68,9 +68,19 @@ int main()
 
 	std::cout << "Server ready." << std::endl;
 
+	Nz::UInt64 lastUpdate = Nz::GetElapsedMilliseconds();
+	unsigned int updateCount = 0;
 	while (app.Run())
 	{
-		Nz::Thread::Sleep(1);
+		Nz::UInt64 now = Nz::GetElapsedMilliseconds();
+		if (now - lastUpdate >= 1000)
+		{
+			std::cout << "Update per seconds: " << updateCount << std::endl;
+			updateCount = 0;
+			lastUpdate = now;
+		}
+		updateCount++;
+		//Nz::Thread::Sleep(1);
 	}
 
 	std::cout << "Goodbye" << std::endl;

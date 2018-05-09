@@ -25,6 +25,7 @@ namespace ewn
 
 		const ConfigFile& config = stateData.app->GetConfig();
 
+		m_deleteConfirmation = false;
 		m_labelDisappearanceAccumulator = 0.f;
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
@@ -36,14 +37,17 @@ namespace ewn
 			OnBackPressed();
 		});
 
-		m_updateButton = CreateWidget<Ndk::ButtonWidget>();
-		m_updateButton->SetPadding(15.f, 15.f, 15.f, 15.f);
-		m_updateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Update", 24));
-		m_updateButton->ResizeToContent();
-		m_updateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
+		m_deleteButton = CreateWidget<Ndk::ButtonWidget>();
+		m_deleteButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship", 24));
+		m_deleteButton->ResizeToContent();
+		m_deleteButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
-			OnUpdatePressed();
+			OnDeletePressed();
 		});
+
+		m_createUpdateButton = CreateWidget<Ndk::ButtonWidget>();
+		m_createUpdateButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 
 		m_nameLabel = CreateWidget<Ndk::LabelWidget>();
 		m_nameLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship name:", 24));
@@ -51,7 +55,6 @@ namespace ewn
 
 		m_nameTextArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_nameTextArea->SetContentSize({ 160.f, 30.f });
-		m_nameTextArea->SetText(m_spaceshipName);
 		m_nameTextArea->EnableBackground(true);
 		m_nameTextArea->SetBackgroundColor(Nz::Color::White);
 		m_nameTextArea->SetTextColor(Nz::Color::Black);
@@ -90,14 +93,23 @@ namespace ewn
 		spaceshipNode.SetParent(stateData.camera3D);
 		spaceshipNode.SetPosition(Nz::Vector3f::Forward() * 2.f);
 
-		LayoutWidgets();
-
+		m_onModuleListSlot.Connect(stateData.server->OnModuleList, this, &SpaceshipEditState::OnModuleList);
 		m_onSpaceshipInfoSlot.Connect(stateData.server->OnSpaceshipInfo, this, &SpaceshipEditState::OnSpaceshipInfo);
 		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-		m_onUpdateSpaceshipFailureSlot.Connect(stateData.server->OnUpdateSpaceshipFailure, this, &SpaceshipEditState::OnUpdateSpaceshipFailure);
-		m_onUpdateSpaceshipSuccessSlot.Connect(stateData.server->OnUpdateSpaceshipSuccess, this, &SpaceshipEditState::OnUpdateSpaceshipSuccess);
 
-		QuerySpaceshipInfo();
+		QueryModuleList();
+
+		if (m_tempSpaceshipName.empty())
+		{
+			// Create mode
+			SetupForCreate();
+		}
+		else
+		{
+			// Update mode
+			SetupForUpdate(std::move(m_tempSpaceshipName));
+			QuerySpaceshipInfo();
+		}
 	}
 
 	void SpaceshipEditState::Leave(Ndk::StateMachine& fsm)
@@ -107,7 +119,12 @@ namespace ewn
 		m_light.Reset();
 		m_spaceship.Reset();
 
+		m_onCreateSpaceshipFailureSlot.Disconnect();
+		m_onCreateSpaceshipSuccessSlot.Disconnect();
+		m_onModuleListSlot.Disconnect();
 		m_onSpaceshipInfoSlot.Disconnect();
+		m_onUpdateSpaceshipFailureSlot.Disconnect();
+		m_onUpdateSpaceshipSuccessSlot.Disconnect();
 		m_onTargetChangeSizeSlot.Disconnect();
 	}
 
@@ -137,9 +154,10 @@ namespace ewn
 	{
 		Nz::Vector2f canvasSize = GetStateData().canvas->GetSize();
 
-		// Central
 		m_backButton->SetPosition(20.f, canvasSize.y - m_backButton->GetSize().y - 20.f);
+		m_deleteButton->SetPosition(canvasSize.x - m_deleteButton->GetSize().x - 20.f, canvasSize.y - m_deleteButton->GetSize().y - 20.f);
 
+		// Central
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->SetPosition(m_statusLabel->GetPosition().x, canvasSize.y * 0.1f);
 
@@ -150,8 +168,8 @@ namespace ewn
 		m_nameLabel->SetPosition(canvasSize.x / 2.f - totalNameWidth / 2.f, canvasSize.y * 0.8f - m_titleLabel->GetSize().y / 2.f);
 		m_nameTextArea->SetPosition(canvasSize.x / 2.f - totalNameWidth / 2.f + m_nameLabel->GetSize().x, canvasSize.y * 0.8f - m_titleLabel->GetSize().y / 2.f);
 
-		m_updateButton->CenterHorizontal();
-		m_updateButton->SetPosition(m_updateButton->GetPosition().x, m_nameTextArea->GetPosition().y + m_nameTextArea->GetSize().y + 20.f);
+		m_createUpdateButton->CenterHorizontal();
+		m_createUpdateButton->SetPosition(m_createUpdateButton->GetPosition().x, m_nameTextArea->GetPosition().y + m_nameTextArea->GetSize().y + 20.f);
 
 		Nz::Vector2f cursor;
 
@@ -180,9 +198,153 @@ namespace ewn
 		cursor.y += m_codeLoadButton->GetSize().y + padding * 3.f;
 	}
 
+	void SpaceshipEditState::QueryModuleList()
+	{
+		GetStateData().server->SendPacket(Packets::QueryModuleList{});
+	}
+
+	void SpaceshipEditState::QuerySpaceshipInfo()
+	{
+		m_titleLabel->Show(false);
+
+		UpdateStatus("Loading " + m_spaceshipName + "...");
+
+		Packets::QuerySpaceshipInfo packet;
+		packet.spaceshipName = m_spaceshipName;
+
+		GetStateData().server->SendPacket(std::move(packet));
+	}
+
+	void SpaceshipEditState::SetupForCreate()
+	{
+		StateData& stateData = GetStateData();
+
+		m_createUpdateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Create", 24));
+		m_createUpdateButton->ResizeToContent();
+
+		m_createUpdateButton->OnButtonTrigger.Clear();
+		m_createUpdateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
+		{
+			OnCreatePressed();
+		});
+
+		m_deleteButton->Show(false);
+
+		m_onCreateSpaceshipFailureSlot.Connect(stateData.server->OnCreateSpaceshipFailure, this, &SpaceshipEditState::OnCreateSpaceshipFailure);
+		m_onCreateSpaceshipSuccessSlot.Connect(stateData.server->OnCreateSpaceshipSuccess, this, &SpaceshipEditState::OnCreateSpaceshipSuccess);
+		m_onDeleteSpaceshipFailureSlot.Disconnect();
+		m_onDeleteSpaceshipSuccessSlot.Disconnect();
+		m_onUpdateSpaceshipFailureSlot.Disconnect();
+		m_onUpdateSpaceshipSuccessSlot.Disconnect();
+
+		m_spaceshipName.clear();
+
+		LayoutWidgets();
+	}
+
+	void SpaceshipEditState::SetupForUpdate(std::string spaceshipName)
+	{
+		StateData& stateData = GetStateData();
+
+		m_createUpdateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Update", 24));
+		m_createUpdateButton->ResizeToContent();
+
+		m_createUpdateButton->OnButtonTrigger.Clear();
+		m_createUpdateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
+		{
+			OnUpdatePressed();
+		});
+
+		m_deleteConfirmation = false;
+		m_deleteButton->Show(true);
+		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship", 24));
+		m_deleteButton->ResizeToContent();
+
+		m_onCreateSpaceshipFailureSlot.Disconnect();
+		m_onCreateSpaceshipSuccessSlot.Disconnect();
+		m_onDeleteSpaceshipFailureSlot.Connect(stateData.server->OnDeleteSpaceshipFailure, this, &SpaceshipEditState::OnDeleteSpaceshipFailure);
+		m_onDeleteSpaceshipSuccessSlot.Connect(stateData.server->OnDeleteSpaceshipSuccess, this, &SpaceshipEditState::OnDeleteSpaceshipSuccess);
+		m_onUpdateSpaceshipFailureSlot.Connect(stateData.server->OnUpdateSpaceshipFailure, this, &SpaceshipEditState::OnUpdateSpaceshipFailure);
+		m_onUpdateSpaceshipSuccessSlot.Connect(stateData.server->OnUpdateSpaceshipSuccess, this, &SpaceshipEditState::OnUpdateSpaceshipSuccess);
+
+		m_spaceshipName = std::move(spaceshipName);
+
+		m_nameTextArea->SetText(m_spaceshipName);
+
+		LayoutWidgets();
+	}
+
+	void SpaceshipEditState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
+	{
+		m_statusLabel->Show(true);
+		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
+		m_statusLabel->ResizeToContent();
+
+		m_labelDisappearanceAccumulator = status.GetLength() / 10.f;
+
+		LayoutWidgets();
+	}
+
 	void SpaceshipEditState::OnBackPressed()
 	{
 		m_nextState = m_previousState;
+	}
+
+	void SpaceshipEditState::OnCreatePressed()
+	{
+		assert(!IsInEditMode());
+
+		Nz::String spaceshipName = m_nameTextArea->GetText();
+		if (spaceshipName.IsEmpty())
+		{
+			UpdateStatus("Missing spaceship name", Nz::Color::Red);
+			return;
+		}
+
+		if (m_spaceshipCode.IsEmpty())
+		{
+			UpdateStatus("Please load a script file", Nz::Color::Red);
+			return;
+		}
+
+		Packets::CreateSpaceship createSpaceship;
+		createSpaceship.spaceshipName = spaceshipName.ToStdString();
+		createSpaceship.spaceshipCode = m_spaceshipCode.ToStdString();
+		m_spaceshipCode.Clear(true);
+
+		for (auto& buttonData : m_moduleButtons)
+		{
+			auto& modifiedModule = createSpaceship.modules.emplace_back();
+			modifiedModule.moduleId = buttonData.availableChoices[buttonData.currentChoice].moduleId;
+			modifiedModule.type = buttonData.moduleType;
+
+			buttonData.originalChoice = buttonData.currentChoice;
+		}
+
+		GetStateData().server->SendPacket(createSpaceship);
+	}
+
+	void SpaceshipEditState::OnDeletePressed()
+	{
+		assert(IsInEditMode());
+
+		if (!m_deleteConfirmation)
+		{
+			m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship\n(confirm)", 24));
+			m_deleteButton->ResizeToContent();
+
+			m_deleteConfirmation = true;
+
+			LayoutWidgets();
+			return;
+		}
+
+		m_deleteConfirmation = false;
+
+		Packets::DeleteSpaceship deleteSpaceship;
+		deleteSpaceship.spaceshipName = m_spaceshipName;
+
+		GetStateData().server->SendPacket(deleteSpaceship);
 	}
 
 	void SpaceshipEditState::OnLoadCodePressed()
@@ -231,14 +393,138 @@ namespace ewn
 		if (moduleInfo.currentChoice >= moduleInfo.availableChoices.size())
 			moduleInfo.currentChoice = 0;
 
-		moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleInfo.moduleType)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice] + ')', 18));
+		moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleInfo.moduleType)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice].moduleName + ')', 18));
 		moduleInfo.button->ResizeToContent();
+
+		LayoutWidgets();
+	}
+
+	void SpaceshipEditState::OnUpdatePressed()
+	{
+		assert(IsInEditMode());
+
+		Packets::UpdateSpaceship updateSpaceship;
+		updateSpaceship.spaceshipName = m_spaceshipName;
+		updateSpaceship.newSpaceshipName = m_nameTextArea->GetText().ToStdString();
+		if (updateSpaceship.newSpaceshipName == updateSpaceship.spaceshipName)
+			updateSpaceship.newSpaceshipName.clear(); //< Don't send new-name
+
+		updateSpaceship.newSpaceshipCode = m_spaceshipCode.ToStdString();
+		m_spaceshipCode.Clear(true);
+
+		for (auto& buttonData : m_moduleButtons)
+		{
+			if (buttonData.originalChoice != buttonData.currentChoice)
+			{
+				auto& modifiedModule = updateSpaceship.modifiedModules.emplace_back();
+				modifiedModule.moduleName = buttonData.availableChoices[buttonData.currentChoice].moduleName;
+				modifiedModule.oldModuleName = buttonData.availableChoices[buttonData.originalChoice].moduleName;
+				modifiedModule.type = buttonData.moduleType;
+
+				buttonData.originalChoice = buttonData.currentChoice;
+			}
+		}
+
+		//TODO: Check for any change
+
+		GetStateData().server->SendPacket(updateSpaceship);
+	}
+
+	void SpaceshipEditState::OnCreateSpaceshipFailure(ServerConnection* server, const Packets::CreateSpaceshipFailure& createPacket)
+	{
+		std::string reason;
+		switch (createPacket.reason)
+		{
+			case CreateSpaceshipFailureReason::AlreadyExists:
+				reason = "spaceship name is already taken";
+				break;
+
+			case CreateSpaceshipFailureReason::ServerError:
+				reason = "server error, please try again later";
+				break;
+
+			default:
+				reason = "<packet error>";
+				break;
+		}
+
+		UpdateStatus("Failed to create spaceship: " + reason, Nz::Color::Red);
+	}
+
+	void SpaceshipEditState::OnCreateSpaceshipSuccess(ServerConnection* server, const Packets::CreateSpaceshipSuccess& createPacket)
+	{
+		UpdateStatus("Spaceship successfully created", Nz::Color::Green);
+
+		SetupForUpdate(m_nameTextArea->GetText().ToStdString());
+	}
+
+	void SpaceshipEditState::OnDeleteSpaceshipFailure(ServerConnection* server, const Packets::DeleteSpaceshipFailure& deletePacket)
+	{
+		std::string reason;
+		switch (deletePacket.reason)
+		{
+			case DeleteSpaceshipFailureReason::NotFound:
+				reason = "spaceship not found";
+				break;
+
+			case DeleteSpaceshipFailureReason::ServerError:
+				reason = "server error, please try again later";
+				break;
+
+			default:
+				reason = "<packet error>";
+				break;
+		}
+
+		UpdateStatus("Failed to delete spaceship: " + reason, Nz::Color::Red);
+	}
+
+	void SpaceshipEditState::OnDeleteSpaceshipSuccess(ServerConnection* server, const Packets::DeleteSpaceshipSuccess& deletePacket)
+	{
+		UpdateStatus("Spaceship successfully deleted", Nz::Color::Green);
+
+		SetupForCreate();
+	}
+
+	void SpaceshipEditState::OnModuleList(ServerConnection* server, const Packets::ModuleList& moduleList)
+	{
+		// Module buttons
+		m_moduleButtons.clear();
+		for (const auto& moduleData : moduleList.modules)
+		{
+			ModuleInfo& moduleInfo = m_moduleButtons.emplace_back();
+			moduleInfo.currentChoice = 0;
+			moduleInfo.moduleType = moduleData.type;
+			moduleInfo.originalChoice = moduleInfo.currentChoice;
+
+			for (const auto& packetChoice : moduleData.availableModules)
+			{
+				auto& choice = moduleInfo.availableChoices.emplace_back();
+				choice.moduleId = packetChoice.moduleId;
+				choice.moduleName = packetChoice.moduleName;
+			}
+
+			moduleInfo.button = CreateWidget<Ndk::ButtonWidget>();
+			moduleInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
+			moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleData.type)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice].moduleName + ')', 18));
+			moduleInfo.button->ResizeToContent();
+			moduleInfo.button->OnButtonTrigger.Connect([&, moduleId = m_moduleButtons.size() - 1](const Ndk::ButtonWidget* button)
+			{
+				OnModuleSwitch(moduleId);
+			});
+		}
 
 		LayoutWidgets();
 	}
 
 	void SpaceshipEditState::OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& listPacket)
 	{
+		if (listPacket.hullModelPath.empty())
+		{
+			UpdateStatus("Failed to load spaceship", Nz::Color::Red);
+			return;
+		}
+
 		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
 
 		m_statusLabel->Show(false);
@@ -270,23 +556,26 @@ namespace ewn
 		entityGfx.Attach(m_spaceshipModel, transformMatrix);
 
 		// Module buttons
-		m_moduleButtons.clear();
 		for (const auto& moduleData : listPacket.modules)
 		{
-			ModuleInfo& moduleInfo = m_moduleButtons.emplace_back();
-			moduleInfo.availableChoices = moduleData.availableModules;
-			moduleInfo.currentChoice    = moduleData.currentModule;
-			moduleInfo.moduleType       = moduleData.type;
-			moduleInfo.originalChoice   = moduleInfo.currentChoice;
-
-			moduleInfo.button = CreateWidget<Ndk::ButtonWidget>();
-			moduleInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
-			moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleData.type)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice] + ')', 18));
-			moduleInfo.button->ResizeToContent();
-			moduleInfo.button->OnButtonTrigger.Connect([&, moduleId = m_moduleButtons.size() - 1](const Ndk::ButtonWidget* button)
+			auto buttonIt = std::find_if(m_moduleButtons.begin(), m_moduleButtons.end(), [type = moduleData.type](const ModuleInfo& moduleInfo)
 			{
-				OnModuleSwitch(moduleId);
+				return moduleInfo.moduleType == type;
 			});
+			assert(buttonIt != m_moduleButtons.end());
+
+			ModuleInfo& moduleInfo = *buttonIt;
+			auto choiceIt = std::find_if(moduleInfo.availableChoices.begin(), moduleInfo.availableChoices.end(), [id = moduleData.currentModule](const ModuleInfo::ModuleChoice& choice)
+			{
+				return choice.moduleId == id;
+			});
+			assert(choiceIt != moduleInfo.availableChoices.end());
+
+			moduleInfo.currentChoice = std::distance(moduleInfo.availableChoices.begin(), choiceIt);
+			moduleInfo.originalChoice = moduleInfo.currentChoice;
+
+			moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleData.type)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice].moduleName + ')', 18));
+			moduleInfo.button->ResizeToContent();
 		}
 
 		LayoutWidgets();
@@ -318,57 +607,5 @@ namespace ewn
 		UpdateStatus("Spaceship successfully updated", Nz::Color::Green);
 
 		m_spaceshipName = m_nameTextArea->GetText().ToStdString();
-	}
-
-	void SpaceshipEditState::OnUpdatePressed()
-	{
-		Packets::UpdateSpaceship updateSpaceship;
-		updateSpaceship.spaceshipName = m_spaceshipName;
-		updateSpaceship.newSpaceshipName = m_nameTextArea->GetText().ToStdString();
-		if (updateSpaceship.newSpaceshipName == updateSpaceship.spaceshipName)
-			updateSpaceship.newSpaceshipName.clear(); //< Don't send new-name
-
-		updateSpaceship.newSpaceshipCode = m_spaceshipCode.ToStdString();
-		m_spaceshipCode.Clear(true);
-
-		for (auto& buttonData : m_moduleButtons)
-		{
-			if (buttonData.originalChoice != buttonData.currentChoice)
-			{
-				auto& modifiedModule = updateSpaceship.modifiedModules.emplace_back();
-				modifiedModule.moduleName = buttonData.availableChoices[buttonData.currentChoice];
-				modifiedModule.oldModuleName = buttonData.availableChoices[buttonData.originalChoice];
-				modifiedModule.type = buttonData.moduleType;
-
-				buttonData.originalChoice = buttonData.currentChoice;
-			}
-		}
-
-		//TODO: Check for any change
-
-		GetStateData().server->SendPacket(updateSpaceship);
-	}
-
-	void SpaceshipEditState::QuerySpaceshipInfo()
-	{
-		m_titleLabel->Show(false);
-
-		UpdateStatus("Loading " + m_spaceshipName + "...");
-
-		Packets::QuerySpaceshipInfo packet;
-		packet.spaceshipName = m_spaceshipName;
-
-		GetStateData().server->SendPacket(std::move(packet));
-	}
-
-	void SpaceshipEditState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
-	{
-		m_statusLabel->Show(true);
-		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
-		m_statusLabel->ResizeToContent();
-
-		m_labelDisappearanceAccumulator = status.GetLength() / 10.f;
-
-		LayoutWidgets();
 	}
 }

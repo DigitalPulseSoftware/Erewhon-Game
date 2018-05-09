@@ -182,7 +182,30 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data)
 		{
 			serializer &= data.spaceshipName;
-			serializer &= data.code;
+			serializer &= data.spaceshipCode;
+
+			CompressedUnsigned<Nz::UInt32> moduleCount;
+			if (serializer.IsWriting())
+				moduleCount = Nz::UInt32(data.modules.size());
+
+			serializer &= moduleCount;
+			if (!serializer.IsWriting())
+				data.modules.resize(moduleCount);
+
+			for (auto& moduleInfo : data.modules)
+			{
+				serializer.Serialize<Nz::UInt8>(moduleInfo.type);
+				serializer &= moduleInfo.moduleId;
+			}
+		}
+
+		void Serialize(PacketSerializer& serializer, CreateSpaceshipFailure& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.reason);
+		}
+
+		void Serialize(PacketSerializer& serializer, CreateSpaceshipSuccess& data)
+		{
 		}
 
 		void Serialize(PacketSerializer& serializer, DeleteEntity& data)
@@ -193,6 +216,15 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data)
 		{
 			serializer &= data.spaceshipName;
+		}
+
+		void Serialize(PacketSerializer& serializer, DeleteSpaceshipFailure& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.reason);
+		}
+
+		void Serialize(PacketSerializer& serializer, DeleteSpaceshipSuccess& data)
+		{
 		}
 
 		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data)
@@ -256,6 +288,38 @@ namespace ewn
 				serializer &= data;
 		}
 
+		void Serialize(PacketSerializer& serializer, ModuleList& data)
+		{
+			// Modules
+			CompressedUnsigned<Nz::UInt32> moduleCount;
+			if (serializer.IsWriting())
+				moduleCount = Nz::UInt32(data.modules.size());
+
+			serializer &= moduleCount;
+			if (!serializer.IsWriting())
+				data.modules.resize(moduleCount);
+
+			for (auto& moduleTypeInfo : data.modules)
+			{
+				serializer.Serialize<Nz::UInt8>(moduleTypeInfo.type);
+
+				// Available modules
+				CompressedUnsigned<Nz::UInt32> availableModuleCount;
+				if (serializer.IsWriting())
+					availableModuleCount = Nz::UInt32(moduleTypeInfo.availableModules.size());
+
+				serializer &= availableModuleCount;
+				if (!serializer.IsWriting())
+					moduleTypeInfo.availableModules.resize(availableModuleCount);
+
+				for (auto& moduleInfo : moduleTypeInfo.availableModules)
+				{
+					serializer &= moduleInfo.moduleId;
+					serializer &= moduleInfo.moduleName;
+				}
+			}
+		}
+
 		void Serialize(PacketSerializer& serializer, NetworkStrings& data)
 		{
 			serializer &= data.startId;
@@ -295,6 +359,10 @@ namespace ewn
 		}
 
 		void Serialize(PacketSerializer& serializer, QueryArenaList& data)
+		{
+		}
+
+		void Serialize(PacketSerializer& serializer, QueryModuleList& data)
 		{
 		}
 
@@ -340,18 +408,6 @@ namespace ewn
 			{
 				serializer &= moduleInfo.currentModule;
 				serializer.Serialize<Nz::UInt8>(moduleInfo.type);
-
-				// Available modules
-				CompressedUnsigned<Nz::UInt32> availableModuleCount;
-				if (serializer.IsWriting())
-					availableModuleCount = Nz::UInt32(moduleInfo.availableModules.size());
-
-				serializer &= availableModuleCount;
-				if (!serializer.IsWriting())
-					moduleInfo.availableModules.resize(availableModuleCount);
-
-				for (auto& moduleName : moduleInfo.availableModules)
-					serializer &= moduleName;
 			}
 		}
 

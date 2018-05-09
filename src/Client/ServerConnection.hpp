@@ -60,11 +60,16 @@ namespace ewn
 			NazaraSignal(OnChatMessage,               ServerConnection* /*server*/, const Packets::ChatMessage&               /*data*/);
 			NazaraSignal(OnControlEntity,             ServerConnection* /*server*/, const Packets::ControlEntity&             /*data*/);
 			NazaraSignal(OnCreateEntity,              ServerConnection* /*server*/, const Packets::CreateEntity&              /*data*/);
+			NazaraSignal(OnCreateSpaceshipFailure,    ServerConnection* /*server*/, const Packets::CreateSpaceshipFailure&    /*data*/);
+			NazaraSignal(OnCreateSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::CreateSpaceshipSuccess&    /*data*/);
 			NazaraSignal(OnDeleteEntity,              ServerConnection* /*server*/, const Packets::DeleteEntity&              /*data*/);
+			NazaraSignal(OnDeleteSpaceshipFailure,    ServerConnection* /*server*/, const Packets::DeleteSpaceshipFailure&    /*data*/);
+			NazaraSignal(OnDeleteSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::DeleteSpaceshipSuccess&    /*data*/);
 			NazaraSignal(OnInstantiateParticleSystem, ServerConnection* /*server*/, const Packets::InstantiateParticleSystem& /*data*/);
 			NazaraSignal(OnIntegrityUpdate,           ServerConnection* /*server*/, const Packets::IntegrityUpdate&           /*data*/);
 			NazaraSignal(OnLoginFailure,              ServerConnection* /*server*/, const Packets::LoginFailure&              /*data*/);
 			NazaraSignal(OnLoginSuccess,              ServerConnection* /*server*/, const Packets::LoginSuccess&              /*data*/);
+			NazaraSignal(OnModuleList,                ServerConnection* /*server*/, const Packets::ModuleList&                /*data*/);
 			NazaraSignal(OnNetworkStrings,            ServerConnection* /*server*/, const Packets::NetworkStrings&            /*data*/);
 			NazaraSignal(OnPlaySound,                 ServerConnection* /*server*/, const Packets::PlaySound&                 /*data*/);
 			NazaraSignal(OnRegisterFailure,           ServerConnection* /*server*/, const Packets::RegisterFailure&           /*data*/);

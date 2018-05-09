@@ -6,10 +6,20 @@
 
 namespace ewn
 {
-	inline SpaceshipEditState::SpaceshipEditState(StateData& stateData, std::shared_ptr<Ndk::State> previousState, std::string spaceshipName) :
+	inline SpaceshipEditState::SpaceshipEditState(StateData & stateData, std::shared_ptr<Ndk::State> previousState) :
 	AbstractState(stateData),
-	m_previousState(std::move(previousState)),
-	m_spaceshipName(std::move(spaceshipName))
+	m_previousState(std::move(previousState))
 	{
+	}
+
+	inline SpaceshipEditState::SpaceshipEditState(StateData& stateData, std::shared_ptr<Ndk::State> previousState, std::string spaceshipName) :
+	SpaceshipEditState(stateData, std::move(previousState))
+	{
+		m_tempSpaceshipName = std::move(spaceshipName);
+	}
+
+	inline bool SpaceshipEditState::IsInEditMode() const
+	{
+		return !m_spaceshipName.empty();
 	}
 }

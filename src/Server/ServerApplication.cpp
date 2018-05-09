@@ -10,6 +10,7 @@
 #include <Server/Database/Database.hpp>
 #include <Server/Player.hpp>
 #include <argon2/argon2.h>
+#include <bitset>
 #include <cctype>
 #include <iostream>
 #include <regex>
@@ -91,19 +92,63 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
+		if (data.spaceshipName.empty())
+			return;
+
+		if (data.spaceshipCode.empty())
+			return;
+
+		if (data.modules.empty())
+			return;
+
+		std::bitset<static_cast<std::size_t>(ModuleType::Max) + 1> receivedModules;
+
+		std::size_t maxModuleId = m_moduleStore.GetEntryCount() + 1;
+		for (const auto& packetModule : data.modules)
+		{
+			if (packetModule.type > ModuleType::Max)
+				return;
+
+			if (packetModule.moduleId > maxModuleId)
+				return;
+
+			if (!m_moduleStore.IsEntryLoaded(packetModule.moduleId))
+				return;
+
+			if (m_moduleStore.GetEntryType(packetModule.moduleId) != packetModule.type)
+				return;
+
+			// Check if module was already sent
+			std::size_t moduleBit = static_cast<std::size_t>(packetModule.type);
+			if (receivedModules.test(moduleBit))
+				return;
+
+			receivedModules.set(moduleBit);
+		}
+
+		// Check if all required modules were received
+		if (!receivedModules.all())
+			return;
+
+		static constexpr Nz::Int32 spaceshipHullId = 1;
+
 		DatabaseTransaction trans;
-		trans.AppendPreparedStatement("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName });
-		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code, Nz::Int32(1) }, [](DatabaseTransaction& transaction, DatabaseResult result)
+		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.spaceshipCode, spaceshipHullId }, [data](DatabaseTransaction& transaction, DatabaseResult result)
 		{
 			if (!result)
 				return result;
 
 			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
 
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 1 });
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 2 });
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 3 });
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 4 });
+			Nz::StackArray<Nz::Int32> moduleIds = NazaraStackAllocationNoInit(Nz::Int32, data.modules.size());
+			for (std::size_t i = 0; i < data.modules.size(); ++i)
+				moduleIds[i] = data.modules[i].moduleId;
+
+			// Warning: AppendPreparedStatement may free our lambda memory, meaning our captured variables are no longer valid, which is why we have to store the id on the function stack
+			// Do not use data from here
+
+			for (Nz::Int32 moduleId : moduleIds)
+				transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, moduleId });
 
 			return result;
 		});
@@ -117,10 +162,16 @@ namespace ewn
 			if (!ply)
 				return;
 
-			if (transactionSucceeded)
-				ply->PrintMessage("Spaceship \"" + spaceshipName + "\" successfully saved!");
-			else
-				ply->PrintMessage("Failed to save spaceship \"" + spaceshipName + "\", please contact an admin");
+			if (!transactionSucceeded)
+			{
+				Packets::CreateSpaceshipFailure createFailure;
+				createFailure.reason = CreateSpaceshipFailureReason::AlreadyExists;
+
+				ply->SendPacket(createFailure);
+				return;
+			}
+
+			ply->SendPacket(Packets::CreateSpaceshipSuccess{});
 		});
 	}
 
@@ -139,10 +190,25 @@ namespace ewn
 			if (!ply)
 				return;
 
-			if (result)
-				ply->PrintMessage("Spaceship \"" + spaceshipName + "\" successfully deleted!");
-			else
-				ply->PrintMessage("Failed to delete spaceship \"" + spaceshipName + "\", please contact an admin");
+			if (!result)
+			{
+				Packets::DeleteSpaceshipFailure deleteFailure;
+				deleteFailure.reason = DeleteSpaceshipFailureReason::ServerError;
+
+				ply->SendPacket(deleteFailure);
+				return;
+			}
+
+			if (result.GetAffectedRowCount() == 0)
+			{
+				Packets::DeleteSpaceshipFailure deleteFailure;
+				deleteFailure.reason = DeleteSpaceshipFailureReason::NotFound;
+
+				ply->SendPacket(deleteFailure);
+				return;
+			}
+
+			ply->SendPacket(Packets::DeleteSpaceshipSuccess{});
 		});
 	}
 
@@ -563,10 +629,50 @@ namespace ewn
 		player->SendPacket(listPacket);
 	}
 
-	void ServerApplication::HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo & data)
+	void ewn::ServerApplication::HandleQueryModuleList(std::size_t peerId, const Packets::QueryModuleList& data)
 	{
 		Player* player = m_players[peerId];
 		if (!player->IsAuthenticated())
+			return;
+
+		Packets::ModuleList moduleList;
+
+		for (std::size_t i = 0; i < m_moduleStore.GetEntryCount(); ++i)
+		{
+			if (m_moduleStore.IsEntryLoaded(i))
+			{
+				ModuleType type = m_moduleStore.GetEntryType(i);
+
+				auto it = std::find_if(moduleList.modules.begin(), moduleList.modules.end(), [type](const Packets::ModuleList::ModuleTypeInfo& typeInfo)
+				{
+					return typeInfo.type == type;
+				});
+
+				if (it == moduleList.modules.end())
+				{
+					auto& moduleTypeInfo = moduleList.modules.emplace_back();
+					moduleTypeInfo.type = type;
+
+					it = moduleList.modules.end() - 1;
+				}
+
+				auto& moduleTypeInfo = *it;
+				auto& moduleInfo = moduleTypeInfo.availableModules.emplace_back();
+				moduleInfo.moduleId = i;
+				moduleInfo.moduleName = m_moduleStore.GetEntryName(i);
+			}
+		}
+
+		player->SendPacket(moduleList);
+	}
+
+	void ServerApplication::HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		if (data.spaceshipName.empty())
 			return;
 
 		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [&, sessionId = player->GetSessionId()](ewn::DatabaseResult& result)
@@ -576,6 +682,14 @@ namespace ewn
 				return; //< Player has disconnected, ignore
 
 			if (!result)
+			{
+				std::cerr << "FindSpaceshipByOwnerIdAndName failed: " << result.GetLastErrorMessage() << std::endl;
+
+				ply->SendPacket(Packets::SpaceshipInfo{});
+				return;
+			}
+
+			if (result.GetRowCount() == 0)
 			{
 				ply->SendPacket(Packets::SpaceshipInfo{});
 				return;
@@ -618,18 +732,7 @@ namespace ewn
 
 							auto& moduleInfo = spaceshipInfo.modules.emplace_back();
 							moduleInfo.type = m_moduleStore.GetEntryType(moduleId);
-
-							for (std::size_t i = 0; i < m_moduleStore.GetEntryCount(); ++i)
-							{
-								if (m_moduleStore.IsEntryLoaded(i) && m_moduleStore.GetEntryType(i) == moduleInfo.type)
-									moduleInfo.availableModules.emplace_back(m_moduleStore.GetEntryName(i));
-							}
-
-							auto it = std::find(moduleInfo.availableModules.begin(), moduleInfo.availableModules.end(), m_moduleStore.GetEntryName(moduleId));
-							if (it == moduleInfo.availableModules.end())
-								throw std::runtime_error("Current module unknown for type " + std::string(EnumToString(m_moduleStore.GetEntryType(moduleId))));
-
-							moduleInfo.currentModule = Nz::UInt16(std::distance(moduleInfo.availableModules.begin(), it));
+							moduleInfo.currentModule = moduleId;
 						}
 					}
 					catch (const std::exception& e)
@@ -893,6 +996,8 @@ namespace ewn
 
 				if (!transactionSucceeded)
 				{
+					std::cerr << "Update spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
+
 					Packets::UpdateSpaceshipFailure response;
 					response.reason = UpdateSpaceshipFailureReason::ServerError;
 

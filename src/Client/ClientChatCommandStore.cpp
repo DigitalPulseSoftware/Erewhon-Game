@@ -12,36 +12,7 @@ namespace ewn
 {
 	void ClientChatCommandStore::BuildStore(ClientApplication* app)
 	{
-		RegisterCommand("createbot", &ClientChatCommandStore::HandleCreateBot, app->GetConfig().GetStringOption("ServerScript.Filename"));
 		RegisterCommand("deletebot", &ClientChatCommandStore::HandleDeleteBot);
-	}
-
-	bool ClientChatCommandStore::HandleCreateBot(ClientApplication* app, ServerConnection* server, std::string botName, const std::string& scriptName)
-	{
-		Nz::File file(scriptName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
-		if (!file.IsOpen())
-		{
-			std::cerr << "Failed to open " << scriptName << std::endl;
-			return false;
-		}
-
-		Nz::String content;
-		content.Reserve(file.GetSize());
-
-		while (!file.EndOfFile())
-		{
-			content += file.ReadLine();
-			content += '\n';
-		}
-
-		Packets::CreateSpaceship createSpaceshipPacket;
-		createSpaceshipPacket.code = content.ToStdString();
-		createSpaceshipPacket.spaceshipName = std::move(botName);
-
-		server->SendPacket(createSpaceshipPacket);
-		std::cout << "Code was successfully uploaded to the server" << std::endl;
-
-		return true;
 	}
 
 	bool ClientChatCommandStore::HandleDeleteBot(ClientApplication* app, ServerConnection* server, std::string botName)

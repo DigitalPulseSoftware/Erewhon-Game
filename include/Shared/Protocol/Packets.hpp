@@ -33,8 +33,12 @@ namespace ewn
 		ControlEntity,
 		CreateEntity,
 		CreateSpaceship,
+		CreateSpaceshipFailure,
+		CreateSpaceshipSuccess,
 		DeleteEntity,
 		DeleteSpaceship,
+		DeleteSpaceshipFailure,
+		DeleteSpaceshipSuccess,
 		InstantiateParticleSystem,
 		IntegrityUpdate,
 		JoinArena,
@@ -42,12 +46,14 @@ namespace ewn
 		LoginByToken,
 		LoginFailure,
 		LoginSuccess,
+		ModuleList,
 		NetworkStrings,
 		PlaySound,
 		PlayerChat,
 		PlayerMovement,
 		PlayerShoot,
 		QueryArenaList,
+		QueryModuleList,
 		QuerySpaceshipInfo,
 		QuerySpaceshipList,
 		Register,
@@ -192,8 +198,24 @@ namespace ewn
 
 		DeclarePacket(CreateSpaceship)
 		{
+			struct ModuleInfo
+			{
+				ModuleType type;
+				CompressedUnsigned<Nz::UInt16> moduleId;
+			};
+
 			std::string spaceshipName;
-			std::string code;
+			std::string spaceshipCode;
+			std::vector<ModuleInfo> modules;
+		};
+
+		DeclarePacket(CreateSpaceshipFailure)
+		{
+			CreateSpaceshipFailureReason reason;
+		};
+
+		DeclarePacket(CreateSpaceshipSuccess)
+		{
 		};
 
 		DeclarePacket(DeleteEntity)
@@ -204,6 +226,15 @@ namespace ewn
 		DeclarePacket(DeleteSpaceship)
 		{
 			std::string spaceshipName;
+		};
+
+		DeclarePacket(DeleteSpaceshipFailure)
+		{
+			DeleteSpaceshipFailureReason reason;
+		};
+
+		DeclarePacket(DeleteSpaceshipSuccess)
+		{
 		};
 
 		DeclarePacket(InstantiateParticleSystem)
@@ -247,6 +278,23 @@ namespace ewn
 			std::vector<Nz::UInt8> connectionToken;
 		};
 
+		DeclarePacket(ModuleList)
+		{
+			struct ModuleInfo
+			{
+				CompressedUnsigned<Nz::UInt16> moduleId;
+				std::string moduleName;
+			};
+
+			struct ModuleTypeInfo
+			{
+				ModuleType type;
+				std::vector<ModuleInfo> availableModules;
+			};
+
+			std::vector<ModuleTypeInfo> modules;
+		};
+
 		DeclarePacket(NetworkStrings)
 		{
 			CompressedUnsigned<Nz::UInt32> startId;
@@ -276,6 +324,10 @@ namespace ewn
 		};
 
 		DeclarePacket(QueryArenaList)
+		{
+		};
+
+		DeclarePacket(QueryModuleList)
 		{
 		};
 
@@ -310,7 +362,6 @@ namespace ewn
 			{
 				ModuleType type;
 				CompressedUnsigned<Nz::UInt16> currentModule;
-				std::vector<std::string> availableModules;
 			};
 
 			std::string hullModelPath;
@@ -374,8 +425,12 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, ControlEntity& data);
 		void Serialize(PacketSerializer& serializer, CreateEntity& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data);
+		void Serialize(PacketSerializer& serializer, CreateSpaceshipFailure& data);
+		void Serialize(PacketSerializer& serializer, CreateSpaceshipSuccess& data);
 		void Serialize(PacketSerializer& serializer, DeleteEntity& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data);
+		void Serialize(PacketSerializer& serializer, DeleteSpaceshipFailure& data);
+		void Serialize(PacketSerializer& serializer, DeleteSpaceshipSuccess& data);
 		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data);
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
 		void Serialize(PacketSerializer& serializer, JoinArena& data);
@@ -383,12 +438,14 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, LoginByToken& data);
 		void Serialize(PacketSerializer& serializer, LoginFailure& data);
 		void Serialize(PacketSerializer& serializer, LoginSuccess& data);
+		void Serialize(PacketSerializer& serializer, ModuleList& data);
 		void Serialize(PacketSerializer& serializer, NetworkStrings& data);
 		void Serialize(PacketSerializer& serializer, PlayerChat& data);
 		void Serialize(PacketSerializer& serializer, PlayerMovement& data);
 		void Serialize(PacketSerializer& serializer, PlayerShoot& data);
 		void Serialize(PacketSerializer& serializer, PlaySound& data);
 		void Serialize(PacketSerializer& serializer, QueryArenaList& data);
+		void Serialize(PacketSerializer& serializer, QueryModuleList& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipList& data);
 		void Serialize(PacketSerializer& serializer, Register& data);

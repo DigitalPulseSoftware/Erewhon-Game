@@ -18,6 +18,7 @@ namespace ewn
 	class SpaceshipEditState final : public AbstractState
 	{
 		public:
+			inline SpaceshipEditState(StateData& stateData, std::shared_ptr<Ndk::State> previousState);
 			inline SpaceshipEditState(StateData& stateData, std::shared_ptr<Ndk::State> previousState, std::string spaceshipName);
 			~SpaceshipEditState() = default;
 
@@ -26,36 +27,65 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
+			inline bool IsInEditMode() const;
+
 			void LayoutWidgets();
 
-			void OnBackPressed();
-			void OnLoadCodePressed();
-			void OnModuleSwitch(std::size_t moduleId);
-			void OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& listPacket);
-			void OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket);
-			void OnUpdateSpaceshipSuccess(ServerConnection* server, const Packets::UpdateSpaceshipSuccess& updatePacket);
-			void OnUpdatePressed();
-
+			void QueryModuleList();
 			void QuerySpaceshipInfo();
+
+			void SetupForCreate();
+			void SetupForUpdate(std::string spaceshipName);
+
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
 
-			NazaraSlot(ServerConnection, OnSpaceshipInfo, m_onSpaceshipInfoSlot);
+			// GUI Event
+			void OnBackPressed();
+			void OnCreatePressed();
+			void OnDeletePressed();
+			void OnLoadCodePressed();
+			void OnModuleSwitch(std::size_t moduleId);
+			void OnUpdatePressed();
+
+			// Network event
+			void OnCreateSpaceshipFailure(ServerConnection* server, const Packets::CreateSpaceshipFailure& createPacket);
+			void OnCreateSpaceshipSuccess(ServerConnection* server, const Packets::CreateSpaceshipSuccess& createPacket);
+			void OnDeleteSpaceshipFailure(ServerConnection* server, const Packets::DeleteSpaceshipFailure& deletePacket);
+			void OnDeleteSpaceshipSuccess(ServerConnection* server, const Packets::DeleteSpaceshipSuccess& deletePacket);
+			void OnModuleList(ServerConnection* server,             const Packets::ModuleList& moduleList);
+			void OnSpaceshipInfo(ServerConnection* server,          const Packets::SpaceshipInfo& listPacket);
+			void OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket);
+			void OnUpdateSpaceshipSuccess(ServerConnection* server, const Packets::UpdateSpaceshipSuccess& updatePacket);
+
+			NazaraSlot(ServerConnection, OnCreateSpaceshipFailure, m_onCreateSpaceshipFailureSlot);
+			NazaraSlot(ServerConnection, OnCreateSpaceshipSuccess, m_onCreateSpaceshipSuccessSlot);
+			NazaraSlot(ServerConnection, OnDeleteSpaceshipFailure, m_onDeleteSpaceshipFailureSlot);
+			NazaraSlot(ServerConnection, OnDeleteSpaceshipSuccess, m_onDeleteSpaceshipSuccessSlot);
+			NazaraSlot(ServerConnection, OnModuleList,             m_onModuleListSlot);
+			NazaraSlot(ServerConnection, OnSpaceshipInfo,          m_onSpaceshipInfoSlot);
 			NazaraSlot(ServerConnection, OnUpdateSpaceshipFailure, m_onUpdateSpaceshipFailureSlot);
 			NazaraSlot(ServerConnection, OnUpdateSpaceshipSuccess, m_onUpdateSpaceshipSuccessSlot);
 			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			struct ModuleInfo
 			{
+				struct ModuleChoice
+				{
+					std::size_t moduleId;
+					std::string moduleName;
+				};
+
 				ModuleType moduleType;
 				Ndk::ButtonWidget* button;
 				std::size_t currentChoice;
 				std::size_t originalChoice;
-				std::vector<std::string> availableChoices;
+				std::vector<ModuleChoice> availableChoices;
 			};
 
 			Ndk::ButtonWidget* m_backButton;
 			Ndk::ButtonWidget* m_codeLoadButton;
-			Ndk::ButtonWidget* m_updateButton;
+			Ndk::ButtonWidget* m_createUpdateButton;
+			Ndk::ButtonWidget* m_deleteButton;
 			Ndk::LabelWidget* m_statusLabel;
 			Ndk::LabelWidget* m_titleLabel;
 			Ndk::LabelWidget* m_nameLabel;
@@ -69,7 +99,9 @@ namespace ewn
 			std::shared_ptr<Ndk::State> m_previousState;
 			std::shared_ptr<Ndk::State> m_nextState;
 			std::string m_spaceshipName;
+			std::string m_tempSpaceshipName;
 			std::vector<ModuleInfo> m_moduleButtons;
+			bool m_deleteConfirmation;
 			float m_labelDisappearanceAccumulator;
 	};
 }

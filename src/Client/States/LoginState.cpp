@@ -292,7 +292,10 @@ namespace ewn
 		{
 			// Use login by token if password is empty
 			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
-				Nz::File::Delete(TokenFile);
+			{
+				if (Nz::File::Exists(TokenFile))
+					Nz::File::Delete(TokenFile);
+			}
 
 			if (!stateData.server->IsConnected())
 			{
@@ -358,6 +361,7 @@ namespace ewn
 	void LoginState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
 	{
 		m_isLoggingIn = false;
+		m_isLoggingInByToken = false;
 
 		UpdateStatus("Error: failed to connect to server", Nz::Color::Red);
 	}

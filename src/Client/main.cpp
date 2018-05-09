@@ -15,6 +15,7 @@
 #include <NDK/Components/ListenerComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
+#include <NDK/Systems/ParticleSystem.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
 #include <Client/ServerConnection.hpp>
@@ -53,6 +54,7 @@ int main()
 	// 3D Scene
 	Ndk::World& world3D = app.AddWorld();
 	world3D.AddSystem<ewn::SoundEmitterSystem>();
+	world3D.GetSystem<Ndk::ParticleSystem>().SetMaximumUpdateRate(0.f);
 	//world3D.GetSystem<Ndk::RenderSystem>().ChangeRenderTechnique(std::make_unique<Nz::DeferredRenderTechnique>());
 
 	const Ndk::EntityHandle& camera3D = world3D.CreateEntity();

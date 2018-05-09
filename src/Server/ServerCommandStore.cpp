@@ -27,6 +27,7 @@ namespace ewn
 		IncomingCommand(PlayerMovement);
 		IncomingCommand(PlayerShoot);
 		IncomingCommand(QueryArenaList);
+		IncomingCommand(QueryModuleList);
 		IncomingCommand(QuerySpaceshipInfo);
 		IncomingCommand(QuerySpaceshipList);
 		IncomingCommand(Register);
@@ -43,11 +44,16 @@ namespace ewn
 		OutgoingCommand(ChatMessage,               Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ControlEntity,             Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateEntity,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateSpaceshipSuccess,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteEntity,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteSpaceshipSuccess,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(InstantiateParticleSystem, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(IntegrityUpdate,           Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginFailure,              Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginSuccess,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(ModuleList,                Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(NetworkStrings,            Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlaySound,                 Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(RegisterFailure,           Nz::ENetPacketFlag_Reliable, 0);

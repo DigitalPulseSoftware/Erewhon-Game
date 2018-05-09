@@ -18,6 +18,18 @@ namespace ewn
 		Info
 	};
 
+	enum class CreateSpaceshipFailureReason : Nz::UInt8
+	{
+		AlreadyExists,
+		ServerError
+	};
+
+	enum class DeleteSpaceshipFailureReason : Nz::UInt8
+	{
+		NotFound,
+		ServerError
+	};
+
 	enum class LoginFailureReason : Nz::UInt8
 	{
 		AccountNotFound,
