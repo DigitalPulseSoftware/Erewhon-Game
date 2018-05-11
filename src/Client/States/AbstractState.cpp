@@ -16,6 +16,8 @@ namespace ewn
 		for (const auto& cleanupFunc : m_cleanupFunctions)
 			cleanupFunc();
 
+		m_cleanupFunctions.clear();
+
 		m_onTargetChangeSizeSlot.Disconnect();
 
 		for (Ndk::BaseWidget* widget : m_widgets)
