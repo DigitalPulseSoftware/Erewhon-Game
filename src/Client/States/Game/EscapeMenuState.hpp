@@ -21,14 +21,10 @@ namespace ewn
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
-
-			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::ButtonWidget* m_disconnectButton;
 			Ndk::ButtonWidget* m_optionsButton;

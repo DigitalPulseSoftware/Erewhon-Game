@@ -30,12 +30,10 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void CenterStatus();
+			void LayoutWidgets() override;
+
 			void OnServerDisconnected(ServerConnection* server, Nz::UInt32 data);
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White, bool center = true);
-
-			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;

@@ -18,8 +18,10 @@
 
 namespace ewn
 {
-	void RegisterState::Enter(Ndk::StateMachine& /*fsm*/)
+	void RegisterState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_isRegistering = false;
@@ -98,15 +100,13 @@ namespace ewn
 		m_registerButton->SetSize({ regConnWidth, m_registerButton->GetSize().y + buttonPadding });
 		m_cancelButton->SetSize({ regConnWidth, m_cancelButton->GetSize().y + buttonPadding });
 
-
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
-		// Slots
-		m_onConnectedSlot.Connect(stateData.server->OnConnected, this, &RegisterState::OnConnected);
-		m_onDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &RegisterState::OnDisconnected);
+		// Signals
+		ConnectSignal(stateData.server->OnConnected, this, &RegisterState::OnConnected);
+		ConnectSignal(stateData.server->OnDisconnected, this, &RegisterState::OnDisconnected);
 
-		m_onRegisterFailureSlot.Connect(stateData.server->OnRegisterFailure, [this](ServerConnection* connection, const Packets::RegisterFailure& registerFailure)
+		ConnectSignal(stateData.server->OnRegisterFailure, [this](ServerConnection* connection, const Packets::RegisterFailure& registerFailure)
 		{
 			std::string reason;
 			switch (registerFailure.reason)
@@ -132,24 +132,13 @@ namespace ewn
 			m_isRegistering = false;
 		});
 
-		m_onRegisterSuccess.Connect(stateData.server->OnRegisterSuccess, [this](ServerConnection* connection, const Packets::RegisterSuccess&)
+		ConnectSignal(stateData.server->OnRegisterSuccess, [this](ServerConnection* connection, const Packets::RegisterSuccess&)
 		{
 			UpdateStatus("Registration succeeded", Nz::Color::Green);
 
 			m_finished = true;
 			m_waitTime = 2.f;
 		});
-	}
-
-	void RegisterState::Leave(Ndk::StateMachine& fsm)
-	{
-		AbstractState::Leave(fsm);
-
-		m_onConnectedSlot.Disconnect();
-		m_onDisconnectedSlot.Disconnect();
-		m_onRegisterFailureSlot.Disconnect();
-		m_onRegisterSuccess.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
 	}
 
 	bool RegisterState::Update(Ndk::StateMachine& fsm, float elapsedTime)
@@ -183,6 +172,7 @@ namespace ewn
 
 	void RegisterState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
 	{
+		UpdateStatus("Registering...");
 	}
 
 	void RegisterState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)

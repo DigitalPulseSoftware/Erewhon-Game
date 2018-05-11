@@ -12,16 +12,5 @@ namespace ewn
 {
 	void ClientChatCommandStore::BuildStore(ClientApplication* app)
 	{
-		RegisterCommand("deletebot", &ClientChatCommandStore::HandleDeleteBot);
-	}
-
-	bool ClientChatCommandStore::HandleDeleteBot(ClientApplication* app, ServerConnection* server, std::string botName)
-	{
-		Packets::DeleteSpaceship packet;
-		packet.spaceshipName = std::move(botName);
-
-		server->SendPacket(packet);
-
-		return true;
 	}
 }

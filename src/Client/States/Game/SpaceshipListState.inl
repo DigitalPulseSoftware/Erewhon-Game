@@ -7,7 +7,7 @@
 namespace ewn
 {
 	inline SpaceshipListState::SpaceshipListState(StateData& stateData, std::shared_ptr<Ndk::State> previousState) :
-	AbstractState(stateData),
+		AbstractState(stateData),
 	m_previousState(std::move(previousState))
 	{
 	}

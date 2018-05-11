@@ -14,8 +14,10 @@
 
 namespace ewn
 {
-	void BackgroundState::Enter(Ndk::StateMachine& /*fsm*/)
+	void BackgroundState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		if (Nz::Texture* background = Nz::TextureLibrary::Get("Background"); background && background->IsValid())

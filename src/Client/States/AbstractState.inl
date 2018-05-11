@@ -12,6 +12,12 @@ namespace ewn
 	{
 	}
 
+	template<typename T, typename ...Args>
+	void AbstractState::ConnectSignal(T& signal, Args&&... args)
+	{
+		m_cleanupFunctions.emplace_back([connection = signal.Connect(std::forward<Args>(args)...)]() mutable { connection.Disconnect(); });
+	}
+
 	template<typename T, typename... Args>
 	T* AbstractState::CreateWidget(Args&&... args)
 	{
@@ -27,6 +33,8 @@ namespace ewn
 		assert(it != m_widgets.end());
 
 		m_widgets.erase(it);
+
+		widget->Destroy();
 	}
 
 	inline StateData& AbstractState::GetStateData()

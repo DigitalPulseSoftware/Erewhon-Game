@@ -6,14 +6,18 @@
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
 #include <Client/States/BackgroundState.hpp>
+#include <Client/States/ConnectedState.hpp>
 #include <Client/States/DisconnectionState.hpp>
 #include <Client/States/OptionsState.hpp>
+#include <Client/States/Game/MainMenuState.hpp>
 #include <iostream>
 
 namespace ewn
 {
-	void EscapeMenuState::Enter(Ndk::StateMachine& /*fsm*/)
+	void EscapeMenuState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
@@ -48,20 +52,15 @@ namespace ewn
 			stateData.fsm->PushState(std::make_shared<DisconnectionState>(stateData, true));
 		});
 
-		// Set both connection and register button of the same width
 		float regConnWidth = std::max({ m_disconnectButton->GetSize().x, m_optionsButton->GetSize().x, m_quitButton->GetSize().x });
+		// Set all buttons to the same width
 		m_disconnectButton->SetSize({ regConnWidth, m_disconnectButton->GetSize().y });
 		m_optionsButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y });
 		m_quitButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y });
 
 		LayoutWidgets();
-		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &EscapeMenuState::OnKeyPressed);
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-	}
 
-	bool EscapeMenuState::Update(Ndk::StateMachine& fsm, float elapsedTime)
-	{
-		return true;
+		ConnectSignal(stateData.window->GetEventHandler().OnKeyPressed, this, &EscapeMenuState::OnKeyPressed);
 	}
 
 	void EscapeMenuState::LayoutWidgets()

@@ -23,7 +23,7 @@ namespace ewn
 			void Enter(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
 			void OnApplyPressed();
 			void OnBackPressed();
@@ -33,8 +33,6 @@ namespace ewn
 			void SaveOptions();
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color);
-
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			std::shared_ptr<Ndk::State> m_previousState;
 			Ndk::ButtonWidget* m_applyButton;

@@ -16,11 +16,11 @@
 
 namespace ewn
 {
-	void SpaceshipListState::Enter(Ndk::StateMachine& /*fsm*/)
+	void SpaceshipListState::Enter(Ndk::StateMachine& fsm)
 	{
-		StateData& stateData = GetStateData();
+		AbstractState::Enter(fsm);
 
-		m_nextState.reset();
+		StateData& stateData = GetStateData();
 
 		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 
@@ -43,13 +43,13 @@ namespace ewn
 		m_createButton->SetPadding(20.f, 10.f, 20.f, 10.f);
 		m_createButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
-			m_nextState = std::make_shared<SpaceshipEditState>(GetStateData(), shared_from_this());
+			StateData& stateData = GetStateData();
+			stateData.fsm->ChangeState(std::make_shared<SpaceshipEditState>(stateData, shared_from_this()));
 		});
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
 
-		m_onSpaceshipListSlot.Connect(stateData.server->OnSpaceshipList, this, &SpaceshipListState::OnSpaceshipList);
+		ConnectSignal(stateData.server->OnSpaceshipList, this, &SpaceshipListState::OnSpaceshipList);
 
 		QuerySpaceships();
 	}
@@ -59,24 +59,6 @@ namespace ewn
 		AbstractState::Leave(fsm);
 
 		m_spaceshipButtons.clear();
-		m_onSpaceshipListSlot.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
-	}
-
-	bool SpaceshipListState::Update(Ndk::StateMachine& fsm, float elapsedTime)
-	{
-		StateData& stateData = GetStateData();
-
-		if (!stateData.server->IsConnected())
-		{
-			fsm.ChangeState(std::make_shared<ConnectionLostState>(stateData));
-			return false;
-		}
-
-		if (m_nextState)
-			fsm.ChangeState(m_nextState);
-
-		return true;
 	}
 
 	void SpaceshipListState::LayoutWidgets()
@@ -123,7 +105,7 @@ namespace ewn
 
 	void SpaceshipListState::OnBackPressed()
 	{
-		m_nextState = m_previousState;
+		GetStateData().fsm->ChangeState(m_previousState);
 	}
 
 	void SpaceshipListState::OnSpaceshipList(ServerConnection* server, const Packets::SpaceshipList& listPacket)
@@ -144,7 +126,8 @@ namespace ewn
 			button->SetPadding(10.f, 10.f, 10.f, 10.f);
 			button->OnButtonTrigger.Connect([&, name = spaceship.name](const Ndk::ButtonWidget* /*button*/)
 			{
-				m_nextState = std::make_shared<SpaceshipEditState>(GetStateData(), shared_from_this(), name);
+				StateData& stateData = GetStateData();
+				stateData.fsm->ChangeState(std::make_shared<SpaceshipEditState>(GetStateData(), shared_from_this(), name));
 			});
 
 			m_spaceshipButtons.push_back(button);

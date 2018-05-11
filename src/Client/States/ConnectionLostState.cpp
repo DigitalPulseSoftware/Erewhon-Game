@@ -12,8 +12,10 @@
 
 namespace ewn
 {
-	void ConnectionLostState::Enter(Ndk::StateMachine& /*fsm*/)
+	void ConnectionLostState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_accumulator = 0.f;
@@ -26,15 +28,12 @@ namespace ewn
 		graphicsComponent.Attach(m_statusSprite);
 
 		UpdateStatus("Connection lost.");
-
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
 	}
 
 	void ConnectionLostState::Leave(Ndk::StateMachine& fsm)
 	{
 		AbstractState::Leave(fsm);
 
-		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
 		m_statusText.Reset();
 	}
@@ -50,7 +49,7 @@ namespace ewn
 		return true;
 	}
 
-	void ConnectionLostState::CenterStatus()
+	void ConnectionLostState::LayoutWidgets()
 	{
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->GetComponent<Ndk::GraphicsComponent>();
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
@@ -66,6 +65,6 @@ namespace ewn
 		m_statusSprite->Update(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
 
 		if (center)
-			CenterStatus();
+			LayoutWidgets();
 	}
 }

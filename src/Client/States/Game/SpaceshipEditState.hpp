@@ -29,7 +29,7 @@ namespace ewn
 
 			inline bool IsInEditMode() const;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
 			void QueryModuleList();
 			void QuerySpaceshipInfo();
@@ -56,16 +56,6 @@ namespace ewn
 			void OnSpaceshipInfo(ServerConnection* server,          const Packets::SpaceshipInfo& listPacket);
 			void OnUpdateSpaceshipFailure(ServerConnection* server, const Packets::UpdateSpaceshipFailure& updatePacket);
 			void OnUpdateSpaceshipSuccess(ServerConnection* server, const Packets::UpdateSpaceshipSuccess& updatePacket);
-
-			NazaraSlot(ServerConnection, OnCreateSpaceshipFailure, m_onCreateSpaceshipFailureSlot);
-			NazaraSlot(ServerConnection, OnCreateSpaceshipSuccess, m_onCreateSpaceshipSuccessSlot);
-			NazaraSlot(ServerConnection, OnDeleteSpaceshipFailure, m_onDeleteSpaceshipFailureSlot);
-			NazaraSlot(ServerConnection, OnDeleteSpaceshipSuccess, m_onDeleteSpaceshipSuccessSlot);
-			NazaraSlot(ServerConnection, OnModuleList,             m_onModuleListSlot);
-			NazaraSlot(ServerConnection, OnSpaceshipInfo,          m_onSpaceshipInfoSlot);
-			NazaraSlot(ServerConnection, OnUpdateSpaceshipFailure, m_onUpdateSpaceshipFailureSlot);
-			NazaraSlot(ServerConnection, OnUpdateSpaceshipSuccess, m_onUpdateSpaceshipSuccessSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			struct ModuleInfo
 			{
@@ -97,7 +87,6 @@ namespace ewn
 			Ndk::EntityOwner m_light;
 			Ndk::EntityOwner m_spaceship;
 			std::shared_ptr<Ndk::State> m_previousState;
-			std::shared_ptr<Ndk::State> m_nextState;
 			std::string m_spaceshipName;
 			std::string m_tempSpaceshipName;
 			std::vector<ModuleInfo> m_moduleButtons;

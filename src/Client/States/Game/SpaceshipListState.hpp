@@ -23,9 +23,8 @@ namespace ewn
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
 			void Leave(Ndk::StateMachine& fsm) override;
-			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 			void QuerySpaceships();
 
 			void OnBackPressed();
@@ -34,15 +33,11 @@ namespace ewn
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
 
-			NazaraSlot(ServerConnection, OnSpaceshipList, m_onSpaceshipListSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
-
 			Ndk::ButtonWidget* m_backButton;
 			Ndk::ButtonWidget* m_createButton;
 			Ndk::LabelWidget* m_statusLabel;
 			Ndk::LabelWidget* m_titleLabel;
 			std::shared_ptr<Ndk::State> m_previousState;
-			std::shared_ptr<Ndk::State> m_nextState;
 			std::vector<Ndk::BaseWidget*> m_spaceshipButtons;
 	};
 }

@@ -10,14 +10,16 @@
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionLostState.hpp>
 #include <Client/States/DisconnectionState.hpp>
-#include <Client/States/Game/ArenaState.hpp>
 #include <Client/States/Game/SpaceshipListState.hpp>
+#include <Client/States/Game/TimeSyncState.hpp>
 #include <cassert>
 
 namespace ewn
 {
-	void MainMenuState::Enter(Ndk::StateMachine& /*fsm*/)
+	void MainMenuState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
@@ -53,8 +55,7 @@ namespace ewn
 
 		LayoutWidgets();
 
-		m_onArenaListSlot.Connect(stateData.server->OnArenaList, this, &MainMenuState::OnArenaList);
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
+		ConnectSignal(stateData.server->OnArenaList, this, &MainMenuState::OnArenaList);
 
 		stateData.server->SendPacket(Packets::QueryArenaList{});
 	}
@@ -64,28 +65,20 @@ namespace ewn
 		AbstractState::Leave(fsm);
 
 		m_arenaButtons.clear();
-
-		m_onArenaListSlot.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
-	}
-
-	bool MainMenuState::Update(Ndk::StateMachine& fsm, float elapsedTime)
-	{
-		StateData& stateData = GetStateData();
-
-		if (!stateData.server->IsConnected())
-		{
-			fsm.ChangeState(std::make_shared<ConnectionLostState>(stateData));
-			return false;
-		}
-
-		return true;
 	}
 
 	void MainMenuState::LayoutWidgets()
 	{
 		Nz::Vector2f canvasSize = GetStateData().canvas->GetSize();
 
+		// Left
+		Nz::Vector2f leftCursor = { canvasSize.x / 6.f, canvasSize.y / 4.f };
+
+		m_spaceshipButton->SetPosition({ leftCursor.x - m_spaceshipButton->GetSize().x / 2.f, leftCursor.y, 0.f });
+		leftCursor.y += m_spaceshipButton->GetSize().y + 10.f;
+
+
+		// Center
 		m_welcomeTextLabel->CenterHorizontal();
 		m_welcomeTextLabel->SetPosition({ m_welcomeTextLabel->GetPosition().x, m_welcomeTextLabel->GetSize().y * 2.f, 0.f });
 
@@ -95,8 +88,6 @@ namespace ewn
 		m_refreshButton->CenterHorizontal();
 		m_refreshButton->SetPosition({ m_refreshButton->GetPosition().x, m_disconnectButton->GetPosition().y - m_refreshButton->GetSize().y - 10.f, 0.f });
 	
-		m_spaceshipButton->SetPosition({ canvasSize.x / 6.f - m_spaceshipButton->GetSize().x / 2.f, canvasSize.y / 4.f - m_spaceshipButton->GetSize().y / 2.f, 0.f });
-
 		static constexpr float modulePadding = 10.f;
 
 		Nz::Vector2f cursor(canvasSize.x * 0.5f, canvasSize.y * 0.3f);
@@ -109,7 +100,7 @@ namespace ewn
 
 	void MainMenuState::OnArenaButtonPressed(std::size_t arenaId)
 	{
-		GetStateData().fsm->ResetState(std::make_shared<ArenaState>(GetStateData(), static_cast<Nz::UInt8>(arenaId)));
+		GetStateData().fsm->ChangeState(std::make_shared<TimeSyncState>(GetStateData(), static_cast<Nz::UInt8>(arenaId)));
 	}
 
 	void MainMenuState::OnArenaList(ServerConnection* server, const Packets::ArenaList& arenaList)
@@ -142,6 +133,10 @@ namespace ewn
 	void MainMenuState::OnDisconnectPressed()
 	{
 		GetStateData().fsm->ChangeState(std::make_shared<DisconnectionState>(GetStateData(), false));
+	}
+
+	void MainMenuState::OnFleetManagementPressed()
+	{
 	}
 
 	void MainMenuState::OnRefreshPressed()

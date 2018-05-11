@@ -19,8 +19,10 @@
 
 namespace ewn
 {
-	void SpaceshipEditState::Enter(Ndk::StateMachine& /*fsm*/)
+	void SpaceshipEditState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		const ConfigFile& config = stateData.app->GetConfig();
@@ -93,9 +95,16 @@ namespace ewn
 		spaceshipNode.SetParent(stateData.camera3D);
 		spaceshipNode.SetPosition(Nz::Vector3f::Forward() * 2.f);
 
-		m_onModuleListSlot.Connect(stateData.server->OnModuleList, this, &SpaceshipEditState::OnModuleList);
-		m_onSpaceshipInfoSlot.Connect(stateData.server->OnSpaceshipInfo, this, &SpaceshipEditState::OnSpaceshipInfo);
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
+		LayoutWidgets();
+
+		ConnectSignal(stateData.server->OnCreateSpaceshipFailure, this, &SpaceshipEditState::OnCreateSpaceshipFailure);
+		ConnectSignal(stateData.server->OnCreateSpaceshipSuccess, this, &SpaceshipEditState::OnCreateSpaceshipSuccess);
+		ConnectSignal(stateData.server->OnDeleteSpaceshipFailure, this, &SpaceshipEditState::OnDeleteSpaceshipFailure);
+		ConnectSignal(stateData.server->OnDeleteSpaceshipSuccess, this, &SpaceshipEditState::OnDeleteSpaceshipSuccess);
+		ConnectSignal(stateData.server->OnModuleList,             this, &SpaceshipEditState::OnModuleList);
+		ConnectSignal(stateData.server->OnSpaceshipInfo,          this, &SpaceshipEditState::OnSpaceshipInfo);
+		ConnectSignal(stateData.server->OnUpdateSpaceshipFailure, this, &SpaceshipEditState::OnUpdateSpaceshipFailure);
+		ConnectSignal(stateData.server->OnUpdateSpaceshipSuccess, this, &SpaceshipEditState::OnUpdateSpaceshipSuccess);
 
 		QueryModuleList();
 
@@ -118,32 +127,15 @@ namespace ewn
 
 		m_light.Reset();
 		m_spaceship.Reset();
-
-		m_onCreateSpaceshipFailureSlot.Disconnect();
-		m_onCreateSpaceshipSuccessSlot.Disconnect();
-		m_onModuleListSlot.Disconnect();
-		m_onSpaceshipInfoSlot.Disconnect();
-		m_onUpdateSpaceshipFailureSlot.Disconnect();
-		m_onUpdateSpaceshipSuccessSlot.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
 	}
 
 	bool SpaceshipEditState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		StateData& stateData = GetStateData();
 
-		if (!stateData.server->IsConnected())
-		{
-			fsm.ChangeState(std::make_shared<ConnectionLostState>(stateData));
-			return false;
-		}
-
 		m_labelDisappearanceAccumulator -= elapsedTime;
 		if (m_labelDisappearanceAccumulator < 0.f)
 			m_statusLabel->Show(false);
-
-		if (m_nextState)
-			fsm.ChangeState(m_nextState);
 
 		m_spaceship->GetComponent<Ndk::NodeComponent>().Rotate(Nz::EulerAnglesf(0.f, 30.f * elapsedTime, 0.f));
 
@@ -230,13 +222,6 @@ namespace ewn
 
 		m_deleteButton->Show(false);
 
-		m_onCreateSpaceshipFailureSlot.Connect(stateData.server->OnCreateSpaceshipFailure, this, &SpaceshipEditState::OnCreateSpaceshipFailure);
-		m_onCreateSpaceshipSuccessSlot.Connect(stateData.server->OnCreateSpaceshipSuccess, this, &SpaceshipEditState::OnCreateSpaceshipSuccess);
-		m_onDeleteSpaceshipFailureSlot.Disconnect();
-		m_onDeleteSpaceshipSuccessSlot.Disconnect();
-		m_onUpdateSpaceshipFailureSlot.Disconnect();
-		m_onUpdateSpaceshipSuccessSlot.Disconnect();
-
 		m_spaceshipName.clear();
 
 		LayoutWidgets();
@@ -260,13 +245,6 @@ namespace ewn
 		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship", 24));
 		m_deleteButton->ResizeToContent();
 
-		m_onCreateSpaceshipFailureSlot.Disconnect();
-		m_onCreateSpaceshipSuccessSlot.Disconnect();
-		m_onDeleteSpaceshipFailureSlot.Connect(stateData.server->OnDeleteSpaceshipFailure, this, &SpaceshipEditState::OnDeleteSpaceshipFailure);
-		m_onDeleteSpaceshipSuccessSlot.Connect(stateData.server->OnDeleteSpaceshipSuccess, this, &SpaceshipEditState::OnDeleteSpaceshipSuccess);
-		m_onUpdateSpaceshipFailureSlot.Connect(stateData.server->OnUpdateSpaceshipFailure, this, &SpaceshipEditState::OnUpdateSpaceshipFailure);
-		m_onUpdateSpaceshipSuccessSlot.Connect(stateData.server->OnUpdateSpaceshipSuccess, this, &SpaceshipEditState::OnUpdateSpaceshipSuccess);
-
 		m_spaceshipName = std::move(spaceshipName);
 
 		m_nameTextArea->SetText(m_spaceshipName);
@@ -287,7 +265,7 @@ namespace ewn
 
 	void SpaceshipEditState::OnBackPressed()
 	{
-		m_nextState = m_previousState;
+		GetStateData().fsm->ChangeState(m_previousState);
 	}
 
 	void SpaceshipEditState::OnCreatePressed()
@@ -315,7 +293,7 @@ namespace ewn
 		for (auto& buttonData : m_moduleButtons)
 		{
 			auto& modifiedModule = createSpaceship.modules.emplace_back();
-			modifiedModule.moduleId = buttonData.availableChoices[buttonData.currentChoice].moduleId;
+			modifiedModule.moduleId = static_cast<Nz::UInt16>(buttonData.availableChoices[buttonData.currentChoice].moduleId);
 			modifiedModule.type = buttonData.moduleType;
 
 			buttonData.originalChoice = buttonData.currentChoice;
@@ -532,8 +510,6 @@ namespace ewn
 
 		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship " + m_spaceshipName + ":", 24));
 		m_titleLabel->ResizeToContent();
-
-		LayoutWidgets();
 
 		auto& entityGfx = m_spaceship->GetComponent<Ndk::GraphicsComponent>();
 

@@ -41,18 +41,11 @@ namespace ewn
 			void OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 
-			NazaraSlot(ServerConnection,    OnControlEntity, m_onControlEntitySlot);
-			NazaraSlot(ServerMatchEntities, OnEntityCreated, m_onEntityCreatedSlot);
-			NazaraSlot(ServerMatchEntities, OnEntityDelete, m_onEntityDeletionSlot);
-			NazaraSlot(Nz::EventHandler,    OnKeyPressed, m_onKeyPressedSlot);
-
 			std::optional<MatchChatbox> m_chatbox;
 			std::optional<ServerMatchEntities> m_matchEntities;
 			std::optional<SpaceshipController> m_spaceshipController;
 			std::size_t m_controlledEntity;
 			Nz::UInt8 m_arenaIndex;
-			bool m_isDisconnected;
-			bool m_isEnteringMenu;
 	};
 }
 

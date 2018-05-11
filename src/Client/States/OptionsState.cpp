@@ -11,8 +11,10 @@
 
 namespace ewn
 {
-	void OptionsState::Enter(Ndk::StateMachine& /*fsm*/)
+	void OptionsState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_isReturningBack = false;
@@ -51,8 +53,6 @@ namespace ewn
 		});
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-
 		LoadOptions();
 	}
 

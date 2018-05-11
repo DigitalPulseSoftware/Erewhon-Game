@@ -23,18 +23,14 @@ namespace ewn
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
 			void Leave(Ndk::StateMachine& fsm) override;
-			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
 			void OnArenaButtonPressed(std::size_t arenaId);
 			void OnArenaList(ServerConnection* server, const Packets::ArenaList& arenaList);
 			void OnDisconnectPressed();
 			void OnRefreshPressed();
 			void OnSpaceshipFactoryPressed();
-
-			NazaraSlot(ServerConnection, OnArenaList, m_onArenaListSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::ButtonWidget* m_disconnectButton;
 			Ndk::ButtonWidget* m_refreshButton;

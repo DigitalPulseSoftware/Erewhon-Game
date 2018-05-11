@@ -12,7 +12,8 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/States/Game/TimeSyncState.hpp>
+#include <Client/States/ConnectedState.hpp>
+#include <Client/States/Game/MainMenuState.hpp>
 #include <Client/States/OptionsState.hpp>
 #include <Client/States/RegisterState.hpp>
 #include <argon2/argon2.h>
@@ -23,14 +24,14 @@ namespace ewn
 {
 	static constexpr const char* TokenFile = "connectiontoken.rememberme";
 
-	void LoginState::Enter(Ndk::StateMachine& /*fsm*/)
+	void LoginState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_isLoggingIn = false;
 		m_isLoggingInByToken = false;
-		m_isRegistering = false;
-		m_isUsingOption = false;
 		m_loginSucceeded = false;
 
 		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
@@ -60,9 +61,6 @@ namespace ewn
 		m_rememberCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_rememberCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Remember me", 24));
 		m_rememberCheckbox->ResizeToContent();
-
-		m_onConnectedSlot.Connect(stateData.server->OnConnected, this, &LoginState::OnConnected);
-		m_onDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
 
 		m_connectionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
@@ -105,7 +103,12 @@ namespace ewn
 		m_connectionButton->SetSize({ maxButtonWidth, m_connectionButton->GetSize().y });
 		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y });
 
-		m_onLoginFailureSlot.Connect(stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
+		LayoutWidgets();
+
+		ConnectSignal(stateData.server->OnConnected, this, &LoginState::OnConnected);
+		ConnectSignal(stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
+
+		ConnectSignal(stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
 			std::string reason;
 			switch (loginFailure.reason)
@@ -136,7 +139,7 @@ namespace ewn
 			m_isLoggingInByToken = false;
 		});
 
-		m_onLoginSuccess.Connect(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess& loginPacket)
+		ConnectSignal(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess& loginPacket)
 		{
 			UpdateStatus("Login succeeded", Nz::Color::Green);
 
@@ -160,100 +163,23 @@ namespace ewn
 			}
 		});
 
-		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-
-		Nz::File loginFile(TokenFile);
-		if (loginFile.Open(Nz::OpenMode_ReadOnly))
-		{
-			Nz::String login = loginFile.ReadLine();
-			Nz::String token = loginFile.ReadLine();
-			if (token.GetSize() == 128)
-			{
-				std::vector<Nz::UInt8> binToken;
-				binToken.reserve(64);
-				for (std::size_t i = 0; i < 128; i += 2)
-				{
-					static const char* hexadecimal = "0123456789abcdef";
-
-					char c1 = token[i];
-					char c2 = token[i + 1];
-
-					const char* p1 = std::strchr(hexadecimal, c1);
-					const char* p2 = std::strchr(hexadecimal, c2);
-					if (!p1 || !p2)
-						return;
-
-					std::size_t v1 = p1 - hexadecimal;
-					std::size_t v2 = p2 - hexadecimal;
-
-					binToken.push_back((v1 * 16) + v2);
-				}
-				m_connectionToken = std::move(binToken);
-
-				m_loginArea->SetText(login);
-				m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
-
-				if (m_shouldAutoLogin)
-				{
-					if (!stateData.server->IsConnected())
-					{
-						// Connect to server
-						if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
-						{
-							UpdateStatus("Connecting...");
-							m_isLoggingInByToken = true;
-						}
-						else
-							UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
-					}
-					else
-					{
-						UpdateStatus("Auto-logging in...");
-						m_isLoggingInByToken = true;
-
-						Packets::LoginByToken loginPacket;
-						loginPacket.connectionToken = std::move(m_connectionToken);
-						loginPacket.generateConnectionToken = true;
-
-						stateData.server->SendPacket(loginPacket);
-					}
-				}
-			}
-		}
-	}
-
-	void LoginState::Leave(Ndk::StateMachine& fsm)
-	{
-		AbstractState::Leave(fsm);
-
-		m_onConnectedSlot.Disconnect();
-		m_onDisconnectedSlot.Disconnect();
-		m_onLoginFailureSlot.Disconnect();
-		m_onLoginSuccess.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
+		LoadTokenFile();
 	}
 
 	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
-		/*Nz::Renderer::SetMatrix(Nz::MatrixType_World, Nz::Matrix4f::Identity());
-
-		Nz::Vector2f pos = Nz::Vector2f(m_optionButton->GetPosition());// +m_optionButton->GetContentOrigin();
-		Nz::Vector2f size = m_optionButton->GetSize();
-		Nz::DebugDrawer::Draw(Nz::Boxf(pos.x, pos.y, 0.f, size.x, size.y, 1.f));*/
-
 		StateData& stateData = GetStateData();
 
 		if (m_loginSucceeded)
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.ChangeState(std::make_shared<TimeSyncState>(stateData, m_loginArea->GetText().ToStdString()));
+			{
+				fsm.PopState();
+				fsm.PushState(std::make_shared<ConnectedState>(stateData));
+				fsm.PushState(std::make_shared<MainMenuState>(stateData, m_loginArea->GetText().ToStdString()));
+			}
 		}
-		else if (m_isRegistering)
-			fsm.ChangeState(std::make_shared<RegisterState>(stateData));
-		else if (m_isUsingOption)
-			fsm.ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 		else if (m_isLoggingIn)
 		{
 			// Computing password, wait for it
@@ -373,7 +299,8 @@ namespace ewn
 
 	void LoginState::OnOptionPressed()
 	{
-		m_isUsingOption = true;
+		StateData& stateData = GetStateData();
+		stateData.fsm->ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 	}
 
 	void LoginState::OnRegisterPressed()
@@ -381,7 +308,8 @@ namespace ewn
 		if (m_isLoggingIn || m_isLoggingInByToken)
 			return;
 
-		m_isRegistering = true;
+		StateData& stateData = GetStateData();
+		stateData.fsm->ChangeState(std::make_shared<RegisterState>(stateData));
 	}
 
 	void LoginState::LayoutWidgets()
@@ -498,4 +426,69 @@ namespace ewn
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->Show(true);
 	}
+
+	void LoginState::LoadTokenFile()
+	{
+		StateData& stateData = GetStateData();
+
+		Nz::File loginFile(TokenFile);
+		if (loginFile.Open(Nz::OpenMode_ReadOnly))
+		{
+			Nz::String login = loginFile.ReadLine();
+			Nz::String token = loginFile.ReadLine();
+			if (token.GetSize() == 128)
+			{
+				std::vector<Nz::UInt8> binToken;
+				binToken.reserve(64);
+				for (std::size_t i = 0; i < 128; i += 2)
+				{
+					static const char* hexadecimal = "0123456789abcdef";
+
+					char c1 = token[i];
+					char c2 = token[i + 1];
+
+					const char* p1 = std::strchr(hexadecimal, c1);
+					const char* p2 = std::strchr(hexadecimal, c2);
+					if (!p1 || !p2)
+						return;
+
+					std::size_t v1 = p1 - hexadecimal;
+					std::size_t v2 = p2 - hexadecimal;
+
+					binToken.push_back((v1 * 16) + v2);
+				}
+				m_connectionToken = std::move(binToken);
+
+				m_loginArea->SetText(login);
+				m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
+
+				if (m_shouldAutoLogin)
+				{
+					if (!stateData.server->IsConnected())
+					{
+						// Connect to server
+						if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+						{
+							UpdateStatus("Connecting...");
+							m_isLoggingInByToken = true;
+						}
+						else
+							UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+					}
+					else
+					{
+						UpdateStatus("Auto-logging in...");
+						m_isLoggingInByToken = true;
+
+						Packets::LoginByToken loginPacket;
+						loginPacket.connectionToken = std::move(m_connectionToken);
+						loginPacket.generateConnectionToken = true;
+
+						stateData.server->SendPacket(loginPacket);
+					}
+				}
+			}
+		}
+	}
+
 }

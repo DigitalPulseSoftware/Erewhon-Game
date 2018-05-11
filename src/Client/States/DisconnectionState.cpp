@@ -12,8 +12,10 @@
 
 namespace ewn
 {
-	void DisconnectionState::Enter(Ndk::StateMachine& /*fsm*/)
+	void DisconnectionState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_accumulator = 0.f;
@@ -32,22 +34,18 @@ namespace ewn
 		{
 			UpdateStatus("Disconnecting");
 
-			m_onServerDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &DisconnectionState::OnServerDisconnected);
+			ConnectSignal(stateData.server->OnDisconnected, this, &DisconnectionState::OnServerDisconnected);
 
 			stateData.server->Disconnect();
 		}
 		else
 			OnServerDisconnected(stateData.server, 0); //< Data is unused anyway
-
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
 	}
 
 	void DisconnectionState::Leave(Ndk::StateMachine& fsm)
 	{
 		AbstractState::Leave(fsm);
 
-		m_onServerDisconnectedSlot.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
 		m_statusText->Kill();
 	}
@@ -83,7 +81,7 @@ namespace ewn
 		return true;
 	}
 
-	void DisconnectionState::CenterStatus()
+	void DisconnectionState::LayoutWidgets()
 	{
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->GetComponent<Ndk::GraphicsComponent>();
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
@@ -106,6 +104,6 @@ namespace ewn
 		m_statusSprite->Update(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
 
 		if (center)
-			CenterStatus();
+			LayoutWidgets();
 	}
 }

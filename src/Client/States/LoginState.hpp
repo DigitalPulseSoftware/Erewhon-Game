@@ -23,10 +23,12 @@ namespace ewn
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			void Leave(Ndk::StateMachine& fsm) override;
+
+			void LoadTokenFile();
+
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
 			void OnConnected(ServerConnection* server, Nz::UInt32 data);
 			void OnConnectionPressed();
@@ -40,12 +42,6 @@ namespace ewn
 			void SendLoginByTokenPacket();
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
-
-			NazaraSlot(ServerConnection, OnConnected,    m_onConnectedSlot);
-			NazaraSlot(ServerConnection, OnDisconnected, m_onDisconnectedSlot);
-			NazaraSlot(ServerConnection, OnLoginFailure, m_onLoginFailureSlot);
-			NazaraSlot(ServerConnection, OnLoginSuccess, m_onLoginSuccess);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::ButtonWidget* m_connectionButton;
 			Ndk::ButtonWidget* m_optionButton;
@@ -61,8 +57,6 @@ namespace ewn
 			std::vector<Nz::UInt8> m_connectionToken;
 			bool m_isLoggingIn;
 			bool m_isLoggingInByToken;
-			bool m_isUsingOption;
-			bool m_isRegistering;
 			bool m_loginSucceeded;
 			bool m_shouldAutoLogin;
 			float m_loginAccumulator;
