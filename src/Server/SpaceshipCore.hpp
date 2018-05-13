@@ -11,6 +11,7 @@
 #include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <NDK/Entity.hpp>
+#include <Shared/Enums.hpp>
 #include <Server/Scripting/LuaMathTypes.hpp>
 #include <functional>
 #include <optional>
@@ -38,6 +39,7 @@ namespace ewn
 			LuaVec3 GetAngularVelocity() const;
 			float GetIntegrity() const;
 			LuaVec3 GetLinearVelocity() const;
+			template<typename T> T* GetModule(ModuleType type);
 			LuaVec3 GetPosition() const;
 			LuaQuaternion GetRotation() const;
 

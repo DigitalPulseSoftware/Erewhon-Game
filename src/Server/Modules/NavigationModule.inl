@@ -6,6 +6,10 @@
 
 namespace ewn
 {
+	inline NavigationModule::NavigationModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship) :
+	SpaceshipModule(ModuleType::Navigation, core, spaceship)
+	{
+	}
 }
 
 namespace Nz

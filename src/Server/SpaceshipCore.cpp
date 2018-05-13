@@ -6,6 +6,7 @@
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/SpaceshipModule.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <cassert>
 #include <iostream>
 
 namespace ewn
@@ -14,7 +15,14 @@ namespace ewn
 
 	void SpaceshipCore::AddModule(std::shared_ptr<SpaceshipModule> newModule)
 	{
-		const auto& modulePtr = m_modules.emplace_back(std::move(newModule));
+		std::size_t typeIndex = static_cast<std::size_t>(newModule->GetType());
+		if (m_modules.size() <= typeIndex)
+			m_modules.resize(typeIndex + 1);
+
+		auto& modulePtr = m_modules[typeIndex];
+		assert(!modulePtr);
+
+		modulePtr = std::move(newModule);
 
 		if (modulePtr->IsRunnable())
 			m_runnableModules.emplace_back(modulePtr);
@@ -68,7 +76,10 @@ namespace ewn
 		s_binding->Register(lua);
 
 		for (auto& modulePtr : m_modules)
-			modulePtr->Register(lua);
+		{
+			if (modulePtr)
+				modulePtr->Register(lua);
+		}
 
 		lua.PushField("Core", this);
 	}

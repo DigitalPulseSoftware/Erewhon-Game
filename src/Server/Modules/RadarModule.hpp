@@ -14,6 +14,7 @@
 #include <Server/SpaceshipModule.hpp>
 #include <Server/Scripting/LuaMathTypes.hpp>
 #include <optional>
+#include <unordered_map>
 
 namespace ewn
 {
@@ -24,44 +25,55 @@ namespace ewn
 	class RadarModule : public SpaceshipModule, public Nz::HandledObject<RadarModule>
 	{
 		public:
+			struct RangeInfo;
 			struct TargetInfo;
 
 			inline RadarModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship, float detectionRadius, std::size_t maxLockableTarget);
 			~RadarModule() = default;
 
-			// Script functions
-			void ClearLockedTargets();
+			inline const Ndk::EntityHandle& FindEntityBySignature(Nz::Int64 signature) const;
 
+			// Script functions
 			inline void EnablePassiveScan(bool enable);
 
-			std::optional<TargetInfo> GetTargetInfo(Ndk::EntityId targetId);
+			std::optional<TargetInfo> GetTargetInfo(Nz::Int64 signature);
 
 			inline bool IsPassiveScanEnabled() const;
-			bool IsTargetLocked(Ndk::EntityId targetId) const;
 
-			bool LockTarget(Ndk::EntityId targetId);
-			void UnlockTarget(Ndk::EntityId targetId);
+			std::vector<RangeInfo> Scan();
 
 			// C++ functions
 			void Register(Nz::LuaState& lua) override;
 			void Run() override;
 
+			struct RangeInfo
+			{
+				ewn::LuaVec3 direction;
+				Nz::Int64 signature;
+				float distance;
+				float size;
+			};
+
 			struct TargetInfo
 			{
-				std::string name;
-				ewn::LuaVec3 position;
 				ewn::LuaQuaternion rotation;
 				ewn::LuaVec3 angularVelocity;
 				ewn::LuaVec3 linearVelocity;
+				ewn::LuaVec3 direction;
+				Nz::Int64 signature;
+				float distance;
+				float size;
+				float volume;
 			};
 
 		private:
-			void Initialize(Ndk::Entity* spaceship) override;
 			void PerformScan();
 			inline void RemoveEntityFromRadius(Ndk::Entity* entity);
 
 			std::size_t m_maxLockableTargets;
+			std::unordered_map<Nz::Int64 /*signature*/, Ndk::EntityHandle /*entity*/> m_signatureToEntity;
 			Ndk::EntityList m_entitiesInRadius;
+			Ndk::EntityId m_lockedEntity;
 			Nz::UInt64 m_lastPassiveScanTime;
 			float m_detectionRadius;
 			bool m_isPassiveScanEnabled;

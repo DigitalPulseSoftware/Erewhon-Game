@@ -240,6 +240,10 @@ namespace ewn
 			serializer &= data.integrityValue;
 		}
 
+		void Serialize(PacketSerializer & serializer, LeaveArena& data)
+		{
+		}
+
 		void Serialize(PacketSerializer& serializer, JoinArena& data)
 		{
 			serializer &= data.arenaIndex;

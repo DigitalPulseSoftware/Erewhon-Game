@@ -76,10 +76,6 @@ namespace ewn
 
 	void ConnectedState::OnConnectionInfoUpdate(ServerConnection* server, const ServerConnection::ConnectionInfo& info)
 	{
-		std::cout << "Connected" << std::endl;
-		std::cout << " - Ping: " << info.ping << std::endl;
-		std::cout << " - Last received: " << ClientApplication::GetAppTime() - info.lastReceiveTime << std::endl;
-
 		constexpr Nz::UInt64 connectionTimeout = 5'000;
 
 		Nz::UInt64 timeSinceLastPacket = ClientApplication::GetAppTime() - info.lastReceiveTime;

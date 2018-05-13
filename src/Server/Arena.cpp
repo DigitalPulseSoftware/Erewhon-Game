@@ -18,7 +18,7 @@
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
-#include <Server/Components/RadarComponent.hpp>
+#include <Server/Components/SignatureComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
@@ -332,8 +332,13 @@ namespace ewn
 
 		if (type == "earth")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(50.f));
+			constexpr float radius = 50.f;
+
+			auto collider = Nz::SphereCollider3D::New(radius);
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
+			newEntity->AddComponent<SignatureComponent>(0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(0, type, name, false, 0);
 		}
 		else if (type == "light")
@@ -348,7 +353,10 @@ namespace ewn
 		{
 			constexpr float radius = 18.251904f / 2.f;
 
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
+			auto collider = Nz::SphereCollider3D::New(radius);
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
+			newEntity->AddComponent<SignatureComponent>(0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(4, type, name, true, 3);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -363,9 +371,12 @@ namespace ewn
 		}
 		else if (type == "plasmabeam")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
+			auto collider = Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f));
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
 			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
+			newEntity->AddComponent<SignatureComponent>(0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -382,9 +393,12 @@ namespace ewn
 		}
 		else if (type == "torpedo")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(3.f));
+			auto collider = Nz::SphereCollider3D::New(3.f);
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(30.f);
 			newEntity->AddComponent<ProjectileComponent>(200);
+			newEntity->AddComponent<SignatureComponent>(0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(3, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -489,7 +503,14 @@ namespace ewn
 			owner->SendPacket(integrityPacket);
 		});
 
+		Nz::Int64 signature;
+		if (owner)
+			signature = std::hash<std::string>()(owner->GetName());
+		else
+			signature = std::hash<std::string>()("rogue");
+
 		newEntity->AddComponent<InputComponent>();
+		newEntity->AddComponent<SignatureComponent>(signature, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
 		newEntity->AddComponent<SynchronizedComponent>(5, "spaceship", name, true, 5);
 
 		auto& node = newEntity->AddComponent<Ndk::NodeComponent>();

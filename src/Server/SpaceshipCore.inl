@@ -4,12 +4,26 @@
 
 #include <Server/SpaceshipCore.hpp>
 #include <Server/ServerApplication.hpp>
+#include <cassert>
 
 namespace ewn
 {
 	inline SpaceshipCore::SpaceshipCore(const Ndk::EntityHandle& spaceship) :
 	m_spaceship(spaceship)
 	{
+	}
+
+	template<typename T>
+	T* SpaceshipCore::GetModule(ModuleType type)
+	{
+		std::size_t typeIndex = static_cast<std::size_t>(type);
+		if (typeIndex >= m_modules.size())
+			return nullptr;
+
+		SpaceshipModule* spaceshipModule = m_modules[typeIndex].get();
+		assert(dynamic_cast<T*>(spaceshipModule) != nullptr && "Incompatible types");
+
+		return static_cast<T*>(spaceshipModule);
 	}
 
 	inline void SpaceshipCore::PushCallback(std::string callbackName, CallbackArgFunction argFunc, bool unique)

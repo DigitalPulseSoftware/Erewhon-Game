@@ -11,8 +11,8 @@
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
-#include <Server/Components/RadarComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
+#include <Server/Components/SignatureComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
@@ -37,8 +37,8 @@ int main()
 	Ndk::InitializeComponent<ewn::OwnerComponent>("OwnrComp");
 	Ndk::InitializeComponent<ewn::PlayerControlledComponent>("PlyCtrl");
 	Ndk::InitializeComponent<ewn::ProjectileComponent>("Prjctile");
-	Ndk::InitializeComponent<ewn::RadarComponent>("RadarCmp");
 	Ndk::InitializeComponent<ewn::ScriptComponent>("ScrptCmp");
+	Ndk::InitializeComponent<ewn::SignatureComponent>("SignCmp");
 	Ndk::InitializeComponent<ewn::SynchronizedComponent>("SyncComp");
 	Ndk::InitializeSystem<ewn::BroadcastSystem>();
 	Ndk::InitializeSystem<ewn::LifeTimeSystem>();

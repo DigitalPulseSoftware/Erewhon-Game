@@ -5,39 +5,36 @@
 #include <Server/Modules/NavigationModule.hpp>
 #include <NDK/LuaAPI.hpp>
 #include <Server/Components/NavigationComponent.hpp>
-#include <Server/Components/RadarComponent.hpp>
+#include <Server/Modules/RadarModule.hpp>
 #include <iostream>
 
 namespace ewn
 {
-	void NavigationModule::FollowTarget(Ndk::EntityId targetId)
+	void NavigationModule::FollowTarget(Nz::Int64 targetSignature)
 	{
-		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		Ndk::World* world = spaceship->GetWorld();
-
-		// FIXME: This should use the radar module instead of the radar component (to keep gameplay stuff inside gameplay classes)
-		RadarComponent& spaceshipRadar = spaceship->GetComponent<RadarComponent>();
-		if (!spaceshipRadar.IsEntityLocked(targetId))
+		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
+		if (!radarModule)
 			return;
 
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
 		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
-
-		if (world->IsEntityIdValid(targetId))
-			spaceshipNavigation.SetTarget(world->GetEntity(targetId));
+		if (const Ndk::EntityHandle& target = radarModule->FindEntityBySignature(targetSignature))
+			spaceshipNavigation.SetTarget(target);
 		else
 			spaceshipNavigation.ClearTarget();
 	}
 
-	void NavigationModule::FollowTarget(Ndk::EntityId targetId, float triggerDistance)
+	void NavigationModule::FollowTarget(Nz::Int64 targetSignature, float triggerDistance)
 	{
+		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
+		if (!radarModule)
+			return;
+
 		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		Ndk::World* world = spaceship->GetWorld();
-
 		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
-
-		if (world->IsEntityIdValid(targetId))
+		if (const Ndk::EntityHandle& target = radarModule->FindEntityBySignature(targetSignature))
 		{
-			spaceshipNavigation.SetTarget(world->GetEntity(targetId), triggerDistance, [moduleHandle = CreateHandle()]()
+			spaceshipNavigation.SetTarget(target, triggerDistance, [moduleHandle = CreateHandle()]()
 			{
 				if (!moduleHandle)
 					return;
@@ -87,17 +84,17 @@ namespace ewn
 					case 0:
 					case 1:
 					{
-						Ndk::EntityId entityId = state.Check<Ndk::EntityId>(&argIndex);
-						navigation->FollowTarget(entityId);
+						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
+						navigation->FollowTarget(signature);
 						break;
 					}
 
 					case 2:
 					default:
 					{
-						Ndk::EntityId entityId = state.Check<Ndk::EntityId>(&argIndex);
+						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
 						float triggerDistance = state.Check<float>(&argIndex);
-						navigation->FollowTarget(entityId, triggerDistance);
+						navigation->FollowTarget(signature, triggerDistance);
 						break;
 					}
 				}
