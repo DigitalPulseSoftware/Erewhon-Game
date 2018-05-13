@@ -719,9 +719,6 @@ namespace ewn
 
 				if (result.IsValid())
 				{
-					std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0)));
-					std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
-
 					spaceshipInfo.hullModelPath = m_visualMeshStore.GetEntryFilePath(visualMeshId);
 
 					if (!result)
