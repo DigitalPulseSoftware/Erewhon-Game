@@ -31,6 +31,18 @@ namespace ewn
 			stateData.fsm->PushState(std::make_shared<DisconnectionState>(stateData, false));
 		});
 
+		m_leaveButton = CreateWidget<Ndk::ButtonWidget>();
+		m_leaveButton->UpdateText(Nz::SimpleTextDrawer::Draw("Leave", 24));
+		m_leaveButton->ResizeToContent();
+		m_leaveButton->SetPadding(25.f, 25.f, 25.f, 25.f);
+		m_leaveButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		{
+			StateData& stateData = GetStateData();
+			stateData.fsm->ResetState(std::make_shared<BackgroundState>(stateData));
+			stateData.fsm->PushState(std::make_shared<ConnectedState>(stateData));
+			stateData.fsm->PushState(std::make_shared<MainMenuState>(stateData, "*TODO*"));
+		});
+
 		m_optionsButton = CreateWidget<Ndk::ButtonWidget>();
 		m_optionsButton->UpdateText(Nz::SimpleTextDrawer::Draw("Options", 24));
 		m_optionsButton->ResizeToContent();
@@ -52,9 +64,10 @@ namespace ewn
 			stateData.fsm->PushState(std::make_shared<DisconnectionState>(stateData, true));
 		});
 
-		float regConnWidth = std::max({ m_disconnectButton->GetSize().x, m_optionsButton->GetSize().x, m_quitButton->GetSize().x });
 		// Set all buttons to the same width
+		float regConnWidth = std::max({ m_disconnectButton->GetSize().x, m_leaveButton->GetSize().x, m_optionsButton->GetSize().x, m_quitButton->GetSize().x });
 		m_disconnectButton->SetSize({ regConnWidth, m_disconnectButton->GetSize().y });
+		m_leaveButton->SetSize({ regConnWidth, m_leaveButton->GetSize().y });
 		m_optionsButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y });
 		m_quitButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y });
 
@@ -69,8 +82,9 @@ namespace ewn
 
 		constexpr float padding = 10.f;
 
-		std::array<Ndk::BaseWidget*, 3> widgets = {
+		std::array<Ndk::BaseWidget*, 4> widgets = {
 			m_optionsButton,
+			m_leaveButton,
 			m_disconnectButton,
 			m_quitButton
 		};

@@ -14,6 +14,11 @@ namespace ewn
 		m_botEntities.clear();
 	}
 
+	inline void Player::ClearControlledEntity()
+	{
+		m_controlledEntity.Reset();
+	}
+
 	inline void Player::Disconnect(Nz::UInt32 data)
 	{
 		m_networkReactor.DisconnectPeer(m_peerId, data);

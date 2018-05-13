@@ -538,6 +538,16 @@ namespace ewn
 		});
 	}
 
+	void ServerApplication::HandleLeaveArena(std::size_t peerId, const Packets::LeaveArena& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		if (player->GetArena())
+			player->MoveToArena(nullptr);
+	}
+
 	void ServerApplication::HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data)
 	{
 		Player* player = m_players[peerId];

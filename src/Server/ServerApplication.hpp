@@ -58,6 +58,7 @@ namespace ewn
 			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
 			void HandleLoginByToken(std::size_t peerId, const Packets::LoginByToken& data);
+			void HandleLeaveArena(std::size_t peerId, const Packets::LeaveArena& data);
 			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
 			void HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data);
 			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);

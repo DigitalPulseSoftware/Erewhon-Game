@@ -32,6 +32,7 @@ namespace ewn
 			void Authenticate(Nz::Int32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
 
 			inline void ClearBots();
+			inline void ClearControlledEntity();
 
 			inline void Disconnect(Nz::UInt32 data = 0);
 

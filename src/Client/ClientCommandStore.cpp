@@ -50,6 +50,7 @@ namespace ewn
 		// Outgoing commands
 		OutgoingCommand(CreateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(LeaveArena,         Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(JoinArena,          Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Login,              Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginByToken,       Nz::ENetPacketFlag_Reliable, 0);

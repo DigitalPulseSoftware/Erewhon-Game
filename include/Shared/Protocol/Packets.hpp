@@ -42,6 +42,7 @@ namespace ewn
 		InstantiateParticleSystem,
 		IntegrityUpdate,
 		JoinArena,
+		LeaveArena,
 		Login,
 		LoginByToken,
 		LoginFailure,
@@ -255,6 +256,10 @@ namespace ewn
 			Nz::UInt8 arenaIndex;
 		};
 
+		DeclarePacket(LeaveArena)
+		{
+		};
+
 		DeclarePacket(Login)
 		{
 			std::string login;
@@ -433,6 +438,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, DeleteSpaceshipSuccess& data);
 		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data);
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
+		void Serialize(PacketSerializer& serializer, LeaveArena& data);
 		void Serialize(PacketSerializer& serializer, JoinArena& data);
 		void Serialize(PacketSerializer& serializer, Login& data);
 		void Serialize(PacketSerializer& serializer, LoginByToken& data);

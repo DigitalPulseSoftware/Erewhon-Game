@@ -508,9 +508,10 @@ namespace ewn
 	{
 		assert(m_players.find(player) != m_players.end());
 
-		DispatchChatMessage(player->GetName() + " has left");
-
+		player->ClearControlledEntity();
 		m_players.erase(player);
+
+		DispatchChatMessage(player->GetName() + " has left");
 	}
 
 	void Arena::HandlePlayerJoin(Player* player)

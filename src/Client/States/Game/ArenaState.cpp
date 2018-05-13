@@ -67,6 +67,10 @@ namespace ewn
 	{
 		AbstractState::Leave(fsm);
 
+		StateData& stateData = GetStateData();
+		if (stateData.server)
+			stateData.server->SendPacket(Packets::LeaveArena{});
+
 		m_spaceshipController.reset();
 		m_matchEntities.reset();
 	}

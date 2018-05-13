@@ -27,6 +27,7 @@ namespace ewn
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 
 			Ndk::ButtonWidget* m_disconnectButton;
+			Ndk::ButtonWidget* m_leaveButton;
 			Ndk::ButtonWidget* m_optionsButton;
 			Ndk::ButtonWidget* m_quitButton;
 			Ndk::CheckboxWidget* m_fullscreenCheckbox;
