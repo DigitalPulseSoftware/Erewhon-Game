@@ -86,6 +86,15 @@ namespace ewn
 		m_servers[peerId] = nullptr;
 	}
 
+	void ClientApplication::HandlePeerInfo(std::size_t peerId, const NetworkReactor::PeerInfo& peerInfo)
+	{
+		ServerConnection::ConnectionInfo connectionInfo;
+		connectionInfo.lastReceiveTime = GetAppTime() - peerInfo.lastReceiveTime;
+		connectionInfo.ping = peerInfo.ping;
+
+		m_servers[peerId]->UpdateInfo(connectionInfo);
+	}
+
 	void ClientApplication::HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet)
 	{
 		m_servers[peerId]->DispatchIncomingPacket(std::move(packet));

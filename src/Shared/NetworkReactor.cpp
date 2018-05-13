@@ -84,6 +84,17 @@ namespace ewn
 		m_outgoingQueue.enqueue(std::move(outgoingData));
 	}
 
+	void NetworkReactor::QueryInfo(std::size_t peerId)
+	{
+		assert(peerId >= m_firstId);
+
+		OutgoingEvent outgoingRequest;
+		outgoingRequest.peerId = peerId - m_firstId;
+		outgoingRequest.data.emplace<OutgoingEvent::QueryPeerInfo>();
+
+		m_outgoingQueue.enqueue(std::move(outgoingRequest));
+	}
+
 	void NetworkReactor::SendData(std::size_t peerId, Nz::UInt8 channelId, Nz::ENetPacketFlags flags, Nz::NetPacket&& packet)
 	{
 		assert(peerId >= m_firstId);
@@ -219,12 +230,11 @@ namespace ewn
 								// DisconnectNow does not generate Disconnect event
 								m_clients[outEvent.peerId] = nullptr;
 
-								IncomingEvent::DisconnectEvent disconnectEvent{};
-								disconnectEvent.data = 0;
-
-								IncomingEvent newEvent{};
+								IncomingEvent newEvent;
 								newEvent.peerId = m_firstId + outEvent.peerId;
-								newEvent.data.emplace<IncomingEvent::DisconnectEvent>(std::move(disconnectEvent));
+
+								auto& disconnectEvent = newEvent.data.emplace<IncomingEvent::DisconnectEvent>();
+								disconnectEvent.data = 0;
 
 								m_incomingQueue.enqueue(producterToken, std::move(newEvent));
 								break;
@@ -248,6 +258,20 @@ namespace ewn
 				{
 					if (Nz::ENetPeer* peer = m_clients[outEvent.peerId])
 						peer->Send(arg.channelId, arg.flags, std::move(arg.packet));
+				}
+				else if constexpr (std::is_same_v<T, OutgoingEvent::QueryPeerInfo>)
+				{
+					if (Nz::ENetPeer* peer = m_clients[outEvent.peerId])
+					{
+						IncomingEvent newEvent;
+						newEvent.peerId = m_firstId + outEvent.peerId;
+
+						auto& peerInfo = newEvent.data.emplace<PeerInfo>();
+						peerInfo.lastReceiveTime = m_host.GetServiceTime() - peer->GetLastReceiveTime();
+						peerInfo.ping = peer->GetRoundTripTime();
+
+						m_incomingQueue.enqueue(producterToken, std::move(newEvent));
+					}
 				}
 				else
 					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");

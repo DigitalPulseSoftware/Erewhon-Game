@@ -24,6 +24,8 @@ namespace ewn
 		friend ClientApplication;
 
 		public:
+			struct ConnectionInfo;
+
 			inline ServerConnection(ClientApplication& application);
 			ServerConnection(const ServerConnection&) = delete;
 			ServerConnection(ServerConnection&&) = delete;
@@ -36,10 +38,13 @@ namespace ewn
 
 			inline ClientApplication& GetApp();
 			inline const ClientApplication& GetApp() const;
+			inline const ConnectionInfo& GetConnectionInfo() const;
 			inline const NetworkStringStore& GetNetworkStringStore() const;
 
 			inline bool IsConnected() const;
-			
+
+			inline void RefreshInfos();
+
 			template<typename T> void SendPacket(const T& packet);
 
 			inline void UpdateServerTimeDelta(Nz::UInt64 deltaTime);
@@ -47,8 +52,9 @@ namespace ewn
 			ServerConnection& operator=(const ServerConnection&) = delete;
 			ServerConnection& operator=(ServerConnection&&) = delete;
 
-			NazaraSignal(OnConnected,    ServerConnection* /*server*/, Nz::UInt32 /*data*/);
-			NazaraSignal(OnDisconnected, ServerConnection* /*server*/, Nz::UInt32 /*data*/);
+			NazaraSignal(OnConnected,            ServerConnection* /*server*/, Nz::UInt32 /*data*/);
+			NazaraSignal(OnConnectionInfoUpdate, ServerConnection* /*server*/, const ConnectionInfo& /*info*/);
+			NazaraSignal(OnDisconnected,         ServerConnection* /*server*/, Nz::UInt32 /*data*/);
 
 			// Packet reception signals
 			NazaraSignal(OnArenaList,                 ServerConnection* /*server*/, const Packets::ArenaList&                 /*data*/);
@@ -80,10 +86,17 @@ namespace ewn
 			NazaraSignal(OnUpdateSpaceshipFailure,    ServerConnection* /*server*/, const Packets::UpdateSpaceshipFailure&    /*data*/);
 			NazaraSignal(OnUpdateSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::UpdateSpaceshipSuccess&    /*data*/);
 
+			struct ConnectionInfo
+			{
+				Nz::UInt32 ping;
+				Nz::UInt64 lastReceiveTime;
+			};
+
 		private:
 			inline void DispatchIncomingPacket(Nz::NetPacket&& packet);
 			inline void NotifyConnected(Nz::UInt32 data);
 			inline void NotifyDisconnected(Nz::UInt32 data);
+			inline void UpdateInfo(const ConnectionInfo& connectionInfo);
 
 			void UpdateNetworkStrings(ServerConnection* server, const Packets::NetworkStrings& data);
 
@@ -91,6 +104,7 @@ namespace ewn
 			ClientCommandStore m_commandStore;
 			NetworkStringStore m_stringStore;
 			NetworkReactor* m_networkReactor;
+			ConnectionInfo m_connectionInfo;
 			Nz::UInt64 m_deltaTime;
 			std::size_t m_peerId;
 			bool m_connected;

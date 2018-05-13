@@ -38,7 +38,9 @@ namespace ewn
 
 			virtual void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) = 0;
 			virtual void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) = 0;
+			virtual void HandlePeerInfo(std::size_t peerId, const NetworkReactor::PeerInfo& peerInfo);
 			virtual void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) = 0;
+
 			virtual void OnConfigLoaded(const ConfigFile& config);
 
 			ConfigFile m_config;

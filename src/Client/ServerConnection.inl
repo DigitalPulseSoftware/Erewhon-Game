@@ -34,6 +34,11 @@ namespace ewn
 		return m_application;
 	}
 
+	inline const ServerConnection::ConnectionInfo& ServerConnection::GetConnectionInfo() const
+	{
+		return m_connectionInfo;
+	}
+
 	inline const NetworkStringStore& ServerConnection::GetNetworkStringStore() const
 	{
 		return m_stringStore;
@@ -42,6 +47,14 @@ namespace ewn
 	inline bool ServerConnection::IsConnected() const
 	{
 		return m_connected;
+	}
+
+	inline void ServerConnection::RefreshInfos()
+	{
+		if (!IsConnected())
+			return;
+
+		m_networkReactor->QueryInfo(m_peerId);
 	}
 
 	inline void ServerConnection::UpdateServerTimeDelta(Nz::UInt64 deltaTime)
@@ -82,5 +95,11 @@ namespace ewn
 		m_stringStore.Clear();
 
 		OnDisconnected(this, data);
+	}
+
+	inline void ServerConnection::UpdateInfo(const ConnectionInfo& connectionInfo)
+	{
+		OnConnectionInfoUpdate(this, connectionInfo);
+		m_connectionInfo = connectionInfo;
 	}
 }

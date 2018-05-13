@@ -137,6 +137,8 @@ namespace ewn
 			UpdateStatus("Login failed: " + reason, Nz::Color::Red);
 			m_isLoggingIn = false;
 			m_isLoggingInByToken = false;
+
+			m_connectionToken.clear();
 		});
 
 		ConnectSignal(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess& loginPacket)
@@ -161,6 +163,8 @@ namespace ewn
 				else
 					std::cerr << "Failed to open remember me file" << std::endl;
 			}
+
+			m_connectionToken.clear();
 		});
 
 		LoadTokenFile();
@@ -214,31 +218,39 @@ namespace ewn
 		}
 
 		Nz::String password = m_passwordArea->GetText();
-		if (password.IsEmpty() && !m_connectionToken.empty())
+		if (password.IsEmpty())
 		{
-			// Use login by token if password is empty
-			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
+			if (!m_connectionToken.empty())
 			{
-				if (Nz::File::Exists(TokenFile))
-					Nz::File::Delete(TokenFile);
-			}
-
-			if (!stateData.server->IsConnected())
-			{
-				// Connect to server
-				if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+				// Use login by token if password is empty
+				if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
 				{
-					UpdateStatus("Connecting...");
-					m_isLoggingInByToken = true;
+					if (Nz::File::Exists(TokenFile))
+						Nz::File::Delete(TokenFile);
+				}
+
+				if (!stateData.server->IsConnected())
+				{
+					// Connect to server
+					if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+					{
+						UpdateStatus("Connecting...");
+						m_isLoggingInByToken = true;
+					}
+					else
+						UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
 				}
 				else
-					UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+				{
+					UpdateStatus("Auto-logging in...");
+					m_isLoggingInByToken = true;
+					SendLoginByTokenPacket();
+				}
 			}
 			else
 			{
-				UpdateStatus("Auto-logging in...");
-				m_isLoggingInByToken = true;
-				SendLoginByTokenPacket();
+				UpdateStatus("Auto-logging failed: no connection token found", Nz::Color::Red);
+				return;
 			}
 		}
 		else
@@ -299,6 +311,9 @@ namespace ewn
 
 	void LoginState::OnOptionPressed()
 	{
+		if (m_isLoggingIn || m_isLoggingInByToken)
+			return;
+
 		StateData& stateData = GetStateData();
 		stateData.fsm->ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 	}
@@ -411,7 +426,7 @@ namespace ewn
 	void LoginState::SendLoginByTokenPacket()
 	{
 		Packets::LoginByToken loginPacket;
-		loginPacket.connectionToken = std::move(m_connectionToken);
+		loginPacket.connectionToken = m_connectionToken;
 		loginPacket.generateConnectionToken = true;
 
 		GetStateData().server->SendPacket(loginPacket);
@@ -481,7 +496,7 @@ namespace ewn
 						m_isLoggingInByToken = true;
 
 						Packets::LoginByToken loginPacket;
-						loginPacket.connectionToken = std::move(m_connectionToken);
+						loginPacket.connectionToken = m_connectionToken;
 						loginPacket.generateConnectionToken = true;
 
 						stateData.server->SendPacket(loginPacket);
