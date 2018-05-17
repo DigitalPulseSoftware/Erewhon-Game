@@ -132,7 +132,9 @@ namespace ewn
 
 	void MainMenuState::OnDisconnectPressed()
 	{
-		GetStateData().fsm->ChangeState(std::make_shared<DisconnectionState>(GetStateData(), false));
+		StateData& stateData = GetStateData();
+		stateData.fsm->ResetState(std::make_shared<BackgroundState>(stateData));
+		stateData.fsm->PushState(std::make_shared<DisconnectionState>(stateData, false));
 	}
 
 	void MainMenuState::OnFleetManagementPressed()
