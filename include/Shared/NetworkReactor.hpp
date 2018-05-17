@@ -90,7 +90,7 @@ namespace ewn
 					Nz::NetPacket packet;
 				};
 
-				std::size_t peerId;
+				std::size_t peerId = InvalidPeerId;
 				std::variant<ConnectEvent, DisconnectEvent, PacketEvent, PeerInfo> data;
 			};
 
@@ -111,7 +111,7 @@ namespace ewn
 
 				struct QueryPeerInfo {};
 
-				std::size_t peerId;
+				std::size_t peerId = InvalidPeerId;
 				std::variant<DisconnectEvent, PacketEvent, QueryPeerInfo> data;
 			};
 
