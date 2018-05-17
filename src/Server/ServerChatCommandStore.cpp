@@ -139,7 +139,7 @@ namespace ewn
 			return false;
 		}
 
-		app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), spaceshipName }, [app, spaceshipCount, sessionId = player->GetSessionId(), shipName = std::move(spaceshipName)](DatabaseResult& result)
+		app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), spaceshipName }, [app, spaceshipCount, sessionId = player->GetSessionId(), spaceshipName](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
@@ -150,13 +150,13 @@ namespace ewn
 
 			if (!result)
 			{
-				ply->PrintMessage("Failed to spawn spaceship \"" + shipName + "\", please contact an admin");
+				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
 				return;
 			}
 
 			if (result.GetRowCount() == 0)
 			{
-				ply->PrintMessage("You have no spaceship named \"" + shipName + "\"");
+				ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
 				return;
 			}
 
@@ -164,7 +164,7 @@ namespace ewn
 			std::string code = std::get<std::string>(result.GetValue(1));
 			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
 
-			app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, ply, spaceshipHullId, spaceshipCount, spaceshipName = std::move(shipName), spaceshipCode = std::move(code)](DatabaseResult& result)
+			app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, ply, spaceshipHullId, spaceshipCount, shipName = std::move(spaceshipName), spaceshipCode = std::move(code)](DatabaseResult& result)
 			{
 				if (!result)
 					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
@@ -196,7 +196,7 @@ namespace ewn
 
 				for (std::size_t i = 0; i < spaceshipCount; ++i)
 				{
-					const Ndk::EntityHandle& playerBot = ply->InstantiateBot(spaceshipName, spaceshipHullId, float(i) * Nz::Vector3f::Right() * 10.f);
+					const Ndk::EntityHandle& playerBot = ply->InstantiateBot(shipName, spaceshipHullId, float(i) * Nz::Vector3f::Right() * 10.f);
 					ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
 					if (!botScript.Initialize(app, moduleIds))
 					{
