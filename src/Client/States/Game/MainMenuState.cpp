@@ -137,10 +137,6 @@ namespace ewn
 		stateData.fsm->PushState(std::make_shared<DisconnectionState>(stateData, false));
 	}
 
-	void MainMenuState::OnFleetManagementPressed()
-	{
-	}
-
 	void MainMenuState::OnRefreshPressed()
 	{
 		GetStateData().server->SendPacket(Packets::QueryArenaList{});
