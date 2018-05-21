@@ -338,7 +338,7 @@ namespace ewn
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
-			newEntity->AddComponent<SignatureComponent>(0, collider->GetRadius(), collider->ComputeVolume());
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 0.000035, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(0, type, name, false, 0);
 		}
 		else if (type == "light")
@@ -356,7 +356,7 @@ namespace ewn
 			auto collider = Nz::SphereCollider3D::New(radius);
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
-			newEntity->AddComponent<SignatureComponent>(0, collider->GetRadius(), collider->ComputeVolume());
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 0.0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(4, type, name, true, 3);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -376,7 +376,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
 			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
-			newEntity->AddComponent<SignatureComponent>(0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 10'000.0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -398,7 +398,7 @@ namespace ewn
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(30.f);
 			newEntity->AddComponent<ProjectileComponent>(200);
-			newEntity->AddComponent<SignatureComponent>(0, collider->GetRadius(), collider->ComputeVolume());
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 1'000.0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(3, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -505,12 +505,12 @@ namespace ewn
 
 		Nz::Int64 signature;
 		if (owner)
-			signature = std::hash<std::string>()(owner->GetName());
+			signature = std::hash<std::string>()(owner->GetName() + std::to_string(newEntity->GetId()));
 		else
-			signature = std::hash<std::string>()("rogue");
+			signature = std::hash<std::string>()("rogue" + std::to_string(newEntity->GetId()));
 
 		newEntity->AddComponent<InputComponent>();
-		newEntity->AddComponent<SignatureComponent>(signature, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
+		newEntity->AddComponent<SignatureComponent>(signature, 42.0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
 		newEntity->AddComponent<SynchronizedComponent>(5, "spaceship", name, true, 5);
 
 		auto& node = newEntity->AddComponent<Ndk::NodeComponent>();

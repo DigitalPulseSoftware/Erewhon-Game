@@ -6,6 +6,7 @@
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/SpaceshipModule.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/SignatureComponent.hpp>
 #include <cassert>
 #include <iostream>
 
@@ -60,6 +61,12 @@ namespace ewn
 		return LuaQuaternion(nodeComponent.GetRotation());
 	}
 
+	Nz::Int64 SpaceshipCore::GetSignature() const
+	{
+		auto& signatureComponent = m_spaceship->GetComponent<SignatureComponent>();
+		return signatureComponent.GetSignature();
+	}
+
 	void SpaceshipCore::Register(Nz::LuaState& lua)
 	{
 		if (!s_binding)
@@ -71,6 +78,7 @@ namespace ewn
 			s_binding->BindMethod("GetLinearVelocity",  &SpaceshipCore::GetLinearVelocity);
 			s_binding->BindMethod("GetPosition",        &SpaceshipCore::GetPosition);
 			s_binding->BindMethod("GetRotation",        &SpaceshipCore::GetRotation);
+			s_binding->BindMethod("GetSignature",       &SpaceshipCore::GetSignature);
 		}
 
 		s_binding->Register(lua);
@@ -84,10 +92,10 @@ namespace ewn
 		lua.PushField("Core", this);
 	}
 
-	void SpaceshipCore::Run()
+	void SpaceshipCore::Run(float elapsedTime)
 	{
 		for (const auto& modulePtr : m_runnableModules)
-			modulePtr->Run();
+			modulePtr->Run(elapsedTime);
 	}
 
 	std::optional<Nz::LuaClass<SpaceshipCoreHandle>> SpaceshipCore::s_binding;

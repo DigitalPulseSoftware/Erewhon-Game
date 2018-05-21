@@ -37,10 +37,12 @@ namespace ewn
 
 		TargetInfo targetInfo;
 
+		float distance;
 		Nz::Vector3f direction = targetNode.GetPosition() - spaceship->GetComponent<Ndk::NodeComponent>().GetPosition();
-		direction.Normalize(&targetInfo.distance);
+		direction.Normalize(&distance);
 
 		targetInfo.direction = direction;
+		targetInfo.distance = distance;
 		targetInfo.rotation = targetNode.GetRotation();
 
 		if (target->HasComponent<Ndk::PhysicsComponent3D>())
@@ -58,13 +60,15 @@ namespace ewn
 		if (target->HasComponent<SignatureComponent>())
 		{
 			auto& targetSignature = target->GetComponent<SignatureComponent>();
+			targetInfo.emSignature = targetSignature.GetEmSignature();
 			targetInfo.signature = targetSignature.GetSignature();
 			targetInfo.size = targetSignature.GetSize();
 			targetInfo.volume = targetSignature.GetVolume();
 		}
 		else
 		{
-			targetInfo.signature = 0;
+			targetInfo.emSignature = 0.0;
+			targetInfo.signature = target->GetId(); //< Meh
 			targetInfo.size = 0.f;
 			targetInfo.volume = 0.f;
 		}
@@ -84,23 +88,27 @@ namespace ewn
 		{
 			auto& info = targetInfos.emplace_back();
 
-
 			auto& targetNode = target->GetComponent<Ndk::NodeComponent>();
 
+			float distance;
 			Nz::Vector3f direction = targetNode.GetPosition() - spaceshipPosition;
-			direction.Normalize(&info.distance);
+			direction.Normalize(&distance);
 
 			info.direction = direction;
+			info.distance = distance;
 
 			if (target->HasComponent<SignatureComponent>())
 			{
 				auto& targetSignature = target->GetComponent<SignatureComponent>();
 				info.signature = targetSignature.GetSignature();
+				info.emSignature = targetSignature.GetEmSignature();
 				info.size = targetSignature.GetSize();
 			}
 			else
 			{
-				info.signature = 0;
+				info.signature = target->GetId(); //< Meeeeh
+
+				info.emSignature = 0.0;
 				info.size = 0.f;
 			}
 		}
@@ -157,7 +165,7 @@ namespace ewn
 		lua.PushField("Radar", this);
 	}
 
-	void RadarModule::Run()
+	void RadarModule::Run(float /*elapsedTime*/)
 	{
 		if (m_isPassiveScanEnabled)
 		{
@@ -196,7 +204,6 @@ namespace ewn
 	{
 		const Ndk::EntityHandle& spaceship = GetSpaceship();
 		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
-		auto& spaceshipPhys = spaceship->GetComponent<Ndk::PhysicsComponent3D>();
 
 		Nz::Vector3f position = spaceshipNode.GetPosition();
 		Nz::Boxf detectionBox = Nz::Boxf(position - Nz::Vector3f(m_detectionRadius), position + Nz::Vector3f(m_detectionRadius));
@@ -216,11 +223,13 @@ namespace ewn
 
 					m_entitiesInRadius.Insert(bodyEntity);
 
-					Nz::Int64 signature = 0;
+					Nz::Int64 signature = bodyEntity->GetId(); //< Meh
 					float radius = -1.f;
+					double emSignature = 0.0;
 					if (bodyEntity->HasComponent<SignatureComponent>())
 					{
 						const SignatureComponent& component = bodyEntity->GetComponent<SignatureComponent>();
+						emSignature = component.GetEmSignature();
 						signature = component.GetSignature();
 						radius = component.GetSize();
 
@@ -231,13 +240,15 @@ namespace ewn
 					Nz::Vector3f direction = bodyPosition - position;
 					direction.Normalize(&distance);
 
-					PushCallback("OnRadarNewObjectInRange", [signature, radius, direction, distance](Nz::LuaState& state)
+					PushCallback("OnRadarNewObjectInRange", [signature, emSignature, radius, direction, distance](Nz::LuaState& state)
 					{
 						state.Push(signature);
+						state.Push(emSignature);
 						state.Push(radius);
 						state.Push(LuaVec3(direction));
 						state.Push(distance);
-						return 4;
+
+						return 5;
 					},
 					false);
 				}

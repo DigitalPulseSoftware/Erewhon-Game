@@ -11,6 +11,9 @@ namespace ewn
 	{
 		switch (moduleType)
 		{
+			case ModuleType::Communications:
+				return "Communications";
+
 			case ModuleType::Engine:
 				return "Engine";
 

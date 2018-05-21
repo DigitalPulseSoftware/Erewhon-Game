@@ -14,18 +14,20 @@ namespace ewn
 	class SignatureComponent : public Ndk::Component<SignatureComponent>
 	{
 		public:
-			inline SignatureComponent(Nz::Int64 signature, float size, float volume);
+			inline SignatureComponent(Nz::Int64 signature, double emSignature, double size, double volume);
 
+			inline double GetEmSignature() const;
 			inline Nz::Int64 GetSignature() const;
-			inline float GetSize() const;
-			inline float GetVolume() const;
+			inline double GetSize() const;
+			inline double GetVolume() const;
 
 			static Ndk::ComponentIndex componentIndex;
 
 		private:
 			Nz::Int64 m_signature;
-			float m_size;
-			float m_volume;
+			double m_emSignature;
+			double m_size;
+			double m_volume;
 	};
 }
 

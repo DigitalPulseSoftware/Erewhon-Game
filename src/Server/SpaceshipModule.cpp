@@ -13,7 +13,7 @@ namespace ewn
 	{
 	}
 
-	void SpaceshipModule::Run()
+	void SpaceshipModule::Run(float elapsedTime)
 	{
 	}
 }

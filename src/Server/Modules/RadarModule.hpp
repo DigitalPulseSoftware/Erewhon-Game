@@ -44,14 +44,15 @@ namespace ewn
 
 			// C++ functions
 			void Register(Nz::LuaState& lua) override;
-			void Run() override;
+			void Run(float elapsedTime) override;
 
 			struct RangeInfo
 			{
 				ewn::LuaVec3 direction;
 				Nz::Int64 signature;
-				float distance;
-				float size;
+				double emSignature;
+				double distance;
+				double size;
 			};
 
 			struct TargetInfo
@@ -61,9 +62,10 @@ namespace ewn
 				ewn::LuaVec3 linearVelocity;
 				ewn::LuaVec3 direction;
 				Nz::Int64 signature;
-				float distance;
-				float size;
-				float volume;
+				double emSignature;
+				double distance;
+				double size;
+				double volume;
 			};
 
 		private:

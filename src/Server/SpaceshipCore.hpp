@@ -35,20 +35,22 @@ namespace ewn
 			~SpaceshipCore();
 
 			void AddModule(std::shared_ptr<SpaceshipModule> newModule);
-
-			LuaVec3 GetAngularVelocity() const;
-			float GetIntegrity() const;
-			LuaVec3 GetLinearVelocity() const;
 			template<typename T> T* GetModule(ModuleType type);
-			LuaVec3 GetPosition() const;
-			LuaQuaternion GetRotation() const;
 
 			void Register(Nz::LuaState& lua);
-			void Run();
+			void Run(float elapsedTime);
 
 			inline void PushCallback(std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
 			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
 			inline std::optional<std::pair<std::string, CallbackArgFunction>> PopCallback();
+
+			// Lua API
+			LuaVec3 GetAngularVelocity() const;
+			float GetIntegrity() const;
+			LuaVec3 GetLinearVelocity() const;
+			LuaVec3 GetPosition() const;
+			LuaQuaternion GetRotation() const;
+			Nz::Int64 GetSignature() const;
 
 			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
 

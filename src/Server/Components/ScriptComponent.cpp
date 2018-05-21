@@ -118,7 +118,7 @@ namespace ewn
 		if (!HasValidScript())
 			return true;
 
-		m_core->Run();
+		m_core->Run(elapsedTime);
 
 		std::string callbackName;
 		SpaceshipCore::CallbackArgFunction argFunction;
@@ -151,8 +151,24 @@ namespace ewn
 
 		incrementTickCount.CallAndReset();
 
+		m_instance.PushFunction([](Nz::LuaState& state) -> int
+		{
+			state.Traceback(state.ToString(-1));
+			return 1;
+		});
+
+		unsigned int popCount = 1;
+		Nz::CallOnExit popLuaStack([&]()
+		{
+			m_instance.Pop(popCount);
+		});
+
+		unsigned int errorHandler = m_instance.GetStackTop();
+
 		if (m_instance.GetGlobal("Spaceship") == Nz::LuaType_Table)
 		{
+			popCount++;
+
 			if (m_instance.GetField(callbackName) == Nz::LuaType_Function)
 			{
 				m_instance.PushValue(-2); // Spaceship
@@ -161,7 +177,7 @@ namespace ewn
 				if (argFunction)
 					argCount += argFunction(m_instance);
 
-				if (!m_instance.Call(argCount, 0))
+				if (!m_instance.CallWithHandler(errorHandler, argCount, 0))
 				{
 					if (lastError)
 						*lastError = m_instance.GetLastError();
@@ -171,9 +187,8 @@ namespace ewn
 				}
 			}
 			else
-				m_instance.Pop();
+				popCount++;
 		}
-		m_instance.Pop();
 
 		return true;
 	}

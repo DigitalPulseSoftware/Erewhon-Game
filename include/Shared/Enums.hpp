@@ -40,12 +40,14 @@ namespace ewn
 
 	enum class ModuleType : Nz::UInt8
 	{
+		// <!> Do not preserve alphabetical order, put new items at the end (id are importants)
 		Engine,
 		Navigation,
 		Radar,
 		Weapon,
+		Communications,
 
-		Max = Weapon
+		Max = Communications
 	};
 
 	enum class RegisterFailureReason : Nz::UInt8

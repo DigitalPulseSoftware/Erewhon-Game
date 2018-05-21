@@ -31,7 +31,7 @@ namespace ewn
 			inline bool IsRunnable() const;
 
 			virtual void Register(Nz::LuaState& lua) = 0;
-			virtual void Run();
+			virtual void Run(float elapsedTime);
 
 		protected:
 			inline SpaceshipCore* GetCore();

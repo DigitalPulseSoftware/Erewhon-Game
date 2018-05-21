@@ -4,6 +4,7 @@
 
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/ArenaComponent.hpp>
+#include <Server/Components/CommunicationComponent.hpp>
 #include <Server/Components/HealthComponent.hpp>
 #include <Server/Components/InputComponent.hpp>
 #include <Server/Components/LifeTimeComponent.hpp>
@@ -30,6 +31,7 @@ int main()
 
 	// Initialize custom components
 	Ndk::InitializeComponent<ewn::ArenaComponent>("Arena");
+	Ndk::InitializeComponent<ewn::CommunicationComponent>("ComComp");
 	Ndk::InitializeComponent<ewn::HealthComponent>("Health");
 	Ndk::InitializeComponent<ewn::LifeTimeComponent>("LifeTime");
 	Ndk::InitializeComponent<ewn::InputComponent>("InptComp");

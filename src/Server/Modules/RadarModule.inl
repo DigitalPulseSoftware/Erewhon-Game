@@ -53,6 +53,7 @@ namespace Nz
 		{
 			state.PushField("direction", value.direction);
 			state.PushField("distance", value.distance);
+			state.PushField("emSignature", value.emSignature);
 			state.PushField("signature", value.signature);
 			state.PushField("size", value.size);
 		}
@@ -64,11 +65,12 @@ namespace Nz
 	{
 		state.PushTable(0, 8);
 		{
-			state.PushField("rotation", value.rotation);
 			state.PushField("angularVelocity", value.angularVelocity);
+			state.PushField("distance", value.distance);
+			state.PushField("emSignature", value.emSignature);
 			state.PushField("linearVelocity", value.linearVelocity);
 			state.PushField("direction", value.direction);
-			state.PushField("distance", value.distance);
+			state.PushField("rotation", value.rotation);
 			state.PushField("signature", value.signature);
 			state.PushField("size", value.size);
 			state.PushField("volume", value.volume);
