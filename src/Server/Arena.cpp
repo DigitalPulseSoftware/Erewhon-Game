@@ -177,7 +177,9 @@ namespace ewn
 			}
 
 			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
-			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipByFleetId", { fleetId }, [this, fleetName, sessionId](DatabaseResult& result)
+			Nz::Int32 mothershipId = std::get<Nz::Int32>(result.GetValue(1));
+
+			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [this, fleetName, mothershipId, sessionId](DatabaseResult& result)
 			{
 				if (!result)
 				{
@@ -199,8 +201,6 @@ namespace ewn
 					return;
 				}
 
-
-
 				Nz::Vector3f spawnPos;
 				Nz::Quaternionf spawnRot;
 				if (const Ndk::EntityHandle& spaceship = ply->GetControlledEntity(); spaceship != Ndk::EntityHandle::InvalidHandle)
@@ -218,16 +218,56 @@ namespace ewn
 
 				for (std::size_t i = 0; i < rowCount; ++i)
 				{
-					std::size_t spaceshipCount = static_cast<std::size_t>(std::get<Nz::Int16>(result.GetValue(1)));
-					for (std::size_t j = 0; j < spaceshipCount; ++j)
+					Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+					Nz::Int16 spaceshipCount = std::get<Nz::Int16>(result.GetValue(1));
+					std::string name = std::get<std::string>(result.GetValue(2));
+					std::string script = std::get<std::string>(result.GetValue(3));
+					Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(4));
+
+					std::size_t collisionMeshId = m_app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipHullId);
+					const Nz::Boxf& dimensions = m_app->GetCollisionMeshStore().GetEntryDimensions(collisionMeshId);
+
+					m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, spawnPos, spawnRot, offset = dimensions.width, sessionId, spaceshipCount, spaceshipName = std::move(name), spaceshipScript = std::move(script), spaceshipHullId](ewn::DatabaseResult& result)
 					{
-						SpawnSpaceship(ply, std::get<Nz::Int32>(result.GetValue(0)), spawnPos, spawnRot);
+						Player* ply = m_app->GetPlayerBySession(sessionId);
+						if (!ply)
+							return;
 
-						spawnPos += spawnRot * Nz::Vector3f::Left() * 10.f;
-					}
+						if (!result)
+						{
+							ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+							return;
+						}
 
-					spawnPos += spawnRot * Nz::Vector3f::Backward() * 10.f;
+						std::size_t moduleCount = result.GetRowCount();
+
+						std::vector<std::size_t> moduleIds(moduleCount);
+						try
+						{
+							for (std::size_t i = 0; i < moduleCount; ++i)
+								moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+
+							ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+							return;
+						}
+
+						Nz::Vector3f pos = spawnPos;
+						for (Nz::Int16 j = 0; j < spaceshipCount; ++j)
+						{
+							SpawnSpaceship(ply, spaceshipScript, spaceshipHullId, moduleIds, pos, spawnRot);
+
+							pos += spawnRot * Nz::Vector3f::Left() * offset;
+						}
+					});
+
+					spawnPos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth;
 				}
+
+				SpawnSpaceship(ply, mothershipId, spawnPos, spawnRot);
 			});
 		});
 	}
@@ -511,7 +551,7 @@ namespace ewn
 
 		newEntity->AddComponent<InputComponent>();
 		newEntity->AddComponent<SignatureComponent>(signature, 42.0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
-		newEntity->AddComponent<SynchronizedComponent>(5, "spaceship", name, true, 5);
+		newEntity->AddComponent<SynchronizedComponent>((spaceshipHullId == 1) ? 5 : 6, "spaceship", name, true, 5);
 
 		auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 		node.SetPosition(position);
@@ -645,7 +685,7 @@ namespace ewn
 		arenaPrefabsPacket.prefabs.back().models.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("mothership/mothership.obj");
 		arenaPrefabsPacket.prefabs.back().models.back().position = Nz::Vector3f::Zero();
 		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
-		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(10.f);
+		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(20.f);
 
 		player->SendPacket(arenaPrefabsPacket);
 	}
@@ -683,20 +723,27 @@ namespace ewn
 				return;
 			}
 
-			const Ndk::EntityHandle& spaceship = CreateSpaceship("Bot (" + ply->GetName() + ')', ply, spaceshipHullId, position, rotation);
-			ScriptComponent& botScript = spaceship->AddComponent<ScriptComponent>();
-			if (!botScript.Initialize(m_app, moduleIds))
-			{
-				ply->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
-				return;
-			}
-
-			Nz::String lastError;
-			if (botScript.Execute(std::move(spaceshipCode), &lastError))
-				ply->PrintMessage("Server: Script loaded with success");
-			else
-				ply->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
+			SpawnSpaceship(ply, std::move(spaceshipCode), spaceshipHullId, moduleIds, position, rotation);
 		});
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, std::string code, std::size_t spaceshipHullId, const std::vector<std::size_t>& modules, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		assert(owner);
+
+		const Ndk::EntityHandle& spaceship = CreateSpaceship("Bot (" + owner->GetName() + ')', owner, spaceshipHullId, position, rotation);
+		ScriptComponent& botScript = spaceship->AddComponent<ScriptComponent>();
+		if (!botScript.Initialize(m_app, modules))
+		{
+			owner->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
+			return;
+		}
+
+		Nz::String lastError;
+		if (botScript.Execute(std::move(code), &lastError))
+			owner->PrintMessage("Server: Script loaded with success");
+		else
+			owner->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
 	}
 
 	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)

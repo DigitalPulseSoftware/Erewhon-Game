@@ -18,8 +18,8 @@ namespace ewn
 			PrepareStatement(conn, "DeleteSpaceship", "DELETE FROM spaceships WHERE owner_id = $1 AND name = LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)", { DatabaseType::Text });
 			PrepareStatement(conn, "FindAccountByToken", "SELECT account_id FROM account_tokens WHERE token=$1", { DatabaseType::Text });
-			PrepareStatement(conn, "FindFleetByOwnerIdAndName", "SELECT id FROM fleets WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
-			PrepareStatement(conn, "FindFleetSpaceshipByFleetId", "SELECT spaceship_id, spaceship_count FROM fleet_spaceships WHERE fleet_id = $1", { DatabaseType::Int32 });
+			PrepareStatement(conn, "FindFleetByOwnerIdAndName", "SELECT id, mothership_id FROM fleets WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
+			PrepareStatement(conn, "FindFleetSpaceshipsByFleetId", "SELECT spaceship_id, spaceship_count, name, script, spaceship_hull_id FROM fleet_spaceships INNER JOIN spaceships ON id = spaceship_id WHERE fleet_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "FindSpaceshipByOwnerIdAndName", "SELECT id, script, spaceship_hull_id FROM spaceships WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindSpaceshipByIdAndOwnerId", "SELECT name, script, spaceship_hull_id FROM spaceships WHERE id = $1 AND owner_id=$2", { DatabaseType::Int32, DatabaseType::Int32 });
 			PrepareStatement(conn, "FindSpaceshipModulesBySpaceshipId", "SELECT module_id FROM spaceship_modules WHERE spaceship_id = $1", { DatabaseType::Int32 });
