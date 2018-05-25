@@ -45,6 +45,12 @@ namespace ewn
 			m_chatEnteringBox->Destroy();
 	}
 
+	void MatchChatbox::Clear()
+	{
+		m_chatLines.clear();
+		m_chatBox->Clear();
+	}
+
 	void MatchChatbox::PrintMessage(const std::string& message)
 	{
 		std::cout << message << std::endl;

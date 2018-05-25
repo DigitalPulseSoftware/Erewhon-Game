@@ -26,6 +26,8 @@ namespace ewn
 			MatchChatbox(MatchChatbox&&) = delete;
 			~MatchChatbox();
 
+			void Clear();
+
 			inline bool IsTyping() const;
 
 			void PrintMessage(const std::string& message);
