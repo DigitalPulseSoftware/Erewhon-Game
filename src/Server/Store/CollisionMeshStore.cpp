@@ -57,7 +57,7 @@ namespace ewn
 				{
 					// Multiple submeshes, build a compound collider
 
-					std::vector<Nz::Collider3DRef> colliders;
+					/*std::vector<Nz::Collider3DRef> colliders;
 					for (std::size_t i = 0; i < subMeshCount; ++i)
 					{
 						Nz::VertexMapper vertexMapper(mesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
@@ -66,7 +66,22 @@ namespace ewn
 						colliders.emplace_back(Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount(), 0.01f));
 					}
 
-					collisionInfo.collider = Nz::CompoundCollider3D::New(std::move(colliders));
+					collisionInfo.collider = Nz::CompoundCollider3D::New(std::move(colliders));*/
+
+					// Build a convex collider out of every mesh vertices
+					std::vector<Nz::Vector3f> vertices;
+					for (std::size_t i = 0; i < subMeshCount; ++i)
+					{
+						Nz::VertexMapper vertexMapper(mesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
+						Nz::SparsePtr<Nz::Vector3f> subMeshVertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
+
+						Nz::UInt32 vertexCount = vertexMapper.GetVertexCount();
+						vertices.reserve(vertices.size() + vertexCount);
+						for (Nz::UInt32 i = 0; i < vertexCount; ++i)
+							vertices.push_back(subMeshVertices[i]);
+					}
+
+					collisionInfo.collider = Nz::ConvexCollider3D::New(vertices.data(), vertices.size(), 0.01f);
 				}
 				else
 				{
