@@ -272,12 +272,6 @@ namespace ewn
 
 			entity->AddComponent<Ndk::NodeComponent>();
 
-			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(10.f);
-			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
 			auto& graphicsComponent = entity->AddComponent<Ndk::GraphicsComponent>();
 			for (const auto& modelPiece : prefab.models)
 			{
@@ -286,12 +280,45 @@ namespace ewn
 				// TODO: Load it once for every path
 				std::string filePath = assetsFolder + '/' + networkStringStore.GetString(modelPiece.modelId);
 
+				/*Nz::MeshParams collisionParams;
+				collisionParams.animated = false;
+				collisionParams.center = true;
+				collisionParams.optimizeIndexBuffers = false;
+				collisionParams.storage = Nz::DataStorage_Software;
+				collisionParams.matrix = Nz::Matrix4f::Transform(modelPiece.position, modelPiece.rotation, Nz::Vector3f(modelPiece.scale));
+
+				Nz::Mesh collisionMesh;
+				if (collisionMesh.LoadFromFile(filePath, collisionParams))
+				{
+					std::vector<Nz::Vector3f> vertices;
+					for (std::size_t i = 0; i < collisionMesh.GetSubMeshCount(); ++i)
+					{
+						Nz::VertexMapper vertexMapper(collisionMesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
+						Nz::SparsePtr<Nz::Vector3f> subMeshVertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
+
+						Nz::UInt32 vertexCount = vertexMapper.GetVertexCount();
+						vertices.reserve(vertices.size() + vertexCount);
+						for (Nz::UInt32 i = 0; i < vertexCount; ++i)
+							vertices.push_back(subMeshVertices[i]);
+					}
+
+					auto collider = Nz::ConvexCollider3D::New(vertices.data(), vertices.size(), 0.01f);
+					entity->AddComponent<Ndk::CollisionComponent3D>(collider);
+					entity->AddComponent<Ndk::DebugComponent>(Ndk::DebugDraw::Collider3D | Ndk::DebugDraw::GraphicsAABB);
+				}*/
+
 				Nz::ModelRef model = Nz::Model::New();
 				if (model->LoadFromFile(filePath, params))
 					graphicsComponent.Attach(model, transformMatrix);
 				else
 					std::cerr << "Failed to load " << filePath << std::endl;
 			}
+
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
+			physComponent.SetMass(10.f);
+			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
 
 			for (const auto& sound : prefab.sounds)
 			{
