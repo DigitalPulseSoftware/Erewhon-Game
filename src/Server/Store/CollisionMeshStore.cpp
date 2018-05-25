@@ -92,6 +92,8 @@ namespace ewn
 					collisionInfo.collider = Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount(), 0.01f);
 				}
 
+				collisionInfo.dimensions = collisionInfo.collider->ComputeAABB();
+
 				collisionInfo.isLoaded = true;
 				meshLoaded++;
 			}

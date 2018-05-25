@@ -12,10 +12,16 @@ namespace ewn
 	{
 	}
 
-	inline Nz::Collider3DRef CollisionMeshStore::GetEntryCollider(std::size_t entryId) const
+	inline const Nz::Collider3DRef& CollisionMeshStore::GetEntryCollider(std::size_t entryId) const
 	{
 		assert(IsEntryLoaded(entryId));
 		return m_collisionInfos[entryId].collider;
+	}
+
+	inline const Nz::Boxf& CollisionMeshStore::GetEntryDimensions(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_collisionInfos[entryId].dimensions;
 	}
 
 	inline std::size_t CollisionMeshStore::GetEntryCount() const
