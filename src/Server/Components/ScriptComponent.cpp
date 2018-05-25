@@ -177,7 +177,7 @@ namespace ewn
 				if (argFunction)
 					argCount += argFunction(m_instance);
 
-				if (!m_instance.CallWithHandler(errorHandler, argCount, 0))
+				if (!m_instance.CallWithHandler(argCount, 0, errorHandler))
 				{
 					if (lastError)
 						*lastError = m_instance.GetLastError();
