@@ -19,7 +19,7 @@
 #include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/NavigationSystem.hpp>
 #include <Server/Systems/ScriptSystem.hpp>
-#include <Server/Systems/SpaceshipSystem.hpp>
+#include <Server/Systems/InputSystem.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Core/Thread.hpp>
 #include <Nazara/Network/Network.hpp>
@@ -46,7 +46,7 @@ int main()
 	Ndk::InitializeSystem<ewn::LifeTimeSystem>();
 	Ndk::InitializeSystem<ewn::NavigationSystem>();
 	Ndk::InitializeSystem<ewn::ScriptSystem>();
-	Ndk::InitializeSystem<ewn::SpaceshipSystem>();
+	Ndk::InitializeSystem<ewn::InputSystem>();
 
 	ewn::ServerApplication app;
 	if (!app.LoadConfig("sconfig.lua"))

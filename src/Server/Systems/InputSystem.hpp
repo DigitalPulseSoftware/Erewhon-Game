@@ -4,17 +4,17 @@
 
 #pragma once
 
-#ifndef EREWHON_SERVER_SPACESHIPSYSTEM_HPP
-#define EREWHON_SERVER_SPACESHIPSYSTEM_HPP
+#ifndef EREWHON_SERVER_INPUTSYSTEM_HPP
+#define EREWHON_SERVER_INPUTSYSTEM_HPP
 
 #include <NDK/System.hpp>
 
 namespace ewn
 {
-	class SpaceshipSystem : public Ndk::System<SpaceshipSystem>
+	class InputSystem : public Ndk::System<InputSystem>
 	{
 		public:
-			SpaceshipSystem();
+			InputSystem();
 
 			static Ndk::SystemIndex systemIndex;
 
@@ -23,6 +23,6 @@ namespace ewn
 	};
 }
 
-#include <Server/Systems/SpaceshipSystem.inl>
+#include <Server/Systems/InputSystem.inl>
 
-#endif // EREWHON_SERVER_SPACESHIPSYSTEM_HPP
+#endif // EREWHON_SERVER_INPUTSYSTEM_HPP

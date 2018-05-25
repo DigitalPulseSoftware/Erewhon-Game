@@ -10,7 +10,7 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/ServerApplication.hpp>
-#include <Server/Systems/SpaceshipSystem.hpp>
+#include <Server/Systems/InputSystem.hpp>
 #include <cassert>
 
 namespace ewn

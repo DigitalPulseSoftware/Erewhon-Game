@@ -25,7 +25,7 @@
 #include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/NavigationSystem.hpp>
 #include <Server/Systems/ScriptSystem.hpp>
-#include <Server/Systems/SpaceshipSystem.hpp>
+#include <Server/Systems/InputSystem.hpp>
 #include <cassert>
 
 namespace ewn
@@ -45,10 +45,10 @@ namespace ewn
 		if (sendServerGhosts)
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
+		m_world.AddSystem<InputSystem>();
 		m_world.AddSystem<LifeTimeSystem>();
 		m_world.AddSystem<NavigationSystem>();
 		m_world.AddSystem<ScriptSystem>(m_app, this);
-		m_world.AddSystem<SpaceshipSystem>();
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
 		int defaultMaterial = world.GetMaterial("default");
