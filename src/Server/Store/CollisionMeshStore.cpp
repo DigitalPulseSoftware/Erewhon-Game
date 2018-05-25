@@ -27,7 +27,6 @@ namespace ewn
 		Nz::MeshParams params;
 		params.animated = false;
 		params.center = true;
-		params.matrix = Nz::Matrix4f::Transform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(0.01f));
 		params.optimizeIndexBuffers = false;
 		params.storage = Nz::DataStorage_Software;
 		//params.vertexDeclaration = Nz::VertexDeclaration::Get(Nz::VertexLayout_XYZ);
@@ -45,6 +44,9 @@ namespace ewn
 				collisionInfo.doesExist = true;
 
 				collisionInfo.filePath = std::get<std::string>(result.GetValue(1, i));
+
+				float scale = std::get<float>(result.GetValue(2, i));
+				params.matrix = Nz::Matrix4f::Transform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(scale));
 
 				Nz::Mesh mesh;
 				if (!mesh.LoadFromFile(assetsFolder + '/' + collisionInfo.filePath, params))

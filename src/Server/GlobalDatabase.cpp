@@ -26,7 +26,7 @@ namespace ewn
 			PrepareStatement(conn, "FindSpaceshipIdByOwnerIdAndName", "SELECT id FROM spaceships WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindSpaceshipsByOwnerId", "SELECT id, name FROM spaceships WHERE owner_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "LoadAccount", "SELECT login, display_name, permission_level FROM accounts WHERE id=$1;", { DatabaseType::Int32 });
-			PrepareStatement(conn, "LoadCollisionMeshes", "SELECT id, file_path FROM collision_meshes ORDER BY id ASC", {});
+			PrepareStatement(conn, "LoadCollisionMeshes", "SELECT id, file_path, scale FROM collision_meshes ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadModules", "SELECT id, name, description, class_name, class_info, type FROM modules ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadSpaceshipHulls", "SELECT id, name, description, collision_mesh, visual_mesh FROM spaceship_hulls ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadVisualMeshes", "SELECT id, file_path FROM visual_meshes ORDER BY id ASC", {});
