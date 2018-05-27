@@ -7,6 +7,7 @@
 #include <Nazara/Core/Directory.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Graphics/DeferredRenderTechnique.hpp>
+#include <Nazara/Graphics/Model.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Network/Network.hpp>
 #include <NDK/Algorithm.hpp>
@@ -103,6 +104,13 @@ int main()
 		Nz::TextureLibrary::Register("Background", std::move(background));
 	}
 
+	Nz::ModelParameters params;
+	params.mesh.center = true;
+	params.mesh.texCoordScale.Set(1.f, -1.f);
+
+	Nz::ModelManager::SetDefaultParameters(params);
+
+
 	// Shoot sound
 	Nz::SoundBufferParams soundParams;
 	soundParams.forceMono = true;
@@ -154,4 +162,6 @@ int main()
 
 		window.Display();
 	}
+
+	Nz::ModelManager::Clear();
 }

@@ -256,10 +256,6 @@ namespace ewn
 
 	void ServerMatchEntities::OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs)
 	{
-		Nz::ModelParameters params;
-		params.mesh.center = true;
-		params.mesh.texCoordScale.Set(1.f, -1.f);
-
 		m_prefabs.erase(m_prefabs.begin() + arenaPrefabs.startId, m_prefabs.end());
 
 		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
@@ -307,8 +303,7 @@ namespace ewn
 					entity->AddComponent<Ndk::DebugComponent>(Ndk::DebugDraw::Collider3D | Ndk::DebugDraw::GraphicsAABB);
 				}*/
 
-				Nz::ModelRef model = Nz::Model::New();
-				if (model->LoadFromFile(filePath, params))
+				if (Nz::ModelRef model = Nz::ModelManager::Get(filePath))
 					graphicsComponent.Attach(model, transformMatrix);
 				else
 					std::cerr << "Failed to load " << filePath << std::endl;

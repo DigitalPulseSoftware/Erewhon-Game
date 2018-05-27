@@ -515,12 +515,8 @@ namespace ewn
 
 		entityGfx.Clear();
 
-		Nz::ModelParameters modelParams;
-		modelParams.mesh.center = true;
-		modelParams.mesh.texCoordScale.Set(1.f, -1.f);
-
-		m_spaceshipModel = Nz::Model::New();
-		if (!m_spaceshipModel->LoadFromFile(assetsFolder + '/' + listPacket.hullModelPath, modelParams))
+		m_spaceshipModel = Nz::ModelManager::Get(assetsFolder + '/' + listPacket.hullModelPath);
+		if (!m_spaceshipModel)
 		{
 			UpdateStatus("Failed to load model", Nz::Color::Red);
 			return;
