@@ -7,8 +7,6 @@
 #ifndef EREWHON_SERVER_NAVIGATIONMODULE_HPP
 #define EREWHON_SERVER_NAVIGATIONMODULE_HPP
 
-#include <Nazara/Core/HandledObject.hpp>
-#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <Server/SpaceshipModule.hpp>
@@ -26,6 +24,10 @@ namespace ewn
 			inline NavigationModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			~NavigationModule() = default;
 
+			void PushInstance(Nz::LuaState& lua) override;
+			void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) override;
+
+			// Lua API
 			void FollowTarget(Nz::Int64 targetSignature);
 			void FollowTarget(Nz::Int64 targetSignature, float triggerDistance);
 
@@ -33,8 +35,6 @@ namespace ewn
 			void MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance);
 
 			void Stop();
-
-			void Register(Nz::LuaState& lua) override;
 
 		private:
 			void Initialize(Ndk::Entity* spaceship) override;

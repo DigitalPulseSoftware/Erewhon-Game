@@ -18,6 +18,156 @@
 
 namespace ewn
 {
+	
+	void RadarModule::PushInstance(Nz::LuaState& lua)
+	{
+		lua.Push(this);
+	}
+
+	void RadarModule::RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua)
+	{
+		if (!s_binding)
+		{
+			s_binding.emplace("Radar");
+			s_binding->Inherit<SpaceshipModule>(parentBinding, [](RadarModuleHandle* moduleRef) -> SpaceshipModule*
+			{
+				return moduleRef->GetObject();
+			});
+
+			s_binding->BindMethod("EnablePassiveScan", &RadarModule::EnablePassiveScan);
+			s_binding->BindMethod("GetTargetInfo", &RadarModule::GetTargetInfo);
+			s_binding->BindMethod("IsPassiveScanEnabled", &RadarModule::IsPassiveScanEnabled);
+			s_binding->BindMethod("Scan", &RadarModule::Scan);
+
+			// Workaround for value reply bug
+			s_binding->BindMethod("GetTargetInfo", [](Nz::LuaState& state, RadarModule* radar, std::size_t /*argCount*/)
+			{
+				int argIndex = 2;
+				decltype(auto) result = radar->GetTargetInfo(state.Check<Nz::Int64>(&argIndex));
+				if (result.has_value())
+					state.Push(*result);
+				else
+					state.PushNil();
+
+				return 1;
+			});
+
+			s_binding->BindMethod("Scan", [](Nz::LuaState& state, RadarModule* radar, std::size_t /*argCount*/)
+			{
+				int argIndex = 2;
+				std::vector<RangeInfo> result = radar->Scan();
+
+				state.PushTable(result.size(), 0);
+
+				std::size_t index = 1;
+				for (const RangeInfo& info : result)
+				{
+					state.Push(index++); // key
+					state.Push(info); // value
+
+					state.SetTable();
+				}
+
+				return 1;
+			});
+		}
+
+		s_binding->Register(lua);
+	}
+
+	void RadarModule::Run(float /*elapsedTime*/)
+	{
+		if (m_isPassiveScanEnabled)
+		{
+			Nz::UInt64 now = ServerApplication::GetAppTime();
+			if (now - m_lastPassiveScanTime > 500)
+			{
+				PerformScan();
+				m_lastPassiveScanTime = now;
+			}
+		}
+
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
+		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+
+		Nz::Vector3f radarCenter = spaceshipNode.GetPosition();
+
+		float maxDetectionRadiusSq = m_detectionRadius * m_detectionRadius;
+		for (const Ndk::EntityHandle& target : m_entitiesInRadius)
+		{
+			auto& targetNode = target->GetComponent<Ndk::NodeComponent>();
+			if (targetNode.GetPosition().SquaredDistance(radarCenter) > maxDetectionRadiusSq)
+			{
+				m_entitiesInRadius.Remove(target);
+
+				if (target->HasComponent<SignatureComponent>())
+				{
+					const SignatureComponent& component = target->GetComponent<SignatureComponent>();
+
+					m_signatureToEntity.erase(component.GetSignature());
+				}
+			}
+		}
+	}
+
+	void RadarModule::PerformScan()
+	{
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
+		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+
+		Nz::Vector3f position = spaceshipNode.GetPosition();
+		Nz::Boxf detectionBox = Nz::Boxf(position - Nz::Vector3f(m_detectionRadius), position + Nz::Vector3f(m_detectionRadius));
+
+		Ndk::World* world = spaceship->GetWorld();
+		Nz::PhysWorld3D& physWorld = world->GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
+		float maxSquaredRadius = m_detectionRadius * m_detectionRadius;
+		physWorld.ForEachBodyInAABB(detectionBox, [&](Nz::RigidBody3D& body)
+		{
+			Nz::Vector3f bodyPosition = body.GetPosition();
+			if (bodyPosition.SquaredDistance(position) < maxSquaredRadius)
+			{
+				Ndk::EntityId bodyId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(body.GetUserdata()));
+				if (!m_entitiesInRadius.Has(bodyId) && bodyId != spaceship->GetId())
+				{
+					const Ndk::EntityHandle& bodyEntity = world->GetEntity(bodyId);
+
+					m_entitiesInRadius.Insert(bodyEntity);
+
+					Nz::Int64 signature = bodyEntity->GetId(); //< Meh
+					double radius = -1.f;
+					double emSignature = 0.0;
+					if (bodyEntity->HasComponent<SignatureComponent>())
+					{
+						const SignatureComponent& component = bodyEntity->GetComponent<SignatureComponent>();
+						emSignature = component.GetEmSignature();
+						signature = component.GetSignature();
+						radius = component.GetSize();
+
+						m_signatureToEntity.insert_or_assign(signature, bodyEntity);
+					}
+
+					float distance;
+					Nz::Vector3f direction = bodyPosition - position;
+					direction.Normalize(&distance);
+
+					PushCallback("OnRadarNewObjectInRange", [signature, emSignature, radius, direction, distance](Nz::LuaState& state)
+					{
+						state.Push(signature);
+						state.Push(emSignature);
+						state.Push(radius);
+						state.Push(LuaVec3(direction));
+						state.Push(distance);
+
+						return 5;
+					},
+					false);
+				}
+			}
+
+			return true;
+		});
+	}
+
 	std::optional<RadarModule::TargetInfo> RadarModule::GetTargetInfo(Nz::Int64 signature)
 	{
 		const Ndk::EntityHandle& target = FindEntityBySignature(signature);
@@ -114,148 +264,6 @@ namespace ewn
 		}
 
 		return targetInfos;
-	}
-
-	void RadarModule::Register(Nz::LuaState& lua)
-	{
-		if (!s_binding)
-		{
-			s_binding.emplace("Radar");
-
-			s_binding->BindMethod("EnablePassiveScan", &RadarModule::EnablePassiveScan);
-			s_binding->BindMethod("GetTargetInfo", &RadarModule::GetTargetInfo);
-			s_binding->BindMethod("IsPassiveScanEnabled", &RadarModule::IsPassiveScanEnabled);
-			s_binding->BindMethod("Scan", &RadarModule::Scan);
-
-			// Workaround for value reply bug
-			s_binding->BindMethod("GetTargetInfo", [](Nz::LuaState& state, RadarModule* radar, std::size_t /*argCount*/)
-			{
-				int argIndex = 2;
-				decltype(auto) result = radar->GetTargetInfo(state.Check<Nz::Int64>(&argIndex));
-				if (result.has_value())
-					state.Push(*result);
-				else
-					state.PushNil();
-
-				return 1;
-			});
-
-			s_binding->BindMethod("Scan", [](Nz::LuaState& state, RadarModule* radar, std::size_t /*argCount*/)
-			{
-				int argIndex = 2;
-				std::vector<RangeInfo> result = radar->Scan();
-
-				state.PushTable(result.size(), 0);
-
-				std::size_t index = 1;
-				for (const RangeInfo& info : result)
-				{
-					state.Push(index++); // key
-					state.Push(info); // value
-
-					state.SetTable();
-				}
-
-				return 1;
-			});
-		}
-
-		s_binding->Register(lua);
-
-		lua.PushField("Radar", this);
-	}
-
-	void RadarModule::Run(float /*elapsedTime*/)
-	{
-		if (m_isPassiveScanEnabled)
-		{
-			Nz::UInt64 now = ServerApplication::GetAppTime();
-			if (now - m_lastPassiveScanTime > 500)
-			{
-				PerformScan();
-				m_lastPassiveScanTime = now;
-			}
-		}
-
-		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
-
-		Nz::Vector3f radarCenter = spaceshipNode.GetPosition();
-
-		float maxDetectionRadiusSq = m_detectionRadius * m_detectionRadius;
-		for (const Ndk::EntityHandle& target : m_entitiesInRadius)
-		{
-			auto& targetNode = target->GetComponent<Ndk::NodeComponent>();
-			if (targetNode.GetPosition().SquaredDistance(radarCenter) > maxDetectionRadiusSq)
-			{
-				m_entitiesInRadius.Remove(target);
-
-				if (target->HasComponent<SignatureComponent>())
-				{
-					const SignatureComponent& component = target->GetComponent<SignatureComponent>();
-
-					m_signatureToEntity.erase(component.GetSignature());
-				}
-			}
-		}
-	}
-
-	void RadarModule::PerformScan()
-	{
-		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
-
-		Nz::Vector3f position = spaceshipNode.GetPosition();
-		Nz::Boxf detectionBox = Nz::Boxf(position - Nz::Vector3f(m_detectionRadius), position + Nz::Vector3f(m_detectionRadius));
-
-		Ndk::World* world = spaceship->GetWorld();
-		Nz::PhysWorld3D& physWorld = world->GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
-		float maxSquaredRadius = m_detectionRadius * m_detectionRadius;
-		physWorld.ForEachBodyInAABB(detectionBox, [&](Nz::RigidBody3D& body)
-		{
-			Nz::Vector3f bodyPosition = body.GetPosition();
-			if (bodyPosition.SquaredDistance(position) < maxSquaredRadius)
-			{
-				Ndk::EntityId bodyId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(body.GetUserdata()));
-				if (!m_entitiesInRadius.Has(bodyId) && bodyId != spaceship->GetId())
-				{
-					const Ndk::EntityHandle& bodyEntity = world->GetEntity(bodyId);
-
-					m_entitiesInRadius.Insert(bodyEntity);
-
-					Nz::Int64 signature = bodyEntity->GetId(); //< Meh
-					float radius = -1.f;
-					double emSignature = 0.0;
-					if (bodyEntity->HasComponent<SignatureComponent>())
-					{
-						const SignatureComponent& component = bodyEntity->GetComponent<SignatureComponent>();
-						emSignature = component.GetEmSignature();
-						signature = component.GetSignature();
-						radius = component.GetSize();
-
-						m_signatureToEntity.insert_or_assign(signature, bodyEntity);
-					}
-
-					float distance;
-					Nz::Vector3f direction = bodyPosition - position;
-					direction.Normalize(&distance);
-
-					PushCallback("OnRadarNewObjectInRange", [signature, emSignature, radius, direction, distance](Nz::LuaState& state)
-					{
-						state.Push(signature);
-						state.Push(emSignature);
-						state.Push(radius);
-						state.Push(LuaVec3(direction));
-						state.Push(distance);
-
-						return 5;
-					},
-					false);
-				}
-			}
-
-			return true;
-		});
 	}
 
 	std::optional<Nz::LuaClass<RadarModuleHandle>> RadarModule::s_binding;

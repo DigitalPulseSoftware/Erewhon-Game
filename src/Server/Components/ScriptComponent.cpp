@@ -100,6 +100,21 @@ namespace ewn
 			m_core->AddModule(std::move(modulePtr));
 		}
 
+		// Enums
+		constexpr std::size_t ModuleTypeCount = static_cast<std::size_t>(ModuleType::Max) + 1;
+
+		m_instance.PushTable(0, ModuleTypeCount);
+		for (std::size_t i = 0; i < ModuleTypeCount; ++i)
+		{
+			ModuleType type = static_cast<ModuleType>(i);
+
+			m_instance.PushString(EnumToString(type)); // k
+			m_instance.Push(type);
+			m_instance.SetTable(); // k = v
+		}
+		m_instance.SetGlobal("ModuleType");
+
+		// Spaceship global table
 		m_instance.PushTable();
 		{
 			m_core->Register(m_instance);

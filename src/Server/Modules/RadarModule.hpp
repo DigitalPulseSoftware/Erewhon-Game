@@ -7,8 +7,6 @@
 #ifndef EREWHON_SERVER_RADARMODULE_HPP
 #define EREWHON_SERVER_RADARMODULE_HPP
 
-#include <Nazara/Core/HandledObject.hpp>
-#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <NDK/EntityList.hpp>
 #include <Server/SpaceshipModule.hpp>
@@ -32,8 +30,11 @@ namespace ewn
 			~RadarModule() = default;
 
 			inline const Ndk::EntityHandle& FindEntityBySignature(Nz::Int64 signature) const;
+			void PushInstance(Nz::LuaState& lua) override;
+			void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) override;
+			void Run(float elapsedTime) override;
 
-			// Script functions
+			// Lua API
 			inline void EnablePassiveScan(bool enable);
 
 			std::optional<TargetInfo> GetTargetInfo(Nz::Int64 signature);
@@ -42,9 +43,6 @@ namespace ewn
 
 			std::vector<RangeInfo> Scan();
 
-			// C++ functions
-			void Register(Nz::LuaState& lua) override;
-			void Run(float elapsedTime) override;
 
 			struct RangeInfo
 			{

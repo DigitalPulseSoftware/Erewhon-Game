@@ -10,6 +10,84 @@
 
 namespace ewn
 {
+	void NavigationModule::Initialize(Ndk::Entity* spaceship)
+	{
+		spaceship->AddComponent<NavigationComponent>();
+	}
+
+	void NavigationModule::PushInstance(Nz::LuaState& lua)
+	{
+		lua.Push(this);
+	}
+	
+	void NavigationModule::RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua)
+	{
+		if (!s_binding)
+		{
+			s_binding.emplace("Navigation");
+			s_binding->Inherit<SpaceshipModule>(parentBinding, [](NavigationModuleHandle* moduleRef) -> SpaceshipModule*
+			{
+				return moduleRef->GetObject();
+			});
+
+			s_binding->BindMethod("FollowTarget", [](Nz::LuaState& state, NavigationModule* navigation, std::size_t argCount)
+			{
+				int argIndex = 2;
+				switch (argCount)
+				{
+					case 0:
+					case 1:
+					{
+						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
+						navigation->FollowTarget(signature);
+						break;
+					}
+
+					case 2:
+					default:
+					{
+						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
+						float triggerDistance = state.Check<float>(&argIndex);
+						navigation->FollowTarget(signature, triggerDistance);
+						break;
+					}
+				}
+
+				return 0;
+			});
+
+			s_binding->BindMethod("MoveToPosition", [](Nz::LuaState& state, NavigationModule* navigation, std::size_t argCount)
+			{
+				int argIndex = 2;
+				switch (argCount)
+				{
+					case 0:
+					case 1:
+					{
+						Nz::Vector3f targetPos = state.Check<Nz::Vector3f>(&argIndex);
+						navigation->MoveToPosition(targetPos);
+						break;
+					}
+
+					case 2:
+					default:
+					{
+						Nz::Vector3f targetPos = state.Check<Nz::Vector3f>(&argIndex);
+						float triggerDistance = state.Check<float>(&argIndex);
+						navigation->MoveToPosition(targetPos, triggerDistance);
+						break;
+					}
+				}
+
+				return 0;
+			});
+
+			s_binding->BindMethod("Stop", &NavigationModule::Stop);
+		}
+
+		s_binding->Register(lua);
+	}
+
 	void NavigationModule::FollowTarget(Nz::Int64 targetSignature)
 	{
 		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
@@ -68,77 +146,6 @@ namespace ewn
 	{
 		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
 		spaceshipNavigation.ClearTarget();
-	}
-
-	void NavigationModule::Register(Nz::LuaState& lua)
-	{
-		if (!s_binding)
-		{
-			s_binding.emplace("Navigation");
-
-			s_binding->BindMethod("FollowTarget", [](Nz::LuaState& state, NavigationModule* navigation, std::size_t argCount)
-			{
-				int argIndex = 2;
-				switch (argCount)
-				{
-					case 0:
-					case 1:
-					{
-						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
-						navigation->FollowTarget(signature);
-						break;
-					}
-
-					case 2:
-					default:
-					{
-						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
-						float triggerDistance = state.Check<float>(&argIndex);
-						navigation->FollowTarget(signature, triggerDistance);
-						break;
-					}
-				}
-
-				return 0;
-			});
-
-			s_binding->BindMethod("MoveToPosition", [](Nz::LuaState& state, NavigationModule* navigation, std::size_t argCount)
-			{
-				int argIndex = 2;
-				switch (argCount)
-				{
-					case 0:
-					case 1:
-					{
-						Nz::Vector3f targetPos = state.Check<Nz::Vector3f>(&argIndex);
-						navigation->MoveToPosition(targetPos);
-						break;
-					}
-
-					case 2:
-					default:
-					{
-						Nz::Vector3f targetPos = state.Check<Nz::Vector3f>(&argIndex);
-						float triggerDistance = state.Check<float>(&argIndex);
-						navigation->MoveToPosition(targetPos, triggerDistance);
-						break;
-					}
-				}
-
-				return 0;
-			});
-
-			s_binding->BindMethod("Stop", &NavigationModule::Stop);
-		}
-
-		s_binding->Register(lua);
-
-		lua.PushField("Navigation", this);
-	}
-
-	void NavigationModule::Initialize(Ndk::Entity* spaceship)
-	{
-		spaceship->AddComponent<NavigationComponent>();
 	}
 
 	std::optional<Nz::LuaClass<NavigationModuleHandle>> NavigationModule::s_binding;

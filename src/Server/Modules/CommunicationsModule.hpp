@@ -7,8 +7,6 @@
 #ifndef EREWHON_SERVER_COMMUNICATIONSMODULE_HPP
 #define EREWHON_SERVER_COMMUNICATIONSMODULE_HPP
 
-#include <Nazara/Core/HandledObject.hpp>
-#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <Server/SpaceshipModule.hpp>
@@ -30,11 +28,15 @@ namespace ewn
 
 			void Initialize(Ndk::Entity* spaceship) override;
 
+			void PushInstance(Nz::LuaState& lua) override;
+
+			void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) override;
+			void Run(float elapsedTime) override;
+
+			// Lua API
 			void BroadcastCone(const Nz::Vector3f& direction, float distance, const std::string& message);
 			void BroadcastSphere(float distance, const std::string& message);
 
-			void Register(Nz::LuaState& lua) override;
-			void Run(float elapsedTime) override;
 
 		private:
 			void OnReceivedMessage(CommunicationComponent* /*communication*/, const Ndk::EntityHandle& emitter, const std::string& message);

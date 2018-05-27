@@ -25,11 +25,6 @@ namespace ewn
 		m_enabled = enable;
 	}
 
-	inline ModuleType SpaceshipModule::GetType() const
-	{
-		return m_type;
-	}
-
 	inline bool SpaceshipModule::IsEnabled() const
 	{
 		return m_enabled;
@@ -38,6 +33,11 @@ namespace ewn
 	inline bool SpaceshipModule::IsRunnable() const
 	{
 		return m_isRunnable;
+	}
+
+	inline ModuleType SpaceshipModule::GetType() const
+	{
+		return m_type;
 	}
 
 	inline SpaceshipCore* SpaceshipModule::GetCore()

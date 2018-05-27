@@ -8,6 +8,8 @@
 #define EREWHON_SERVER_SPACESHIPMODULE_HPP
 
 #include <Server/SpaceshipCore.hpp>
+#include <Nazara/Core/HandledObject.hpp>
+#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaInstance.hpp>
 #include <NDK/Entity.hpp>
 #include <optional>
@@ -23,15 +25,20 @@ namespace ewn
 			inline void Disable();
 			inline void Enable(bool enable = true);
 
-			inline ModuleType GetType() const;
-
 			virtual void Initialize(Ndk::Entity* spaceship);
 
 			inline bool IsEnabled() const;
 			inline bool IsRunnable() const;
 
-			virtual void Register(Nz::LuaState& lua) = 0;
+			virtual void PushInstance(Nz::LuaState& lua) = 0;
+
+			void Register(Nz::LuaState& lua);
 			virtual void Run(float elapsedTime);
+
+			static void RegisterParent(Nz::LuaState& lua);
+
+			// Lua API
+			inline ModuleType GetType() const;
 
 		protected:
 			inline SpaceshipCore* GetCore();
@@ -39,12 +46,16 @@ namespace ewn
 			inline const Ndk::EntityHandle& GetSpaceship() const;
 			template<typename... Args> void PushCallback(Args&&... args);
 
+			virtual void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) = 0;
+
 		private:
 			Ndk::EntityHandle m_spaceship;
 			ModuleType m_type;
 			SpaceshipCoreHandle m_core;
 			bool m_enabled;
 			bool m_isRunnable;
+
+			static std::optional<Nz::LuaClass<SpaceshipModule>> s_binding;
 	};
 }
 

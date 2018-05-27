@@ -22,6 +22,11 @@ namespace ewn
 		m_onReceivedMessageSlot.Connect(spaceship->GetComponent<CommunicationComponent>().OnReceivedMessage, this, &CommunicationsModule::OnReceivedMessage);
 	}
 
+	void CommunicationsModule::PushInstance(Nz::LuaState& lua)
+	{
+		lua.Push(this);
+	}
+
 	void CommunicationsModule::BroadcastCone(const Nz::Vector3f& direction, float distance, const std::string& message)
 	{
 		const Ndk::EntityHandle& spaceship = GetSpaceship();
@@ -82,19 +87,21 @@ namespace ewn
 		});
 	}
 
-	void CommunicationsModule::Register(Nz::LuaState& lua)
+	void CommunicationsModule::RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua)
 	{
 		if (!s_binding)
 		{
 			s_binding.emplace("Communications");
+			s_binding->Inherit<SpaceshipModule>(parentBinding, [](CommunicationsModuleHandle* moduleRef) -> SpaceshipModule*
+			{
+				return moduleRef->GetObject();
+			});
 
 			s_binding->BindMethod("BroadcastCone",   &CommunicationsModule::BroadcastCone);
 			s_binding->BindMethod("BroadcastSphere", &CommunicationsModule::BroadcastSphere);
 		}
 
 		s_binding->Register(lua);
-
-		lua.PushField("Communications", this);
 	}
 
 	void CommunicationsModule::Run(float elapsedTime)

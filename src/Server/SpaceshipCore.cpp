@@ -79,9 +79,31 @@ namespace ewn
 			s_binding->BindMethod("GetPosition",        &SpaceshipCore::GetPosition);
 			s_binding->BindMethod("GetRotation",        &SpaceshipCore::GetRotation);
 			s_binding->BindMethod("GetSignature",       &SpaceshipCore::GetSignature);
+
+			s_binding->BindMethod("GetModules", [](Nz::LuaState& state, SpaceshipCore* core, std::size_t /*argCount*/) -> int
+			{
+				constexpr std::size_t moduleCount = static_cast<std::size_t>(ModuleType::Max) + 1;
+
+				state.PushTable(0, moduleCount);
+
+				std::size_t index = 1;
+				for (std::size_t i = 0; i < moduleCount; ++i)
+				{
+					if (SpaceshipModule* modulePtr = core->GetModule<SpaceshipModule>(static_cast<ModuleType>(i)))
+					{
+						state.Push(index++);
+						modulePtr->PushInstance(state);
+						state.SetTable();
+					}
+				}
+
+				return 1;
+			});
 		}
 
 		s_binding->Register(lua);
+
+		SpaceshipModule::RegisterParent(lua);
 
 		for (auto& modulePtr : m_modules)
 		{
