@@ -42,6 +42,9 @@ namespace ewn
 				if (!collisionMeshStore.IsEntryLoaded(hullInfo.collisionMeshId))
 					throw std::runtime_error("Hull depends on collision mesh #" + std::to_string(hullInfo.collisionMeshId) + " which is not loaded");
 
+				// Load slots
+				app->GetGlobalDatabase().ExecuteQuery("LoadSpaceshipHullSlots", { id }, [this, id](DatabaseResult& slotResult) { LoadSlots(id, slotResult); });
+
 				hullInfo.isLoaded = true;
 				hullLoaded++;
 			}
@@ -54,5 +57,25 @@ namespace ewn
 		std::cout << "Loaded " << hullLoaded << " spaceship hulls (" << (hullCount - hullLoaded) << " errored)" << std::endl;
 
 		return true;
+	}
+
+	void SpaceshipHullStore::LoadSlots(std::size_t hullId, DatabaseResult& result)
+	{
+		if (!result)
+		{
+			std::cerr << "LoadSpaceshipHullSlots for hull id " << hullId << " failed: " << result.GetLastErrorMessage();
+			return;
+		}
+
+		HullInfo& hullInfo = m_hullInfos[hullId];
+
+		std::size_t slotCount = result.GetRowCount();
+		hullInfo.slots.reserve(slotCount);
+
+		for (std::size_t i = 0; i < slotCount; ++i)
+		{
+			SlotInfo& slotInfo = hullInfo.slots.emplace_back();
+			slotInfo.moduleType = static_cast<ModuleType>(std::get<Nz::Int16>(result.GetValue(0, i)));
+		}
 	}
 }

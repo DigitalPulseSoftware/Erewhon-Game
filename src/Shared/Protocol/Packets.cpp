@@ -227,6 +227,35 @@ namespace ewn
 		{
 		}
 
+		void Serialize(PacketSerializer& serializer, HullList& data)
+		{
+			CompressedUnsigned<Nz::UInt32> hullCount;
+			if (serializer.IsWriting())
+				hullCount = Nz::UInt32(data.hulls.size());
+
+			serializer &= hullCount;
+			if (!serializer.IsWriting())
+				data.hulls.resize(hullCount);
+
+			for (auto& hullInfo : data.hulls)
+			{
+				serializer &= hullInfo.hullModelPathId;
+				serializer &= hullInfo.name;
+				serializer &= hullInfo.description;
+
+				CompressedUnsigned<Nz::UInt32> slotCount;
+				if (serializer.IsWriting())
+					slotCount = Nz::UInt32(hullInfo.slots.size());
+
+				serializer &= slotCount;
+				if (!serializer.IsWriting())
+					hullInfo.slots.resize(slotCount);
+
+				for (auto& slotInfo : hullInfo.slots)
+					serializer.Serialize<Nz::UInt8>(slotInfo.type);
+			}
+		}
+
 		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data)
 		{
 			serializer &= data.particleSystemId;
@@ -363,6 +392,10 @@ namespace ewn
 		}
 
 		void Serialize(PacketSerializer& serializer, QueryArenaList& data)
+		{
+		}
+
+		void Serialize(PacketSerializer& serializer, QueryHullList& data)
 		{
 		}
 

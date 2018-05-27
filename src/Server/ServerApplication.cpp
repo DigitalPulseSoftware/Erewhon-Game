@@ -621,7 +621,7 @@ namespace ewn
 		player->Shoot();
 	}
 
-	void ewn::ServerApplication::HandleQueryArenaList(std::size_t peerId, const Packets::QueryArenaList& data)
+	void ServerApplication::HandleQueryArenaList(std::size_t peerId, const Packets::QueryArenaList& data)
 	{
 		Player* player = m_players[peerId];
 		if (!player->IsAuthenticated())
@@ -639,7 +639,40 @@ namespace ewn
 		player->SendPacket(listPacket);
 	}
 
-	void ewn::ServerApplication::HandleQueryModuleList(std::size_t peerId, const Packets::QueryModuleList& data)
+	void ServerApplication::HandleQueryHullList(std::size_t peerId, const Packets::QueryHullList& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		Packets::HullList hullList;
+		hullList.hulls.reserve(m_spaceshipHullStore.GetEntryCount());
+
+		for (std::size_t i = 0; i < m_spaceshipHullStore.GetEntryCount(); ++i)
+		{
+			if (m_spaceshipHullStore.IsEntryLoaded(i))
+			{
+				std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(i);
+
+				auto& hullInfo = hullList.hulls.emplace_back();
+				hullInfo.description = m_spaceshipHullStore.GetEntryDescription(i);
+				hullInfo.hullModelPathId = m_stringStore.GetStringIndex(m_visualMeshStore.GetEntryFilePath(i));
+				hullInfo.name = m_spaceshipHullStore.GetEntryName(i);
+
+				hullInfo.slots.reserve(m_spaceshipHullStore.GetEntrySlotCount(i));
+
+				for (std::size_t j = 0; j < m_spaceshipHullStore.GetEntrySlotCount(i); ++j)
+				{
+					auto& slotInfo = hullInfo.slots.emplace_back();
+					slotInfo.type = m_spaceshipHullStore.GetEntrySlotModuleType(i, j);
+				}
+			}
+		}
+
+		player->SendPacket(hullList);
+	}
+
+	void ServerApplication::HandleQueryModuleList(std::size_t peerId, const Packets::QueryModuleList& data)
 	{
 		Player* player = m_players[peerId];
 		if (!player->IsAuthenticated())
@@ -685,7 +718,7 @@ namespace ewn
 		if (data.spaceshipName.empty())
 			return;
 
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [&, sessionId = player->GetSessionId()](ewn::DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [&, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)
@@ -710,7 +743,7 @@ namespace ewn
 			std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(2)));
 			std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
 
-			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [=](ewn::DatabaseResult& result)
+			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [=](DatabaseResult& result)
 			{
 				if (!ply)
 					return; //< Player has disconnected, ignore
@@ -763,7 +796,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [this, sessionId = player->GetSessionId()](ewn::DatabaseResult& result)
+		m_globalDatabase->ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [this, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = GetPlayerBySession(sessionId);
 			if (!ply)

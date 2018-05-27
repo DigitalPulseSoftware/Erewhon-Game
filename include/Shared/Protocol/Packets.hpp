@@ -39,6 +39,7 @@ namespace ewn
 		DeleteSpaceship,
 		DeleteSpaceshipFailure,
 		DeleteSpaceshipSuccess,
+		HullList,
 		InstantiateParticleSystem,
 		IntegrityUpdate,
 		JoinArena,
@@ -54,6 +55,7 @@ namespace ewn
 		PlayerMovement,
 		PlayerShoot,
 		QueryArenaList,
+		QueryHullList,
 		QueryModuleList,
 		QuerySpaceshipInfo,
 		QuerySpaceshipList,
@@ -238,6 +240,24 @@ namespace ewn
 		{
 		};
 
+		DeclarePacket(HullList)
+		{
+			struct HullInfo
+			{
+				struct Slot
+				{
+					ModuleType type;
+				};
+
+				CompressedUnsigned<Nz::UInt32> hullModelPathId;
+				std::string name;
+				std::string description;
+				std::vector<Slot> slots;
+			};
+
+			std::vector<HullInfo> hulls;
+		};
+
 		DeclarePacket(InstantiateParticleSystem)
 		{
 			CompressedUnsigned<Nz::UInt32> particleSystemId;
@@ -329,6 +349,10 @@ namespace ewn
 		};
 
 		DeclarePacket(QueryArenaList)
+		{
+		};
+
+		DeclarePacket(QueryHullList)
 		{
 		};
 
@@ -436,6 +460,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceshipFailure& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceshipSuccess& data);
+		void Serialize(PacketSerializer& serializer, HullList& data);
 		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data);
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
 		void Serialize(PacketSerializer& serializer, LeaveArena& data);
@@ -451,6 +476,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, PlayerShoot& data);
 		void Serialize(PacketSerializer& serializer, PlaySound& data);
 		void Serialize(PacketSerializer& serializer, QueryArenaList& data);
+		void Serialize(PacketSerializer& serializer, QueryHullList& data);
 		void Serialize(PacketSerializer& serializer, QueryModuleList& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipList& data);
