@@ -177,9 +177,8 @@ namespace ewn
 			}
 
 			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
-			Nz::Int32 mothershipId = std::get<Nz::Int32>(result.GetValue(1));
 
-			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [this, fleetName, mothershipId, sessionId](DatabaseResult& result)
+			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [this, fleetName, sessionId](DatabaseResult& result)
 			{
 				if (!result)
 				{
@@ -266,8 +265,6 @@ namespace ewn
 
 					spawnPos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth;
 				}
-
-				SpawnSpaceship(ply, mothershipId, spawnPos, spawnRot);
 			});
 		});
 	}
