@@ -180,16 +180,16 @@ namespace ewn
 			return;
 
 		if (!std::isfinite(movement.x) ||
-			!std::isfinite(movement.y) ||
-			!std::isfinite(movement.z))
+		    !std::isfinite(movement.y) ||
+		    !std::isfinite(movement.z))
 		{
 			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite movement: " << movement << std::endl;
 			return;
 		}
 
 		if (!std::isfinite(rotation.x) ||
-			!std::isfinite(rotation.y) ||
-			!std::isfinite(rotation.z))
+		    !std::isfinite(rotation.y) ||
+		    !std::isfinite(rotation.z))
 		{
 			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite rotation: " << movement << std::endl;
 			return;
