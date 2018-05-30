@@ -31,6 +31,7 @@ namespace ewn
 			PrepareStatement(conn, "LoadSpaceshipHulls", "SELECT id, name, description, collision_mesh, visual_mesh FROM spaceship_hulls ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadSpaceshipHullSlots", "SELECT module_type FROM spaceship_hull_slots WHERE spaceship_hull_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "LoadVisualMeshes", "SELECT id, file_path FROM visual_meshes ORDER BY id ASC", {});
+			PrepareStatement(conn, "Ping", "SELECT 1", {});
 			PrepareStatement(conn, "RegisterAccount", "INSERT INTO accounts(login, display_name, password, password_salt, email, creation_date) VALUES (LOWER($1), $1, $2, $3, $4, NOW())", { DatabaseType::Text, DatabaseType::Text, DatabaseType::Text, DatabaseType::Text });
 			PrepareStatement(conn, "UpdateLastLoginDate", "UPDATE accounts SET last_login_date=NOW() WHERE id=$1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "UpdatePermissionLevel", "UPDATE accounts SET permission_level=$2 WHERE id=$1", { DatabaseType::Int32, DatabaseType::Int16 });

@@ -4,11 +4,14 @@
 
 #include <Server/Database/DatabaseWorker.hpp>
 #include <Server/Database/Database.hpp>
+#include <Nazara/Core/Clock.hpp>
 #include <chrono>
 #include <iostream>
 
 namespace ewn
 {
+	constexpr Nz::UInt64 PingInterval = 10'000; //< 10s
+
 	void DatabaseWorker::ResetIdle()
 	{
 		m_idle.store(false, std::memory_order_relaxed);
@@ -55,6 +58,9 @@ namespace ewn
 
 		Database::Request request;
 		bool wasConnected = connection.IsConnected();
+
+		Nz::UInt64 lastRequestTime = Nz::GetElapsedMilliseconds();
+
 		while (m_running.load(std::memory_order_acquire))
 		{
 			if (!connection.IsConnected())
@@ -131,11 +137,23 @@ namespace ewn
 						static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
 				}, request);
+
+				lastRequestTime = Nz::GetElapsedMilliseconds();
 			}
 			else
 			{
 				m_idle.store(true, std::memory_order_release);
 				m_idleConditionVariable.notify_all();
+
+				Nz::UInt64 now = Nz::GetElapsedMilliseconds();
+				if (now - lastRequestTime > PingInterval)
+				{
+					lastRequestTime = Nz::GetElapsedMilliseconds();
+
+					auto pingResult = connection.ExecPreparedStatement("Ping", {});
+					if (!pingResult)
+						continue;
+				}
 			}
 		}
 	}
