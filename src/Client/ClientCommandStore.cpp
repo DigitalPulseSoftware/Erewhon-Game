@@ -32,6 +32,7 @@ namespace ewn
 		IncomingCommand(DeleteEntity);
 		IncomingCommand(DeleteSpaceshipFailure);
 		IncomingCommand(DeleteSpaceshipSuccess);
+		IncomingCommand(HullList);
 		IncomingCommand(InstantiateParticleSystem);
 		IncomingCommand(IntegrityUpdate);
 		IncomingCommand(LoginFailure);
@@ -58,6 +59,7 @@ namespace ewn
 		OutgoingCommand(PlayerMovement,     0,                           0);
 		OutgoingCommand(PlayerShoot,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QueryArenaList,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(QueryHullList,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QueryModuleList,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QuerySpaceshipInfo, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QuerySpaceshipList, Nz::ENetPacketFlag_Reliable, 0);

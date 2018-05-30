@@ -6,20 +6,26 @@
 
 namespace ewn
 {
-	inline SpaceshipEditState::SpaceshipEditState(StateData & stateData, std::shared_ptr<Ndk::State> previousState) :
+	inline SpaceshipEditState::SpaceshipEditState(CreateMode /*mode*/, StateData& stateData, std::shared_ptr<Ndk::State> previousState, std::string hullModelPath, Nz::UInt32 hullId) :
 	AbstractState(stateData),
-	m_previousState(std::move(previousState))
+	m_previousState(std::move(previousState)),
+	m_spaceshipHullId(hullId),
+	m_spaceshipModelPath(std::move(hullModelPath)),
+	m_isInEditMode(false)
 	{
 	}
 
-	inline SpaceshipEditState::SpaceshipEditState(StateData& stateData, std::shared_ptr<Ndk::State> previousState, std::string spaceshipName) :
-	SpaceshipEditState(stateData, std::move(previousState))
+	inline SpaceshipEditState::SpaceshipEditState(EditMode /*mode*/, StateData& stateData, std::shared_ptr<Ndk::State> previousState, std::string spaceshipName) :
+	AbstractState(stateData),
+	m_previousState(std::move(previousState)),
+	m_spaceshipHullId(0xFFFFFFFF)
 	{
-		m_tempSpaceshipName = std::move(spaceshipName);
+		m_spaceshipName = std::move(spaceshipName);
+		m_isInEditMode = true;
 	}
 
 	inline bool SpaceshipEditState::IsInEditMode() const
 	{
-		return !m_spaceshipName.empty();
+		return m_isInEditMode;
 	}
 }

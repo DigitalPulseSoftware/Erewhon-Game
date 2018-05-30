@@ -207,6 +207,7 @@ namespace ewn
 				CompressedUnsigned<Nz::UInt16> moduleId;
 			};
 
+			CompressedUnsigned<Nz::UInt32> hullId;
 			std::string spaceshipName;
 			std::string spaceshipCode;
 			std::vector<ModuleInfo> modules;
@@ -249,6 +250,7 @@ namespace ewn
 					ModuleType type;
 				};
 
+				CompressedUnsigned<Nz::UInt32> hullId;
 				CompressedUnsigned<Nz::UInt32> hullModelPathId;
 				std::string name;
 				std::string description;
@@ -393,6 +395,7 @@ namespace ewn
 				CompressedUnsigned<Nz::UInt16> currentModule;
 			};
 
+			CompressedUnsigned<Nz::UInt32> hullId;
 			std::string hullModelPath;
 			std::vector<ModuleInfo> modules;
 		};

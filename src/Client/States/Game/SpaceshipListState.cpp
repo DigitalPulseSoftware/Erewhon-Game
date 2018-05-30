@@ -7,11 +7,8 @@
 #include <Nazara/Utility/SimpleTextDrawer.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/States/BackgroundState.hpp>
-#include <Client/States/ConnectionLostState.hpp>
-#include <Client/States/Game/MainMenuState.hpp>
 #include <Client/States/Game/SpaceshipEditState.hpp>
-#include <Client/States/Game/TimeSyncState.hpp>
+#include <Client/States/Game/SpaceshipHullSelection.hpp>
 #include <cassert>
 
 namespace ewn
@@ -44,7 +41,7 @@ namespace ewn
 		m_createButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			StateData& stateData = GetStateData();
-			stateData.fsm->ChangeState(std::make_shared<SpaceshipEditState>(stateData, shared_from_this()));
+			stateData.fsm->ChangeState(std::make_shared<SpaceshipHullSelection>(stateData, shared_from_this()));
 		});
 
 		LayoutWidgets();
@@ -127,7 +124,7 @@ namespace ewn
 			button->OnButtonTrigger.Connect([&, name = spaceship.name](const Ndk::ButtonWidget* /*button*/)
 			{
 				StateData& stateData = GetStateData();
-				stateData.fsm->ChangeState(std::make_shared<SpaceshipEditState>(GetStateData(), shared_from_this(), name));
+				stateData.fsm->ChangeState(std::make_shared<SpaceshipEditState>(SpaceshipEditState::EditMode{}, GetStateData(), shared_from_this(), name));
 			});
 
 			m_spaceshipButtons.push_back(button);

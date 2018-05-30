@@ -181,6 +181,7 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data)
 		{
+			serializer &= data.hullId;
 			serializer &= data.spaceshipName;
 			serializer &= data.spaceshipCode;
 
@@ -239,6 +240,7 @@ namespace ewn
 
 			for (auto& hullInfo : data.hulls)
 			{
+				serializer &= hullInfo.hullId;
 				serializer &= hullInfo.hullModelPathId;
 				serializer &= hullInfo.name;
 				serializer &= hullInfo.description;
@@ -430,6 +432,7 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, SpaceshipInfo& data)
 		{
+			serializer &= data.hullId;
 			serializer &= data.hullModelPath;
 
 			// Modules

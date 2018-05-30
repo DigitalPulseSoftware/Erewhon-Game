@@ -101,6 +101,9 @@ namespace ewn
 		if (data.modules.empty())
 			return;
 
+		if (!m_spaceshipHullStore.IsEntryLoaded(data.hullId))
+			return;
+
 		std::bitset<static_cast<std::size_t>(ModuleType::Max) + 1> receivedModules;
 
 		std::size_t maxModuleId = m_moduleStore.GetEntryCount() + 1;
@@ -130,10 +133,8 @@ namespace ewn
 		if (!receivedModules.all())
 			return;
 
-		static constexpr Nz::Int32 spaceshipHullId = 1;
-
 		DatabaseTransaction trans;
-		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.spaceshipCode, spaceshipHullId }, [data](DatabaseTransaction& transaction, DatabaseResult result)
+		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.spaceshipCode, Nz::Int32(data.hullId) }, [data](DatabaseTransaction& transaction, DatabaseResult result)
 		{
 			if (!result)
 				return result;
@@ -656,6 +657,7 @@ namespace ewn
 
 				auto& hullInfo = hullList.hulls.emplace_back();
 				hullInfo.description = m_spaceshipHullStore.GetEntryDescription(i);
+				hullInfo.hullId = i;
 				hullInfo.hullModelPathId = m_stringStore.GetStringIndex(m_visualMeshStore.GetEntryFilePath(i));
 				hullInfo.name = m_spaceshipHullStore.GetEntryName(i);
 
@@ -740,7 +742,7 @@ namespace ewn
 
 			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
 
-			std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(2)));
+			Nz::UInt32 spaceshipHullId = static_cast<Nz::UInt32>(std::get<Nz::Int32>(result.GetValue(2)));
 			std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
 
 			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [=](DatabaseResult& result)
@@ -752,6 +754,7 @@ namespace ewn
 
 				if (result.IsValid())
 				{
+					spaceshipInfo.hullId = spaceshipHullId;
 					spaceshipInfo.hullModelPath = m_visualMeshStore.GetEntryFilePath(visualMeshId);
 
 					if (!result)

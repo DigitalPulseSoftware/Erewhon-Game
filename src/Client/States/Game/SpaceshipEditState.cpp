@@ -11,10 +11,6 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Shared/Protocol/Packets.hpp>
-#include <Client/States/BackgroundState.hpp>
-#include <Client/States/ConnectionLostState.hpp>
-#include <Client/States/Game/MainMenuState.hpp>
-#include <Client/States/Game/TimeSyncState.hpp>
 #include <cassert>
 
 namespace ewn
@@ -108,15 +104,17 @@ namespace ewn
 
 		QueryModuleList();
 
-		if (m_tempSpaceshipName.empty())
+		if (!IsInEditMode())
 		{
+			UpdateSpaceshipModel(m_spaceshipModelPath);
+
 			// Create mode
 			SetupForCreate();
 		}
 		else
 		{
 			// Update mode
-			SetupForUpdate(std::move(m_tempSpaceshipName));
+			SetupForUpdate();
 			QuerySpaceshipInfo();
 		}
 	}
@@ -227,7 +225,7 @@ namespace ewn
 		LayoutWidgets();
 	}
 
-	void SpaceshipEditState::SetupForUpdate(std::string spaceshipName)
+	void SpaceshipEditState::SetupForUpdate()
 	{
 		StateData& stateData = GetStateData();
 
@@ -245,11 +243,31 @@ namespace ewn
 		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship", 24));
 		m_deleteButton->ResizeToContent();
 
-		m_spaceshipName = std::move(spaceshipName);
-
 		m_nameTextArea->SetText(m_spaceshipName);
 
 		LayoutWidgets();
+	}
+
+	void SpaceshipEditState::UpdateSpaceshipModel(const std::string& hullModelPath)
+	{
+		StateData& stateData = GetStateData();
+
+		const std::string& assetsFolder = stateData.app->GetConfig().GetStringOption("AssetsFolder");
+
+		Nz::ModelRef spaceshipModel = Nz::ModelManager::Get(assetsFolder + '/' + hullModelPath);
+		if (!spaceshipModel)
+		{
+			UpdateStatus("Failed to load model", Nz::Color::Red);
+			return;
+		}
+
+		float boundingRadius = spaceshipModel->GetBoundingVolume().obb.localBox.GetRadius();
+		Nz::Matrix4f transformMatrix = Nz::Matrix4f::Scale(Nz::Vector3f::Unit() / boundingRadius);
+
+		auto& entityGfx = m_spaceship->GetComponent<Ndk::GraphicsComponent>();
+
+		entityGfx.Clear();
+		entityGfx.Attach(spaceshipModel, transformMatrix);
 	}
 
 	void SpaceshipEditState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
@@ -271,6 +289,7 @@ namespace ewn
 	void SpaceshipEditState::OnCreatePressed()
 	{
 		assert(!IsInEditMode());
+		assert(m_spaceshipHullId != 0xFFFFFFFF);
 
 		Nz::String spaceshipName = m_nameTextArea->GetText();
 		if (spaceshipName.IsEmpty())
@@ -286,6 +305,7 @@ namespace ewn
 		}
 
 		Packets::CreateSpaceship createSpaceship;
+		createSpaceship.hullId = m_spaceshipHullId;
 		createSpaceship.spaceshipName = spaceshipName.ToStdString();
 		createSpaceship.spaceshipCode = m_spaceshipCode.ToStdString();
 		m_spaceshipCode.Clear(true);
@@ -433,7 +453,10 @@ namespace ewn
 	{
 		UpdateStatus("Spaceship successfully created", Nz::Color::Green);
 
-		SetupForUpdate(m_nameTextArea->GetText().ToStdString());
+		m_spaceshipName = m_nameTextArea->GetText().ToStdString();
+		m_isInEditMode = true;
+
+		SetupForUpdate();
 	}
 
 	void SpaceshipEditState::OnDeleteSpaceshipFailure(ServerConnection* server, const Packets::DeleteSpaceshipFailure& deletePacket)
@@ -461,6 +484,7 @@ namespace ewn
 	{
 		UpdateStatus("Spaceship successfully deleted", Nz::Color::Green);
 
+		m_isInEditMode = false;
 		SetupForCreate();
 	}
 
@@ -495,15 +519,17 @@ namespace ewn
 		LayoutWidgets();
 	}
 
-	void SpaceshipEditState::OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& listPacket)
+	void SpaceshipEditState::OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& infoPacket)
 	{
-		if (listPacket.hullModelPath.empty())
+		if (infoPacket.hullModelPath.empty())
 		{
 			UpdateStatus("Failed to load spaceship", Nz::Color::Red);
 			return;
 		}
 
-		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
+		m_spaceshipHullId = infoPacket.hullId;
+
+		UpdateSpaceshipModel(infoPacket.hullModelPath);
 
 		m_statusLabel->Show(false);
 		//m_titleLabel->Show(true);
@@ -511,24 +537,8 @@ namespace ewn
 		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship " + m_spaceshipName + ":", 24));
 		m_titleLabel->ResizeToContent();
 
-		auto& entityGfx = m_spaceship->GetComponent<Ndk::GraphicsComponent>();
-
-		entityGfx.Clear();
-
-		m_spaceshipModel = Nz::ModelManager::Get(assetsFolder + '/' + listPacket.hullModelPath);
-		if (!m_spaceshipModel)
-		{
-			UpdateStatus("Failed to load model", Nz::Color::Red);
-			return;
-		}
-
-		float boundingRadius = m_spaceshipModel->GetBoundingVolume().obb.localBox.GetRadius();
-		Nz::Matrix4f transformMatrix = Nz::Matrix4f::Scale(Nz::Vector3f::Unit() / boundingRadius);
-
-		entityGfx.Attach(m_spaceshipModel, transformMatrix);
-
 		// Module buttons
-		for (const auto& moduleData : listPacket.modules)
+		for (const auto& moduleData : infoPacket.modules)
 		{
 			auto buttonIt = std::find_if(m_moduleButtons.begin(), m_moduleButtons.end(), [type = moduleData.type](const ModuleInfo& moduleInfo)
 			{
