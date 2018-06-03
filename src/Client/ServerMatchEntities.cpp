@@ -448,7 +448,7 @@ namespace ewn
 
 				if (particleGroupName == "explosion_flare")
 				{
-					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(1'000, Nz::ParticleLayout_Billboard);
+					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(10'000, Nz::ParticleLayout_Billboard);
 
 					entityGroup.AddController(std::make_unique<AlphaController>(1000.f).release());
 					entityGroup.AddController(std::make_unique<LifeController>().release());
@@ -513,13 +513,16 @@ namespace ewn
 
 						auto& entityGroup = group->GetComponent<Ndk::ParticleGroupComponent>();
 						Nz::ParticleStruct_Billboard* particles = static_cast<Nz::ParticleStruct_Billboard*>(entityGroup.GenerateParticles(particleCount));
+						if (!particles)
+							return;
+
 						for (unsigned int i = 0; i < particleCount; ++i)
 							particles[i].position = position;*/
 					};
 				}
 				else if (particleGroupName == "explosion_fire")
 				{
-					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(1'000, Nz::ParticleLayout_Billboard);
+					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(10'000, Nz::ParticleLayout_Billboard);
 
 					//entityGroup.AddController(std::make_unique<AlphaController>(150.f).release());
 					entityGroup.AddController(std::make_unique<LifeController>().release());
@@ -583,13 +586,16 @@ namespace ewn
 
 						auto& entityGroup = group->GetComponent<Ndk::ParticleGroupComponent>();
 						Nz::ParticleStruct_Billboard* particles = static_cast<Nz::ParticleStruct_Billboard*>(entityGroup.GenerateParticles(particleCount));
+						if (!particles)
+							return;
+
 						for (unsigned int i = 0; i < particleCount; ++i)
 							particles[i].position = position + Nz::Vector3f(posDis(m_randomGenerator), posDis(m_randomGenerator), posDis(m_randomGenerator));
 					};
 				}
 				else if (particleGroupName == "explosion_smoke")
 				{
-					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(1'000, Nz::ParticleLayout_Billboard);
+					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(10'000, Nz::ParticleLayout_Billboard);
 
 					//entityGroup.AddController(std::make_unique<AlphaController>(50.f).release());
 					entityGroup.AddController(std::make_unique<LifeController>().release());
@@ -660,6 +666,9 @@ namespace ewn
 
 						auto& entityGroup = group->GetComponent<Ndk::ParticleGroupComponent>();
 						Nz::ParticleStruct_Billboard* particles = static_cast<Nz::ParticleStruct_Billboard*>(entityGroup.GenerateParticles(particleCount));
+						if (!particles)
+							return;
+
 						for (unsigned int i = 0; i < particleCount; ++i)
 							particles[i].position = position + Nz::Vector3f(posDis(m_randomGenerator), posDis(m_randomGenerator), posDis(m_randomGenerator));
 					};
