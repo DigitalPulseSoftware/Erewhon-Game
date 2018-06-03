@@ -20,15 +20,21 @@ namespace ewn
 
 	inline void HealthComponent::Damage(Nz::UInt16 damage, const Ndk::EntityHandle& attacker)
 	{
-		OnHealthChange(this);
-
-		if (damage >= m_currentHealth)
-		{
-			m_currentHealth = 0;
-			OnDeath(this, attacker);
-		}
+		Nz::UInt16 newHealth = m_currentHealth;
+		if (damage >= newHealth)
+			newHealth = 0;
 		else
-			m_currentHealth -= damage;
+			newHealth -= damage;
+
+		if (m_currentHealth != newHealth)
+		{
+			m_currentHealth = newHealth;
+
+			OnHealthChange(this);
+
+			if (m_currentHealth == 0)
+				OnDeath(this, attacker);
+		}
 	}
 
 	inline Nz::UInt16 HealthComponent::GetHealth() const
@@ -51,10 +57,12 @@ namespace ewn
 		Nz::UInt16 newHealth = m_currentHealth + heal;
 		if (newHealth < m_currentHealth)
 			// Overflow, just set to max value
-			m_currentHealth = m_maxHealth;
-		else
-			m_currentHealth = newHealth;
+			newHealth = m_maxHealth;
 
-		OnHealthChange(this);
+		if (m_currentHealth != newHealth)
+		{
+			m_currentHealth = newHealth;
+			OnHealthChange(this);
+		}
 	}
 }
