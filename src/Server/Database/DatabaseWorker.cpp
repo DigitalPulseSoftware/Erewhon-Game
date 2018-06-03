@@ -65,7 +65,13 @@ namespace ewn
 		{
 			if (!connection.IsConnected())
 			{
-				std::cerr << ((wasConnected) ? "Lost connection to database" : "Failed to connect to database") << ", trying again in 10 seconds..." << std::endl;
+				if (wasConnected)
+					std::cerr << "Lost connection to database";
+				else
+					std::cerr << "Failed to connect to database: " + connection.GetLastErrorMessage();
+
+				std::cerr << "\ntrying again in 10 seconds..." << std::endl;
+
 				wasConnected = false;
 
 				Nz::Thread::Sleep(10'000);
