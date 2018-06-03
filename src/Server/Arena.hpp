@@ -8,6 +8,7 @@
 #define EREWHON_SERVER_ARENA_HPP
 
 #include <Nazara/Core/Clock.hpp>
+#include <Nazara/Lua/LuaInstance.hpp>
 #include <NDK/EntityList.hpp>
 #include <NDK/EntityOwner.hpp>
 #include <NDK/World.hpp>
@@ -33,7 +34,7 @@ namespace ewn
 		friend Player;
 
 		public:
-			Arena(ServerApplication* app, std::string name);
+			Arena(ServerApplication* app, std::string name, std::string scriptName);
 			Arena(const Arena&) = delete;
 			Arena(Arena&&) = delete;
 			~Arena();
@@ -41,8 +42,10 @@ namespace ewn
 			template<typename T>
 			void BroadcastPacket(const T& packet, Player* exceptPlayer = nullptr);
 
+			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
 			const Ndk::EntityHandle& CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			const Ndk::EntityHandle& CreateSpaceship(std::string name, Player* owner, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			const Ndk::EntityHandle& CreateTorpedo(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 
 			void DispatchChatMessage(const Nz::String& message);
@@ -65,8 +68,8 @@ namespace ewn
 			Arena& operator=(Arena&&) = delete;
 
 		private:
-			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
-			const Ndk::EntityHandle& CreateSpaceship(std::string name, Player* owner, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			void LoadScript(std::string fileName);
+
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
 
@@ -79,19 +82,12 @@ namespace ewn
 
 			void SendArenaData(Player* player);
 
-			struct PlayerData
-			{
-				Nz::UInt64 deathTime = 0;
-			};
-
+			Nz::LuaInstance m_script;
 			Nz::UdpSocket m_debugSocket;
-			Ndk::EntityOwner m_earth;
-			Ndk::EntityOwner m_light;
-			Ndk::EntityOwner m_spaceball;
 			Ndk::EntityList m_scriptControlledEntities;
 			Ndk::World m_world;
 			std::string m_name;
-			std::unordered_map<Player*, PlayerData> m_players;
+			std::unordered_set<Player*> m_players;
 			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;
 			float m_stateBroadcastAccumulator;

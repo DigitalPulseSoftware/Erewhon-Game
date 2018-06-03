@@ -20,19 +20,19 @@ namespace ewn
 			inline NetworkStringStore();
 			~NetworkStringStore() = default;
 
-			Packets::NetworkStrings BuildPacket(std::size_t firstId) const;
+			Packets::NetworkStrings BuildPacket(Nz::UInt32 firstId) const;
 
 			inline void Clear();
 
-			void FillStore(std::size_t firstId, std::vector<std::string> strings);
+			void FillStore(Nz::UInt32 firstId, std::vector<std::string> strings);
 
-			inline const std::string& GetString(std::size_t id) const;
-			inline std::size_t GetStringIndex(const std::string& string) const;
+			inline const std::string& GetString(Nz::UInt32 id) const;
+			inline Nz::UInt32 GetStringIndex(const std::string& string) const;
 
-			inline std::size_t RegisterString(std::string string);
+			inline Nz::UInt32 RegisterString(std::string string);
 
 		private:
-			tsl::hopscotch_map<std::string, std::size_t> m_stringMap;
+			tsl::hopscotch_map<std::string, Nz::UInt32> m_stringMap;
 			std::vector<std::string> m_strings;
 	};
 }

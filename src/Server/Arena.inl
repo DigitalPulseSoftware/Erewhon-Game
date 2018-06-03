@@ -10,10 +10,10 @@ namespace ewn
 	template<typename T>
 	void Arena::BroadcastPacket(const T& packet, Player* exceptPlayer)
 	{
-		for (const auto& pair : m_players)
+		for (Player* player : m_players)
 		{
-			if (pair.first != exceptPlayer)
-				pair.first->SendPacket(packet);
+			if (player != exceptPlayer)
+				player->SendPacket(packet);
 		}
 	}
 

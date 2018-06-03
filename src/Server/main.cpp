@@ -15,6 +15,7 @@
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SignatureComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
+#include <Server/Scripting/ArenaInterface.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/NavigationSystem.hpp>
@@ -28,6 +29,8 @@
 int main()
 {
 	Nz::Initializer<Nz::Network, Ndk::Sdk> nazara; //< Init SDK before application because of custom components/systems
+
+	Nz::Initializer<ewn::ArenaInterface> binding;
 
 	// Initialize custom components
 	Ndk::InitializeComponent<ewn::ArenaComponent>("Arena");
@@ -70,19 +73,19 @@ int main()
 
 	std::cout << "Server ready." << std::endl;
 
-	Nz::UInt64 lastUpdate = Nz::GetElapsedMilliseconds();
-	unsigned int updateCount = 0;
+	//Nz::UInt64 lastUpdate = Nz::GetElapsedMilliseconds();
+	//unsigned int updateCount = 0;
 	while (app.Run())
 	{
-		Nz::UInt64 now = Nz::GetElapsedMilliseconds();
+		/*Nz::UInt64 now = Nz::GetElapsedMilliseconds();
 		if (now - lastUpdate >= 1000)
 		{
 			std::cout << "Update per seconds: " << updateCount << std::endl;
 			updateCount = 0;
 			lastUpdate = now;
 		}
-		updateCount++;
-		//Nz::Thread::Sleep(1);
+		updateCount++;*/
+		Nz::Thread::Sleep(1);
 	}
 
 	std::cout << "Goodbye" << std::endl;

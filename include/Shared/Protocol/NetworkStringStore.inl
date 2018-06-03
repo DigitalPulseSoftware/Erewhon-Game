@@ -18,13 +18,13 @@ namespace ewn
 		m_strings.clear();
 	}
 
-	inline const std::string& NetworkStringStore::GetString(std::size_t id) const
+	inline const std::string& NetworkStringStore::GetString(Nz::UInt32 id) const
 	{
 		assert(id < m_strings.size());
 		return m_strings[id];
 	}
 
-	inline std::size_t NetworkStringStore::GetStringIndex(const std::string& string) const
+	inline Nz::UInt32 NetworkStringStore::GetStringIndex(const std::string& string) const
 	{
 		auto it = m_stringMap.find(string);
 		assert(it != m_stringMap.end());
@@ -32,7 +32,7 @@ namespace ewn
 		return it->second;
 	}
 
-	inline std::size_t NetworkStringStore::RegisterString(std::string string)
+	inline Nz::UInt32 NetworkStringStore::RegisterString(std::string string)
 	{
 		// Try to find string first, it may have been registered already
 		auto it = m_stringMap.find(string);
@@ -40,7 +40,7 @@ namespace ewn
 			return it->second;
 
 		// String does not exist; insert it
-		std::size_t stringId = m_strings.size();
+		Nz::UInt32 stringId = static_cast<Nz::UInt32>(m_strings.size());
 		m_stringMap.emplace(string, stringId);
 		m_strings.emplace_back(std::move(string));
 

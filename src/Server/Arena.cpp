@@ -8,6 +8,7 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <NDK/Systems/PhysicsSystem3D.hpp>
+#include <NDK/LuaAPI.hpp>
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/ArenaComponent.hpp>
@@ -21,18 +22,20 @@
 #include <Server/Components/SignatureComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
+#include <Server/Scripting/ArenaInterface.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/NavigationSystem.hpp>
 #include <Server/Systems/ScriptSystem.hpp>
 #include <Server/Systems/InputSystem.hpp>
 #include <cassert>
+#include <stdexcept>
 
 namespace ewn
 {
 	static constexpr bool sendServerGhosts = false;
 
-	Arena::Arena(ServerApplication* app, std::string name) :
+	Arena::Arena(ServerApplication* app, std::string name, std::string scriptName) :
 	m_name(std::move(name)),
 	m_app(app),
 	m_stateBroadcastAccumulator(0.f)
@@ -65,6 +68,7 @@ namespace ewn
 			return HandleTorpedoProjectileCollision(firstBody, secondBody);
 		});
 
+		LoadScript(scriptName);
 
 		Reset();
 
@@ -117,16 +121,14 @@ namespace ewn
 		Packets::ChatMessage chatPacket;
 		chatPacket.message = message.ToStdString();
 
-		for (auto& pair : m_players)
-			pair.first->SendPacket(chatPacket);
+		for (Player* player : m_players)
+			player->SendPacket(chatPacket);
 	}
 
 	Player* Arena::FindPlayerByName(const std::string& name) const
 	{
-		for (auto&& [player, data] : m_players)
+		for (Player* player : m_players)
 		{
-			NazaraUnused(data);
-
 			if (player->GetName() == name)
 				return player;
 		}
@@ -136,21 +138,18 @@ namespace ewn
 
 	void Arena::Reset()
 	{
-		// Earth entity
-		m_earth = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 60.f, Nz::Quaternionf::Identity());
-
-		// Light entity
-		m_light = CreateEntity("light", "", nullptr, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
-
-		// Space ball entity
-		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
-
-		for (auto& [player, playerData] : m_players)
-		{
-			NazaraUnused(playerData);
-
+		for (Player* player : m_players)
 			player->ClearBots();
+
+		m_world.Clear();
+
+		if (m_script.GetGlobal("OnReset") == Nz::LuaType_Function)
+		{
+			if (!m_script.Call(0))
+				std::cerr << "An error occurred during OnReset call: " << m_script.GetLastError() << std::endl;
 		}
+		else
+			m_script.Pop();
 	}
 
 	void Arena::SpawnFleet(Player* owner, const std::string& fleetName)
@@ -328,37 +327,15 @@ namespace ewn
 	{
 		m_world.Update(elapsedTime);
 
-		// Attraction
-		/*if (m_attractionPoint)
+		if (m_script.GetGlobal("OnUpdate") == Nz::LuaType_Function)
 		{
-			constexpr float G = 6.6740831f / 10'000.f;
+			m_script.Push(elapsedTime);
 
-			Nz::Vector3f attractorPos = m_attractionPoint->GetComponent<Ndk::NodeComponent>().GetPosition();
-			float attractorMass = 5'000.f;
-
-			for (const Ndk::EntityHandle& entity : m_world.GetEntities())
-			{
-				if (entity->HasComponent<Ndk::PhysicsComponent3D>())
-				{
-					Nz::Vector3f entityPos = entity->GetComponent<Ndk::NodeComponent>().GetPosition();
-					auto& phys = entity->GetComponent<Ndk::PhysicsComponent3D>();
-
-					Nz::Vector3f dir = attractorPos - entityPos;
-					float d2 = attractorPos.SquaredDistance(entityPos);
-
-					phys.AddForce(dir * G * attractorMass * phys.GetMass() / d2);
-				}
-			}
-		}*/
-
-		static Nz::UInt64 respawnTime = 5'000;
-
-		Nz::UInt64 now = ServerApplication::GetAppTime();
-		for (auto& [player, playerData] : m_players)
-		{
-			if (!player->GetControlledEntity() && now - playerData.deathTime > respawnTime)
-				player->UpdateControlledEntity(CreatePlayerSpaceship(player));
+			if (!m_script.Call(1, 0))
+				std::cerr << "An error occurred during OnUpdate call: " << m_script.GetLastError() << std::endl;
 		}
+		else
+			m_script.Pop();
 
 		m_stateBroadcastAccumulator += elapsedTime;
 	}
@@ -489,10 +466,15 @@ namespace ewn
 				if (!shipOwnerPlayer)
 					return;
 
-				auto it = m_players.find(shipOwnerPlayer);
-				assert(it != m_players.end());
+				if (m_script.GetGlobal("OnPlayerDeath") == Nz::LuaType_Function)
+				{
+					m_script.Push(shipOwnerPlayer);
 
-				it->second.deathTime = ServerApplication::GetAppTime();
+					if (!m_script.Call(1))
+						std::cerr << "An error occurred during OnPlayerDeath call: " << m_script.GetLastError() << std::endl;
+				}
+				else
+					m_script.Pop();
 
 				if (attacker->HasComponent<OwnerComponent>())
 				{
@@ -562,14 +544,37 @@ namespace ewn
 		return newEntity;
 	}
 
+	void Arena::LoadScript(std::string fileName)
+	{
+		m_script = Nz::LuaInstance();
+		m_script.LoadLibraries();
+
+		Ndk::LuaAPI::RegisterClasses(m_script);
+		ArenaInterface::Register(m_script);
+
+		m_script.Push(this);
+		m_script.SetGlobal("Arena");
+
+		if (!m_script.ExecuteFromFile(fileName))
+			throw std::runtime_error("Failed to execute arena script: " + m_script.GetLastError().ToStdString());
+	}
+
 	void Arena::HandlePlayerLeave(Player* player)
 	{
 		assert(m_players.find(player) != m_players.end());
 
+		if (m_script.GetGlobal("OnPlayerLeave") == Nz::LuaType_Function)
+		{
+			m_script.Push(player);
+
+			if (!m_script.Call(1))
+				std::cerr << "An error occurred during OnPlayerLeave call: " << m_script.GetLastError() << std::endl;
+		}
+		else
+			m_script.Pop();
+
 		player->ClearControlledEntity();
 		m_players.erase(player);
-
-		DispatchChatMessage(player->GetName() + " has left");
 	}
 
 	void Arena::HandlePlayerJoin(Player* player)
@@ -584,14 +589,21 @@ namespace ewn
 		for (const auto& packet : m_createEntityCache)
 			player->SendPacket(packet);
 
-		DispatchChatMessage(player->GetName() + " has joined");
+		m_players.insert(player);
 
-		m_players.emplace(player, PlayerData{});
+		if (m_script.GetGlobal("OnPlayerJoined") == Nz::LuaType_Function)
+		{
+			m_script.Push(player);
+
+			if (!m_script.Call(1))
+				std::cerr << "An error occurred during OnPlayerJoined call: " << m_script.GetLastError() << std::endl;
+		}
+		else
+			m_script.Pop();
 	}
 
 	void Arena::SendArenaData(Player* player)
 	{
-
 		Packets::ArenaParticleSystems arenaParticleSystems;
 		arenaParticleSystems.startId = 0;
 
@@ -858,14 +870,14 @@ namespace ewn
 
 	void Arena::OnBroadcastEntityCreation(const BroadcastSystem* /*system*/, const Packets::CreateEntity& packet)
 	{
-		for (auto& pair : m_players)
-			pair.first->SendPacket(packet);
+		for (Player* player : m_players)
+			player->SendPacket(packet);
 	}
 
 	void Arena::OnBroadcastEntityDestruction(const BroadcastSystem* /*system*/, const Packets::DeleteEntity& packet)
 	{
-		for (auto& pair : m_players)
-			pair.first->SendPacket(packet);
+		for (Player* player : m_players)
+			player->SendPacket(packet);
 	}
 
 	void Arena::OnBroadcastStateUpdate(const BroadcastSystem* /*system*/, Packets::ArenaState& statePacket)
@@ -878,11 +890,11 @@ namespace ewn
 			static Nz::UInt16 snapshotId = 0;
 			statePacket.stateId = snapshotId++;
 
-			for (auto& pair : m_players)
+			for (Player* player : m_players)
 			{
-				statePacket.lastProcessedInputTime = pair.first->GetLastInputProcessedTime();
+				statePacket.lastProcessedInputTime = player->GetLastInputProcessedTime();
 
-				pair.first->SendPacket(statePacket);
+				player->SendPacket(statePacket);
 			}
 		}
 

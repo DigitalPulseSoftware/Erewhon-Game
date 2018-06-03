@@ -26,8 +26,8 @@ namespace ewn
 		RegisterConfigOptions();
 		RegisterNetworkedStrings();
 
-		m_arenas.emplace_back(std::make_unique<Arena>(this, "Le Royaume de Belgique"));
-		m_arenas.emplace_back(std::make_unique<Arena>(this, "La Cinquième République"));
+		m_arenas.emplace_back(std::make_unique<Arena>(this, "Le Royaume de Belgique", "arena.lua"));
+		m_arenas.emplace_back(std::make_unique<Arena>(this, "La Cinquième République", "arena.lua"));
 	}
 
 	ServerApplication::~ServerApplication()
@@ -657,7 +657,7 @@ namespace ewn
 
 				auto& hullInfo = hullList.hulls.emplace_back();
 				hullInfo.description = m_spaceshipHullStore.GetEntryDescription(i);
-				hullInfo.hullId = i;
+				hullInfo.hullId = static_cast<Nz::UInt32>(i);
 				hullInfo.hullModelPathId = m_stringStore.GetStringIndex(m_visualMeshStore.GetEntryFilePath(i));
 				hullInfo.name = m_spaceshipHullStore.GetEntryName(i);
 
@@ -703,7 +703,7 @@ namespace ewn
 
 				auto& moduleTypeInfo = *it;
 				auto& moduleInfo = moduleTypeInfo.availableModules.emplace_back();
-				moduleInfo.moduleId = i;
+				moduleInfo.moduleId = static_cast<Nz::UInt32>(i);
 				moduleInfo.moduleName = m_moduleStore.GetEntryName(i);
 			}
 		}
@@ -771,7 +771,7 @@ namespace ewn
 						spaceshipInfo.modules.reserve(moduleCount);
 						for (std::size_t i = 0; i < moduleCount; ++i)
 						{
-							std::size_t moduleId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+							Nz::UInt32 moduleId = static_cast<Nz::UInt32>(std::get<Nz::Int32>(result.GetValue(0, i)));
 
 							auto& moduleInfo = spaceshipInfo.modules.emplace_back();
 							moduleInfo.type = m_moduleStore.GetEntryType(moduleId);
