@@ -73,6 +73,7 @@ namespace ewn
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
 
+			bool HandleDefaultDefaultCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 			bool HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 			bool HandleTorpedoProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 

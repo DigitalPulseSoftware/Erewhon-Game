@@ -58,6 +58,11 @@ namespace ewn
 		m_plasmaMaterial = world.CreateMaterial("plasma");
 		m_torpedoMaterial = world.CreateMaterial("torpedo");
 
+		world.SetMaterialCollisionCallback(defaultMaterial, defaultMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return HandleDefaultDefaultCollision(firstBody, secondBody);
+		});
+
 		world.SetMaterialCollisionCallback(defaultMaterial, m_plasmaMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 		{
 			return HandlePlasmaProjectileCollision(firstBody, secondBody);
@@ -753,6 +758,36 @@ namespace ewn
 			owner->PrintMessage("Server: Script loaded with success");
 		else
 			owner->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
+	}
+
+	bool Arena::HandleDefaultDefaultCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+	{
+		Ndk::EntityId firstEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(firstBody.GetUserdata()));
+		Ndk::EntityId secondEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(secondBody.GetUserdata()));
+
+		const Ndk::EntityHandle& firstEntity = m_world.GetEntity(firstEntityId);
+		const Ndk::EntityHandle& secondEntity = m_world.GetEntity(secondEntityId);
+
+		Nz::Vector3f firstVel = firstBody.GetLinearVelocity();
+		Nz::Vector3f secondVel = secondBody.GetLinearVelocity();
+
+		float relativeForce = (firstVel - secondVel).GetLength();
+
+		Nz::UInt16 damage = static_cast<Nz::UInt16>(relativeForce);
+
+		if (firstEntity->HasComponent<HealthComponent>())
+		{
+			auto& health = firstEntity->GetComponent<HealthComponent>();
+			health.Damage(damage, secondEntity);
+		}
+
+		if (secondEntity->HasComponent<HealthComponent>())
+		{
+			auto& health = secondEntity->GetComponent<HealthComponent>();
+			health.Damage(damage, firstEntity);
+		}
+
+		return true;
 	}
 
 	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
