@@ -7,6 +7,7 @@
 #ifndef EREWHON_CLIENT_STATES_ARENASTATE_HPP
 #define EREWHON_CLIENT_STATES_ARENASTATE_HPP
 
+#include <Client/SpaceshipOverviewController.hpp>
 #include <Client/MatchChatbox.hpp>
 #include <Client/ServerMatchEntities.hpp>
 #include <Client/SpaceshipController.hpp>
@@ -44,6 +45,7 @@ namespace ewn
 			std::optional<MatchChatbox> m_chatbox;
 			std::optional<ServerMatchEntities> m_matchEntities;
 			std::optional<SpaceshipController> m_spaceshipController;
+			std::optional<SpaceshipOverviewController> m_spaceshipOverviewController;
 			std::size_t m_controlledEntity;
 			Nz::UInt8 m_arenaIndex;
 	};

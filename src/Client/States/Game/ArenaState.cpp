@@ -48,6 +48,7 @@ namespace ewn
 			stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
 
 		m_controlledEntity = std::numeric_limits<decltype(m_controlledEntity)>::max();
+		ControlEntity(m_controlledEntity);
 
 		ConnectSignal(stateData.server->OnControlEntity, this, &ArenaState::OnControlEntity);
 		ConnectSignal(stateData.window->GetEventHandler().OnKeyPressed, this, &ArenaState::OnKeyPressed);
@@ -71,6 +72,7 @@ namespace ewn
 		if (stateData.server)
 			stateData.server->SendPacket(Packets::LeaveArena{});
 
+		m_spaceshipOverviewController.reset();
 		m_spaceshipController.reset();
 		m_matchEntities.reset();
 	}
@@ -80,6 +82,9 @@ namespace ewn
 		StateData& stateData = GetStateData();
 
 		m_matchEntities->Update(elapsedTime);
+		if (m_spaceshipOverviewController)
+			m_spaceshipOverviewController->Update(elapsedTime);
+
 		if (m_spaceshipController)
 			m_spaceshipController->Update(elapsedTime);
 
@@ -120,8 +125,6 @@ namespace ewn
 				if (oldData.textEntity)
 					oldData.textEntity->Enable();
 			}
-
-			m_spaceshipController.reset();
 		}
 
 		if (entityId != std::numeric_limits<std::size_t>::max() && m_matchEntities->IsServerEntityValid(entityId))
@@ -132,7 +135,13 @@ namespace ewn
 			if (data.textEntity)
 				data.textEntity->Disable();
 
+			m_spaceshipOverviewController.reset();
 			m_spaceshipController.emplace(stateData.app, stateData.server, *stateData.window, *stateData.world2D, *m_chatbox, *m_matchEntities, stateData.camera3D, data.entity);
+		}
+		else
+		{
+			m_spaceshipController.reset();
+			m_spaceshipOverviewController.emplace(*stateData.window, stateData.camera3D, *m_chatbox, *m_matchEntities, stateData.world3D);
 		}
 
 		m_controlledEntity = entityId;

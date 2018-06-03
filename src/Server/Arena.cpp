@@ -211,7 +211,7 @@ namespace ewn
 					Ndk::NodeComponent& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
 
 					spawnRot = spaceshipNode.GetRotation();
-					spawnPos = spaceshipNode.GetPosition() + spawnRot * Nz::Vector3f::Down() * 10.f;
+					spawnPos = spaceshipNode.GetPosition() + spawnRot * Nz::Vector3f::Down() * 15.f;
 				}
 				else
 				{
@@ -230,7 +230,7 @@ namespace ewn
 					std::size_t collisionMeshId = m_app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipHullId);
 					const Nz::Boxf& dimensions = m_app->GetCollisionMeshStore().GetEntryDimensions(collisionMeshId);
 
-					m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, spawnPos, spawnRot, offset = dimensions.width, sessionId, spaceshipCount, spaceshipName = std::move(name), spaceshipScript = std::move(script), spaceshipHullId](ewn::DatabaseResult& result)
+					m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, spawnPos, spawnRot, offset = dimensions.width * 1.5f, sessionId, spaceshipCount, spaceshipName = std::move(name), spaceshipScript = std::move(script), spaceshipHullId](ewn::DatabaseResult& result)
 					{
 						Player* ply = m_app->GetPlayerBySession(sessionId);
 						if (!ply)
@@ -267,7 +267,7 @@ namespace ewn
 						}
 					});
 
-					spawnPos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth;
+					spawnPos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth * 1.5f;
 				}
 			});
 		});
