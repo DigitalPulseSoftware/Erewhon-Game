@@ -31,6 +31,8 @@ namespace ewn
 
 			void Authenticate(Nz::Int32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
 
+			bool CanShoot() const;
+
 			inline void ClearBots();
 			void ClearControlledEntity();
 
@@ -60,12 +62,22 @@ namespace ewn
 
 			void Shoot();
 
+			void Update(float elapsedTime);
+
 			void UpdateControlledEntity(const Ndk::EntityHandle& entity);
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
 			void UpdatePermissionLevel(Nz::UInt16 permissionLevel, std::function<void(bool updateSucceeded)> databaseCallback = nullptr);
 
 		private:
 			void OnAuthenticated(std::string login, std::string displayName, Nz::UInt16 permissionLevel);
+
+			struct NoAction
+			{
+			};
+
+			struct ShootAction
+			{
+			};
 
 			Arena* m_arena;
 			ServerApplication* m_app;
@@ -75,6 +87,7 @@ namespace ewn
 			std::size_t m_sessionId;
 			std::string m_displayName;
 			std::string m_login;
+			std::variant<NoAction, ShootAction> m_pendingAction;
 			std::vector<Ndk::EntityOwner> m_botEntities;
 			Ndk::EntityHandle m_controlledEntity;
 			Nz::Int32 m_databaseId;

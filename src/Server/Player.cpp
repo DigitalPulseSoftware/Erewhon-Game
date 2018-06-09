@@ -76,6 +76,11 @@ namespace ewn
 		});
 	}
 
+	bool Player::CanShoot() const
+	{
+		return ServerApplication::GetAppTime() - m_lastShootTime >= 500;
+	}
+
 	void Player::ClearControlledEntity()
 	{
 		if (m_controlledEntity)
@@ -180,11 +185,17 @@ namespace ewn
 
 	void Player::Shoot()
 	{
-		if (ServerApplication::GetAppTime() - m_lastShootTime < 500)
-			return;
-
 		if (!m_controlledEntity)
 			return;
+
+		if (!CanShoot())
+		{
+			if (!std::holds_alternative<NoAction>(m_pendingAction))
+				return;
+
+			m_pendingAction.emplace<ShootAction>();
+			return;
+		}
 
 		m_lastShootTime = ServerApplication::GetAppTime();
 
@@ -197,6 +208,39 @@ namespace ewn
 		playSound.soundId = 0;
 
 		m_arena->BroadcastPacket(playSound, this);
+	}
+
+	void Player::Update(float elapsedTime)
+	{
+		if (!std::holds_alternative<NoAction>(m_pendingAction))
+		{
+			bool hasFinished = std::visit([&](auto&& arg)
+			{
+				using T = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<T, ShootAction>)
+				{
+					if (CanShoot())
+					{
+						Shoot();
+						return true;
+					}
+					else
+						return false;
+				}
+				else if constexpr (std::is_same_v<T, NoAction>)
+				{
+					// Shouldn't happen
+					assert(false);
+					return false;
+				}
+				else
+					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
+
+			}, m_pendingAction);
+
+			if (hasFinished)
+				m_pendingAction.emplace<NoAction>();
+		}
 	}
 
 	void Player::UpdateControlledEntity(const Ndk::EntityHandle& entity)

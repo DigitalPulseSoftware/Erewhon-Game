@@ -323,6 +323,8 @@ namespace ewn
 	void Arena::Update(float elapsedTime)
 	{
 		m_world.Update(elapsedTime);
+		for (Player* player : m_players)
+			player->Update(elapsedTime);
 
 		if (m_script.GetGlobal("OnUpdate") == Nz::LuaType_Function)
 		{
