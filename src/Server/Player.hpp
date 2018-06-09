@@ -34,6 +34,8 @@ namespace ewn
 			inline void ClearBots();
 			void ClearControlledEntity();
 
+			void CreateSpaceship(std::string name, std::string code, std::size_t hullId, std::vector<std::size_t> modules, std::function<void(Player*, bool succeded)> creationCallback);
+
 			inline void Disconnect(Nz::UInt32 data = 0);
 
 			inline Arena* GetArena() const;

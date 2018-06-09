@@ -47,6 +47,7 @@ namespace ewn
 
 				hullInfo.isLoaded = true;
 				hullLoaded++;
+				m_hullIndices.emplace(hullInfo.name, id);
 			}
 			catch (const std::exception& e)
 			{

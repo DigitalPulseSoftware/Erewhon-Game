@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
+#include <Nazara/Core/File.hpp>
 #include <Nazara/Core/MemoryHelper.hpp>
 #include <Shared/SecureRandomGenerator.hpp>
 #include <Server/Components/OwnerComponent.hpp>
@@ -68,6 +69,9 @@ namespace ewn
 			if (m_visualMeshStore.IsEntryLoaded(i))
 				m_stringStore.RegisterString(m_visualMeshStore.GetEntryFilePath(i));
 		}
+
+		if (!BakeDefaultSpaceshipData())
+			return false;
 
 		return true;
 	}
@@ -165,46 +169,25 @@ namespace ewn
 		if (!receivedModules.all())
 			return;
 
-		DatabaseTransaction trans;
-		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.spaceshipCode, Nz::Int32(data.hullId) }, [data](DatabaseTransaction& transaction, DatabaseResult result)
+		std::vector<std::size_t> modules(data.modules.size());
+		for (const auto& packetModule : data.modules)
+			modules.push_back(packetModule.moduleId);
+
+		player->CreateSpaceship(data.spaceshipName, data.spaceshipCode, data.hullId, std::move(modules), [](Player* player, bool succeeded)
 		{
-			if (!result)
-				return result;
-
-			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
-
-			Nz::StackArray<Nz::Int32> moduleIds = NazaraStackAllocationNoInit(Nz::Int32, data.modules.size());
-			for (std::size_t i = 0; i < data.modules.size(); ++i)
-				moduleIds[i] = data.modules[i].moduleId;
-
-			// Warning: AppendPreparedStatement may free our lambda memory, meaning our captured variables are no longer valid, which is why we have to store the id on the function stack
-			// Do not use data from here
-
-			for (Nz::Int32 moduleId : moduleIds)
-				transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, moduleId });
-
-			return result;
-		});
-
-		m_globalDatabase->ExecuteTransaction(std::move(trans), [this, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
-		{
-			if (!transactionSucceeded)
-				std::cerr << "Create spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
-
-			Player* ply = GetPlayerBySession(sessionId);
-			if (!ply)
+			if (!player)
 				return;
 
-			if (!transactionSucceeded)
+			if (!succeeded)
 			{
 				Packets::CreateSpaceshipFailure createFailure;
 				createFailure.reason = CreateSpaceshipFailureReason::AlreadyExists;
 
-				ply->SendPacket(createFailure);
+				player->SendPacket(createFailure);
 				return;
 			}
 
-			ply->SendPacket(Packets::CreateSpaceshipSuccess{});
+			player->SendPacket(Packets::CreateSpaceshipSuccess{});
 		});
 	}
 
@@ -280,6 +263,73 @@ namespace ewn
 
 			ply->SendPacket(Packets::DeleteSpaceshipSuccess{});
 		});
+	}
+
+	bool ServerApplication::BakeDefaultSpaceshipData()
+	{
+		// Load informations about default spaceship
+		m_defaultSpaceshipData.name = m_config.GetStringOption("DefaultSpaceship.Name");
+
+		// Find hull
+		const std::string& hullName = m_config.GetStringOption("DefaultSpaceship.Hull");
+
+		m_defaultSpaceshipData.hullId = m_spaceshipHullStore.GetEntryByName(hullName);
+		if (m_defaultSpaceshipData.hullId == m_spaceshipHullStore.InvalidEntryId)
+		{
+			std::cerr << "Failed to find default spaceship hull \"" << hullName << "\"" << std::endl;
+			return false;
+		}
+
+		// Find modules
+		const std::string& moduleList = m_config.GetStringOption("DefaultSpaceship.Modules");
+
+		auto AddModule = [&](const std::string& moduleName)
+		{
+			std::size_t moduleId = m_moduleStore.GetEntryByName(moduleName);
+			if (moduleId == m_moduleStore.InvalidEntryId)
+			{
+				std::cerr << "Failed to find default spaceship module \"" << moduleName << "\"" << std::endl;
+				return false;
+			}
+
+			m_defaultSpaceshipData.moduleIds.push_back(moduleId);
+			return true;
+		};
+
+		std::size_t pos = 0;
+		std::size_t previousPos = 0;
+		while ((pos = moduleList.find('|', previousPos)) != std::string::npos)
+		{
+			if (!AddModule(moduleList.substr(previousPos, pos - previousPos)))
+				return false;
+
+			previousPos = pos + 1;
+		}
+
+		if (!AddModule(moduleList.substr(previousPos)))
+			return false;
+
+		// Load script file
+		const std::string& fileName = m_config.GetStringOption("DefaultSpaceship.ScriptFile");
+
+		// Load file content
+		Nz::File file(fileName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
+		if (!file.IsOpen())
+		{
+			std::cerr << "Failed to open default spaceship script file \"" << fileName << "\"" << std::endl;
+			return false;
+		}
+
+		m_defaultSpaceshipData.code.reserve(file.GetSize());
+
+		while (!file.EndOfFile())
+		{
+			Nz::String fileContent = file.ReadLine();
+			m_defaultSpaceshipData.code.append(fileContent.GetConstBuffer(), fileContent.GetSize());
+			m_defaultSpaceshipData.code += '\n';
+		}
+
+		return true;
 	}
 
 	void ServerApplication::HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data)
@@ -874,23 +924,49 @@ namespace ewn
 			if (!ply)
 				return; //< Player has disconnected, ignore
 
-			Packets::SpaceshipList spaceshipList;
-
 			if (result.IsValid())
 			{
 				std::size_t rowCount = result.GetRowCount();
-
-				spaceshipList.spaceships.resize(rowCount);
-				for (std::size_t i = 0; i < rowCount; ++i)
+				if (rowCount > 0)
 				{
-					auto& spaceship = spaceshipList.spaceships[i];
-					spaceship.name = std::get<std::string>(result.GetValue(1, i));
+					Packets::SpaceshipList spaceshipList;
+
+					spaceshipList.spaceships.resize(rowCount);
+					for (std::size_t i = 0; i < rowCount; ++i)
+					{
+						auto& spaceship = spaceshipList.spaceships[i];
+						spaceship.name = std::get<std::string>(result.GetValue(1, i));
+					}
+
+					ply->SendPacket(spaceshipList);
+				}
+				else
+				{
+					// No spaceship, create the default one
+					const auto& defaultSpaceshipData = GetDefaultSpaceshipData();
+
+					ply->CreateSpaceship(defaultSpaceshipData.name, defaultSpaceshipData.code, defaultSpaceshipData.hullId, defaultSpaceshipData.moduleIds, [this](Player* player, bool succeeded)
+					{
+						if (!player)
+							return;
+
+						Packets::SpaceshipList spaceshipList;
+						if (succeeded)
+						{
+							// Fill list manually
+							spaceshipList.spaceships.resize(1);
+							spaceshipList.spaceships.back().name = GetDefaultSpaceshipData().name;
+						}
+
+						player->SendPacket(spaceshipList);
+					});
 				}
 			}
 			else
+			{
 				std::cerr << "FindSpaceshipsByOwnerId failed:" << result.GetLastErrorMessage() << std::endl;
-
-			ply->SendPacket(spaceshipList);
+				ply->SendPacket(Packets::SpaceshipList{});
+			}
 		});
 	}
 
@@ -1162,6 +1238,11 @@ namespace ewn
 		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
 		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
 		m_config.RegisterIntegerOption("Game.WorkerCount", 1, 100);
+
+		m_config.RegisterStringOption("DefaultSpaceship.Hull");
+		m_config.RegisterStringOption("DefaultSpaceship.Modules");
+		m_config.RegisterStringOption("DefaultSpaceship.Name");
+		m_config.RegisterStringOption("DefaultSpaceship.ScriptFile");
 	}
 
 	void ServerApplication::RegisterNetworkedStrings()

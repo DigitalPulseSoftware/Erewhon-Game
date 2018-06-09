@@ -85,6 +85,40 @@ namespace ewn
 		}
 	}
 
+	void Player::CreateSpaceship(std::string name, std::string code, std::size_t hullId, std::vector<std::size_t> modules, std::function<void(Player*, bool succeded)> creationCallback)
+{
+		ServerApplication* app = m_app;
+
+		DatabaseTransaction trans;
+		trans.AppendPreparedStatement("CreateSpaceship", { GetDatabaseId(), std::move(name), std::move(code), Nz::Int32(hullId) }, [spaceshipModules = std::move(modules)](DatabaseTransaction& transaction, DatabaseResult result)
+		{
+			if (!result)
+				return result;
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+
+			Nz::StackArray<Nz::Int32> moduleIds = NazaraStackAllocationNoInit(Nz::Int32, spaceshipModules.size());
+			for (std::size_t i = 0; i < spaceshipModules.size(); ++i)
+				moduleIds[i] = static_cast<Nz::Int32>(spaceshipModules[i]);
+
+			// Warning: AppendPreparedStatement may free our lambda memory, meaning our captured variables are no longer valid, which is why we have to store the id on the function stack
+			// Do not use data from here
+
+			for (Nz::Int32 moduleId : moduleIds)
+				transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, moduleId });
+
+			return result;
+		});
+
+		app->GetGlobalDatabase().ExecuteTransaction(std::move(trans), [app, sessionId = GetSessionId(), cb = std::move(creationCallback)](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+		{
+			if (!transactionSucceeded)
+				std::cerr << "Create spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
+
+			cb(app->GetPlayerBySession(sessionId), transactionSucceeded);
+		});
+	}
+
 	const Ndk::EntityHandle& Player::InstantiateBot(const std::string& name, std::size_t spaceshipHullId, Nz::Vector3f positionOffset)
 	{
 		constexpr std::size_t MaxBots = 10;
