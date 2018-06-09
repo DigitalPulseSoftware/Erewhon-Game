@@ -464,6 +464,10 @@ namespace ewn
 		std::string reason;
 		switch (deletePacket.reason)
 		{
+			case DeleteSpaceshipFailureReason::MustHaveAtLeastOne:
+				reason = "you cannot delete your last spaceship";
+				break;
+
 			case DeleteSpaceshipFailureReason::NotFound:
 				reason = "spaceship not found";
 				break;

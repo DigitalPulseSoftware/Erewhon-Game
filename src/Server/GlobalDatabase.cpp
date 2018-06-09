@@ -12,6 +12,7 @@ namespace ewn
 		try
 		{
 			PrepareStatement(conn, "AddSpaceshipModule", "INSERT INTO spaceship_modules(spaceship_id, module_id) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Int32 });
+			PrepareStatement(conn, "CountSpaceshipByOwnerIdExceptName", "SELECT COUNT(id) FROM spaceships WHERE owner_id = $1 AND name <> LOWER($2)", { DatabaseType::Int32 });
 			PrepareStatement(conn, "CreateAccountToken", "INSERT INTO account_tokens(account_id, token) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "CreateSpaceship", "INSERT INTO spaceships(name, script, owner_id, spaceship_hull_id, last_update_date) VALUES(LOWER($2), $3, $1, $4, NOW()) RETURNING id;", { DatabaseType::Int32, DatabaseType::Text, DatabaseType::Text, DatabaseType::Int32 });
 			PrepareStatement(conn, "DeleteAccountTokenByAccountId", "DELETE FROM account_tokens WHERE account_id = $1", { DatabaseType::Int32 });

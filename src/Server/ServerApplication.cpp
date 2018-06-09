@@ -214,17 +214,46 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_globalDatabase->ExecuteQuery("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		Nz::Int32 playerDatabaseId = Nz::Int32(player->GetDatabaseId());
+
+		DatabaseTransaction trans;
+		trans.AppendPreparedStatement("CountSpaceshipByOwnerIdExceptName", { playerDatabaseId, data.spaceshipName }, [this, playerDatabaseId, sessionId = player->GetSessionId(), spaceshipName = data.spaceshipName](DatabaseTransaction& transaction, DatabaseResult result) -> DatabaseResult
 		{
 			if (!result)
-				std::cerr << "Delete spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+				return result;
 
-			Player* ply = GetPlayerBySession(sessionId);
-			if (!ply)
-				return;
-
-			if (!result)
+			Nz::Int64 spaceshipCount = std::get<Nz::Int64>(result.GetValue(0));
+			if (spaceshipCount == 0)
 			{
+				Player* ply = GetPlayerBySession(sessionId);
+				if (!ply)
+					return DatabaseResult{};
+
+				Packets::DeleteSpaceshipFailure deleteFailure;
+				deleteFailure.reason = DeleteSpaceshipFailureReason::MustHaveAtLeastOne;
+
+				ply->SendPacket(deleteFailure);
+				return DatabaseResult{};
+			}
+
+			transaction.AppendPreparedStatement("DeleteSpaceship", { playerDatabaseId, spaceshipName });
+			return result;
+		});
+
+		m_globalDatabase->ExecuteTransaction(std::move(trans), [this, sessionId = player->GetSessionId()](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+		{
+			if (!transactionSucceeded)
+			{
+				// Check if we issued "DeleteSpaceship" statement, if not assume error has already been handled
+				if (queryResults.size() < 4)
+					return;
+
+				std::cerr << "Delete spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
+
+				Player* ply = GetPlayerBySession(sessionId);
+				if (!ply)
+					return;
+
 				Packets::DeleteSpaceshipFailure deleteFailure;
 				deleteFailure.reason = DeleteSpaceshipFailureReason::ServerError;
 
@@ -232,7 +261,15 @@ namespace ewn
 				return;
 			}
 
-			if (result.GetAffectedRowCount() == 0)
+			Player* ply = GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			assert(queryResults.size() >= 4);
+
+			constexpr std::size_t DeleteSpaceshipResultIndex = 2;
+
+			if (queryResults[DeleteSpaceshipResultIndex].GetAffectedRowCount() == 0)
 			{
 				Packets::DeleteSpaceshipFailure deleteFailure;
 				deleteFailure.reason = DeleteSpaceshipFailureReason::NotFound;
