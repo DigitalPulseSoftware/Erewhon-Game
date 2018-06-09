@@ -17,8 +17,19 @@ namespace ewn
 		}
 	}
 
+	inline const Ndk::EntityHandle& Arena::GetEntity(Ndk::EntityId entityId)
+	{
+		assert(IsEntityIdValid(entityId));
+		return m_world.GetEntity(entityId);
+	}
+
 	inline const std::string& Arena::GetName() const
 	{
 		return m_name;
+	}
+
+	inline bool Arena::IsEntityIdValid(Ndk::EntityId entityId) const
+	{
+		return m_world.IsEntityIdValid(entityId);
 	}
 }

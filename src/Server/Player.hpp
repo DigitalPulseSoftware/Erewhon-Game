@@ -32,7 +32,7 @@ namespace ewn
 			void Authenticate(Nz::Int32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
 
 			inline void ClearBots();
-			inline void ClearControlledEntity();
+			void ClearControlledEntity();
 
 			inline void Disconnect(Nz::UInt32 data = 0);
 
@@ -74,7 +74,7 @@ namespace ewn
 			std::string m_displayName;
 			std::string m_login;
 			std::vector<Ndk::EntityOwner> m_botEntities;
-			Ndk::EntityOwner m_controlledEntity;
+			Ndk::EntityHandle m_controlledEntity;
 			Nz::Int32 m_databaseId;
 			Nz::UInt16 m_permissionLevel;
 			Nz::UInt64 m_lastInputTime;

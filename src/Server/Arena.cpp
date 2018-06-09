@@ -89,16 +89,6 @@ namespace ewn
 		m_world.Clear();
 	}
 
-	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* player)
-	{
-		assert(m_players.find(player) != m_players.end());
-
-		const Ndk::EntityHandle& spaceship = CreateSpaceship(player->GetName(), player, 1, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
-		spaceship->AddComponent<PlayerControlledComponent>(player);
-
-		return spaceship;
-	}
-
 	const Ndk::EntityHandle& Arena::CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
 		const Ndk::EntityHandle& projectile = CreateEntity("plasmabeam", {}, owner, position, rotation);
@@ -147,6 +137,8 @@ namespace ewn
 			player->ClearBots();
 
 		m_world.Clear();
+
+		m_world.CreateEntity(); //< Reserve entity #0
 
 		if (m_script.GetGlobal("OnReset") == Nz::LuaType_Function)
 		{

@@ -141,7 +141,16 @@ namespace ewn
 		else
 		{
 			m_spaceshipController.reset();
-			m_spaceshipOverviewController.emplace(*stateData.window, stateData.camera3D, *m_chatbox, *m_matchEntities, stateData.world3D);
+			auto& controller = m_spaceshipOverviewController.emplace(*stateData.window, stateData.camera3D, *m_chatbox, *m_matchEntities, stateData.world3D);
+			controller.OnEntityClick.Connect([this](SpaceshipOverviewController*, std::size_t entityId)
+			{
+				StateData& stateData = GetStateData();
+
+				Packets::ControlEntity controlPacket;
+				controlPacket.id = static_cast<Nz::UInt32>(entityId);
+
+				stateData.server->SendPacket(controlPacket);
+			});
 		}
 
 		m_controlledEntity = entityId;
@@ -180,6 +189,15 @@ namespace ewn
 
 			if (stateData.fsm->IsTopState(this))
 				stateData.fsm->PushState(std::make_shared<EscapeMenuState>(stateData));
+		}
+		else if (event.code == Nz::Keyboard::Backspace)
+		{
+			StateData& stateData = GetStateData();
+
+			Packets::ControlEntity controlPacket;
+			controlPacket.id = 0;
+
+			stateData.server->SendPacket(controlPacket);
 		}
 	}
 }

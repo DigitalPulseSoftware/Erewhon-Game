@@ -16,12 +16,22 @@ namespace ewn
 	SpaceshipOverviewController::SpaceshipOverviewController(Nz::RenderWindow& window, const Ndk::EntityHandle& camera, MatchChatbox& chatbox, ServerMatchEntities& entities, Ndk::WorldHandle world) :
 	FreeFlightController(window, camera, chatbox),
 	m_entities(entities),
+	m_world(world),
 	m_spaceshipSelection(false)
 	{
-		m_onKeyPressed.Connect(m_window.GetEventHandler().OnKeyPressed, this, &SpaceshipOverviewController::OnKeyPressed);
+		Nz::EventHandler& eventHandler = m_window.GetEventHandler();
+		m_onKeyPressed.Connect(eventHandler.OnKeyPressed, this, &SpaceshipOverviewController::OnKeyPressed);
+		m_onMouseButtonPressed.Connect(eventHandler.OnMouseButtonPressed, this, &SpaceshipOverviewController::OnMouseButtonPressed);
 
-		m_hoveredEntity = world->CreateEntity();
-		m_hoveredEntity->AddComponent<Ndk::NodeComponent>().SetScale(2.f);
+		m_rayStart = Nz::Vector3f::Zero();
+		m_rayEnd = Nz::Vector3f::Forward();
+
+		m_hoveredMaterial = Nz::Material::New();
+		m_hoveredMaterial->SetFaceCulling(Nz::FaceSide_Front);
+
+		m_hoveredEntity = m_world->CreateEntity();
+		m_hoveredEntity->AddComponent<Ndk::NodeComponent>();
+		m_hoveredEntity->AddComponent<Ndk::GraphicsComponent>();
 
 		// Ensure ray is always valid
 		UpdateRay(Nz::Mouse::GetPosition(m_window));
@@ -38,6 +48,16 @@ namespace ewn
 			m_rayUpdateTimer -= elapsedTime;
 			if (m_rayUpdateTimer < 0.f)
 			{
+				auto& cameraNode = m_camera->GetComponent<Ndk::NodeComponent>();
+
+				Nz::Vector3f rayStart = cameraNode.ToGlobalPosition(m_rayStart);
+				Nz::Vector3f rayEnd = cameraNode.ToGlobalPosition(m_rayEnd);
+
+				Nz::Vector3f rayDirection = rayEnd - rayStart;
+				rayDirection.Normalize();
+
+				Nz::Rayf ray(rayStart, rayDirection);
+
 				float closestHitDistance = std::numeric_limits<float>::infinity();
 				std::size_t closestHit = std::numeric_limits<std::size_t>::max();
 
@@ -56,7 +76,7 @@ namespace ewn
 					const Nz::Boxf& aabb = entityGfx.GetBoundingVolume().aabb;
 
 					float hitDistance;
-					if (m_ray.Intersect(aabb, &hitDistance))
+					if (ray.Intersect(aabb, &hitDistance))
 					{
 						if (hitDistance < closestHitDistance)
 						{
@@ -68,23 +88,58 @@ namespace ewn
 
 				if (closestHit != m_hoveredEntityId)
 				{
-					m_hoveredEntityId = closestHit;
-					std::cout << "Mouse is over " << m_hoveredEntityId << std::endl;
+					OnHoverEntityChange(this, closestHit);
 
-					if (m_hoveredEntityId != std::numeric_limits<std::size_t>::max())
+					m_hoveredEntityId = closestHit;
+
+					if (closestHit != NoEntity)
 					{
 						const Ndk::EntityHandle& entity = m_entities.GetServerEntity(m_hoveredEntityId).entity;
 
-						m_hoveredEntity->GetComponent<Ndk::NodeComponent>().SetParent(entity);
-						m_hoveredEntity->GetComponent<Ndk::NodeComponent>().SetScale(2.f);
-						m_hoveredEntity->AddComponent(entity->GetComponent<Ndk::GraphicsComponent>().Clone());
+						auto& entityGfx = entity->GetComponent<Ndk::GraphicsComponent>();
+
+						m_hoveredEntitySize = entityGfx.GetBoundingVolume().aabb.GetRadius();
+
+						m_hoveredEntity->Enable();
+
+						auto& hoveredNode = m_hoveredEntity->GetComponent<Ndk::NodeComponent>();
+						hoveredNode.SetParent(entity);
+
+						auto& hoveredGfx = m_hoveredEntity->GetComponent<Ndk::GraphicsComponent>();
+						hoveredGfx.Clear();
+
+						entity->GetComponent<Ndk::GraphicsComponent>().ForEachRenderable([&](const Nz::InstancedRenderableRef& renderable, const Nz::Matrix4f& localMatrix, int renderOrder)
+						{
+							if (std::unique_ptr<Nz::InstancedRenderable> clonedRenderable = renderable->Clone())
+							{
+								std::size_t materialCount = clonedRenderable->GetMaterialCount();
+								for (std::size_t i = 0; i < materialCount; ++i)
+									clonedRenderable->SetMaterial(i, m_hoveredMaterial);
+
+								hoveredGfx.Attach(clonedRenderable.release(), localMatrix, -1);
+							}
+						});
 					}
 					else
-						m_hoveredEntity->RemoveComponent<Ndk::GraphicsComponent>();
+						m_hoveredEntity->Disable();
 				}
 
 				m_rayUpdateTimer = 1 / 10.f;
 			}
+		}
+
+		if (m_hoveredEntityId != NoEntity)
+		{
+			auto& hoveredNode = m_hoveredEntity->GetComponent<Ndk::NodeComponent>();
+			auto& hoveredGfx = m_hoveredEntity->GetComponent<Ndk::GraphicsComponent>();
+
+			auto& cameraComp = m_camera->GetComponent<Ndk::CameraComponent>();
+			float distance = cameraComp.GetFrustum().GetPlane(Nz::FrustumPlane_Near).Distance(hoveredNode.GetPosition());
+
+			float distanceFactor = distance / 3000.f;
+			float sizeFactor = 40.f / m_hoveredEntitySize;
+
+			hoveredNode.SetScale(1.f + distanceFactor * sizeFactor);
 		}
 	}
 
@@ -105,6 +160,15 @@ namespace ewn
 		}
 	}
 
+	void SpaceshipOverviewController::OnMouseButtonPressed(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseButtonEvent& event)
+	{
+		if (event.button == Nz::Mouse::Left)
+		{
+			if (m_spaceshipSelection && m_hoveredEntityId != NoEntity)
+				OnEntityClick(this, m_hoveredEntityId);
+		}
+	}
+
 	void SpaceshipOverviewController::OnMouseMoved(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::MouseMoveEvent& event)
 	{
 		if (!m_spaceshipSelection)
@@ -119,15 +183,15 @@ namespace ewn
 	void SpaceshipOverviewController::UpdateRay(Nz::Vector2i mousePos)
 	{
 		auto& cameraComp = m_camera->GetComponent<Ndk::CameraComponent>();
+		auto& cameraNode = m_camera->GetComponent<Ndk::NodeComponent>();
 
 		Nz::Vector2f fMousePos = Nz::Vector2f(mousePos);
 		Nz::Vector3f nearPoint = cameraComp.Unproject(Nz::Vector3f(fMousePos.x, fMousePos.y, 0.f));
 		Nz::Vector3f farPoint = cameraComp.Unproject(Nz::Vector3f(fMousePos.x, fMousePos.y, 1.f));
 
-		Nz::Vector3f direction = farPoint - nearPoint;
-		direction.Normalize();
+		m_rayStart = cameraNode.ToLocalPosition(nearPoint);
+		m_rayEnd = cameraNode.ToLocalPosition(farPoint);
 
-		m_ray.Set(nearPoint, direction);
 		m_rayUpdateTimer = 0.f;
 	}
 }
