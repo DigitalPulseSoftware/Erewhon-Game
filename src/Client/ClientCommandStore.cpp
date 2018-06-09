@@ -49,6 +49,7 @@ namespace ewn
 		IncomingCommand(UpdateSpaceshipSuccess);
 
 		// Outgoing commands
+		OutgoingCommand(ControlEntity,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LeaveArena,         Nz::ENetPacketFlag_Reliable, 0);

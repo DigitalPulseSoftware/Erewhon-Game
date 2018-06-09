@@ -35,9 +35,9 @@ end
 function OnUpdate(elapsedTime)
 	timeSinceStart = timeSinceStart + elapsedTime
 
-	for sessionId, playerData in pairs(players) do
+	--[[for sessionId, playerData in pairs(players) do
 		if (playerData.RespawnTime < timeSinceStart and not playerData.Player:GetControlledEntity():IsValidHandle()) then
 			playerData.Player:UpdateControlledEntity(Arena:CreatePlayerSpaceship(playerData.Player))
 		end
-	end
+	end]]
 end

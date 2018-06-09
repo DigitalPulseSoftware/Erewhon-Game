@@ -54,6 +54,7 @@ namespace ewn
 
 			bool Run() override;
 
+			void HandleControlEntity(std::size_t peerId, const Packets::ControlEntity& data);
 			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
 			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);

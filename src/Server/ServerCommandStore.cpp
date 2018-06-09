@@ -18,6 +18,7 @@ namespace ewn
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 
 		// Incoming commands
+		IncomingCommand(ControlEntity);
 		IncomingCommand(CreateSpaceship);
 		IncomingCommand(DeleteSpaceship);
 		IncomingCommand(JoinArena);

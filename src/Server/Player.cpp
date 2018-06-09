@@ -76,13 +76,22 @@ namespace ewn
 		});
 	}
 
+	void Player::ClearControlledEntity()
+	{
+		if (m_controlledEntity)
+		{
+			m_controlledEntity->RemoveComponent<PlayerControlledComponent>();
+			m_controlledEntity.Reset();
+		}
+	}
+
 	const Ndk::EntityHandle& Player::InstantiateBot(const std::string& name, std::size_t spaceshipHullId, Nz::Vector3f positionOffset)
 	{
 		constexpr std::size_t MaxBots = 10;
 
 		Nz::Vector3f position;
 		Nz::Quaternionf rotation;
-		if (m_controlledEntity->HasComponent<Ndk::NodeComponent>())
+		if (m_controlledEntity && m_controlledEntity->HasComponent<Ndk::NodeComponent>())
 		{
 			auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
 			position = spaceshipNode.GetPosition() + spaceshipNode.GetDown() * 10.f;
@@ -140,6 +149,9 @@ namespace ewn
 		if (ServerApplication::GetAppTime() - m_lastShootTime < 500)
 			return;
 
+		if (!m_controlledEntity)
+			return;
+
 		m_lastShootTime = ServerApplication::GetAppTime();
 
 		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
@@ -157,11 +169,15 @@ namespace ewn
 	{
 		if (m_controlledEntity != entity)
 		{
-			assert(!entity || entity->HasComponent<PlayerControlledComponent>());
+			assert(!entity || !entity->HasComponent<PlayerControlledComponent>());
+
+			ClearControlledEntity();
 
 			m_controlledEntity = entity;
+			if (m_controlledEntity)
+				m_controlledEntity->AddComponent<PlayerControlledComponent>(this);
 
-			// Control packet
+			// Control packet
 			Packets::ControlEntity controlPacket;
 			controlPacket.id = (m_controlledEntity) ? m_controlledEntity->GetId() : 0;
 			SendPacket(controlPacket);

@@ -5,6 +5,7 @@
 #include <Server/ServerApplication.hpp>
 #include <Nazara/Core/MemoryHelper.hpp>
 #include <Shared/SecureRandomGenerator.hpp>
+#include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/DatabaseLoader.hpp>
 #include <Server/Database/Database.hpp>
@@ -84,6 +85,37 @@ namespace ewn
 			func();
 
 		return BaseApplication::Run();
+	}
+
+	void ServerApplication::HandleControlEntity(std::size_t peerId, const Packets::ControlEntity& data)
+	{
+		Player* player = m_players[peerId];
+		if (!player->IsAuthenticated())
+			return;
+
+		if (Arena* arena = player->GetArena())
+		{
+			if (data.id != 0)
+			{
+				Ndk::EntityId entityId = static_cast<Ndk::EntityId>(data.id);
+				if (!arena->IsEntityIdValid(entityId))
+				{
+					std::cerr << "Client #" << peerId << " tried to control invalid entity #" << entityId << std::endl;
+					return;
+				}
+
+				const Ndk::EntityHandle& entity = arena->GetEntity(entityId);
+				if (!entity->HasComponent<OwnerComponent>() || entity->GetComponent<OwnerComponent>().GetOwner() != player)
+				{
+					std::cerr << "Client #" << peerId << " tried to control entity #" << entityId << " which doesn't belong to them" << std::endl;
+					return;
+				}
+
+				player->UpdateControlledEntity(entity);
+			}
+			else
+				player->UpdateControlledEntity(Ndk::EntityHandle::InvalidHandle);
+		}
 	}
 
 	void ServerApplication::HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data)

@@ -43,7 +43,6 @@ namespace ewn
 			void BroadcastPacket(const T& packet, Player* exceptPlayer = nullptr);
 
 			const Ndk::EntityHandle& CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
-			const Ndk::EntityHandle& CreatePlayerSpaceship(Player* owner);
 			const Ndk::EntityHandle& CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			const Ndk::EntityHandle& CreateSpaceship(std::string name, Player* owner, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			const Ndk::EntityHandle& CreateTorpedo(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
@@ -52,7 +51,10 @@ namespace ewn
 
 			Player* FindPlayerByName(const std::string& name) const;
 
+			inline const Ndk::EntityHandle& GetEntity(Ndk::EntityId entityId);
 			inline const std::string& GetName() const;
+
+			inline bool IsEntityIdValid(Ndk::EntityId entityId) const;
 
 			void Reset();
 
