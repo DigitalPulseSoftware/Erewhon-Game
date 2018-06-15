@@ -27,6 +27,11 @@ namespace ewn
 		return m_collisionMeshStore;
 	}
 
+	inline const ServerApplication::DefaultSpaceship& ServerApplication::GetDefaultSpaceshipData() const
+	{
+		return m_defaultSpaceshipData;
+	}
+
 	inline ModuleStore& ServerApplication::GetModuleStore()
 	{
 		return m_moduleStore;

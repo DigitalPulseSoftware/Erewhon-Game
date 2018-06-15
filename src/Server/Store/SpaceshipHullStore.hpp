@@ -24,6 +24,7 @@ namespace ewn
 			inline SpaceshipHullStore();
 			~SpaceshipHullStore() = default;
 
+			inline std::size_t GetEntryByName(const std::string& entryName) const;
 			inline std::size_t GetEntryCount() const;
 			inline std::size_t GetEntryCollisionMeshId(std::size_t entryId) const;
 			inline const std::string& GetEntryDescription(std::size_t entryId) const;
@@ -56,6 +57,7 @@ namespace ewn
 				bool isLoaded = false;
 			};
 
+			std::unordered_map<std::string, std::size_t> m_hullIndices;
 			std::vector<HullInfo> m_hullInfos;
 			bool m_isLoaded;
 	};

@@ -26,6 +26,7 @@ namespace ewn
 
 	enum class DeleteSpaceshipFailureReason : Nz::UInt8
 	{
+		MustHaveAtLeastOne,
 		NotFound,
 		ServerError
 	};

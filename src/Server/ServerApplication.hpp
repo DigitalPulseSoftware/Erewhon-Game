@@ -31,6 +31,7 @@ namespace ewn
 		friend GameWorker;
 
 		public:
+			struct DefaultSpaceship;
 			using ServerCallback = std::function<void()>;
 			using WorkerFunction = std::function<void()>;
 
@@ -41,6 +42,7 @@ namespace ewn
 
 			inline CollisionMeshStore& GetCollisionMeshStore();
 			inline const CollisionMeshStore& GetCollisionMeshStore() const;
+			inline const DefaultSpaceship& GetDefaultSpaceshipData() const;
 			inline Database& GetGlobalDatabase();
 			inline ModuleStore& GetModuleStore();
 			inline const ModuleStore& GetModuleStore() const;
@@ -54,6 +56,7 @@ namespace ewn
 
 			bool Run() override;
 
+			void HandleControlEntity(std::size_t peerId, const Packets::ControlEntity& data);
 			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
 			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
 			void HandleLogin(std::size_t peerId, const Packets::Login& data);
@@ -76,9 +79,19 @@ namespace ewn
 
 			bool SetupNetwork(std::size_t clientPerReactor, std::size_t reactorCount, Nz::NetProtocol protocol, Nz::UInt16 firstPort);
 
+			struct DefaultSpaceship
+			{
+				std::string name;
+				std::string code;
+				std::size_t hullId;
+				std::vector<std::size_t> moduleIds;
+			};
+
 		private:
 			using CallbackQueue = moodycamel::ConcurrentQueue<ServerCallback>;
 			using WorkerQueue = moodycamel::BlockingConcurrentQueue<WorkerFunction>;
+
+			bool BakeDefaultSpaceshipData();
 
 			inline WorkerQueue& GetWorkerQueue();
 
@@ -106,6 +119,7 @@ namespace ewn
 			Nz::MemoryPool m_playerPool;
 			CallbackQueue m_callbackQueue;
 			CollisionMeshStore m_collisionMeshStore;
+			DefaultSpaceship m_defaultSpaceshipData;
 			ModuleStore m_moduleStore;
 			NetworkStringStore m_stringStore;
 			ServerChatCommandStore m_chatCommandStore;

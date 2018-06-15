@@ -14,7 +14,7 @@ namespace ewn
 		s_arenaBinding.Reset("Arena");
 		
 		s_arenaBinding.BindMethod("CreateEntity", &Arena::CreateEntity);
-		s_arenaBinding.BindMethod("CreatePlayerSpaceship", &Arena::CreatePlayerSpaceship);
+		s_arenaBinding.BindMethod("CreateSpaceship", &Arena::CreateSpaceship);
 		s_arenaBinding.BindMethod("DispatchChatMessage", &Arena::DispatchChatMessage);
 		s_arenaBinding.BindMethod("FindPlayerByName", &Arena::FindPlayerByName);
 		s_arenaBinding.BindMethod("GetName", &Arena::GetName);

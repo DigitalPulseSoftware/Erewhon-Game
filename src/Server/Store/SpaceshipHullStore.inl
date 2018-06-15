@@ -12,6 +12,15 @@ namespace ewn
 	{
 	}
 
+	inline std::size_t SpaceshipHullStore::GetEntryByName(const std::string& entryName) const
+	{
+		auto it = m_hullIndices.find(entryName);
+		if (it != m_hullIndices.end())
+			return it->second;
+		else
+			return InvalidEntryId;
+	}
+
 	inline std::size_t SpaceshipHullStore::GetEntryCount() const
 	{
 		return m_hullInfos.size();
