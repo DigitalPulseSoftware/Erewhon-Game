@@ -7,6 +7,8 @@ Le coeur du jeu se situe au niveau principalement de l'affrontement de vaisseaux
 
 À terme, il est souhaité que le jeu offre une gestion d'empire spatial sur fond d'exploration.
 
+Le jeu se voulant très complet, le développement se fait sur une idée plus simplifiée du jeu, voir [page du MVP](MVP.md)
+
 # Gameplay
 
 Les joueurs disposent d'outils pour customiser leurs vaisseaux et les assembler en une flotte hétérogène, cela signifie que le joueur est libre et encouragé à placer des vaisseaux de types différents capables d'accomplir des fonctions différentes.

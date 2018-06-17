@@ -16,7 +16,7 @@ Une arène représente un champ de bataille physique, instancié avec quelques o
 Chaque arène est configurée pour accueillir un certain nombre de personnes en combat (2 signifiant 1vs1, 3 signifiant 1vs1vs1, etc.).
 
 Lorsqu'un joueur rejoint une arène, celui-ci est un spectateur en caméra libre capable uniquement de parler dans le chat.
-Les joueurs peuvent utiliser une commande /fight <flotte> pour combattre avec la flotte de leurs choix, s'enregistrant dans la liste des combattants. Lorsque le nombre de combattants atteint le nombre demandé par l'arène, celle-ci démarre un combat dix secondes après utilisant N joueurs au hasard dans la liste des joueurs préparés. (Où N désigne le nombre prévu de combattants dans l'arène).
+Les joueurs peuvent utiliser une commande `/fight <flotte>` pour combattre avec la flotte de leurs choix, s'enregistrant dans la liste des combattants. Lorsque le nombre de combattants atteint le nombre demandé par l'arène, celle-ci démarre un combat dix secondes après utilisant N joueurs au hasard dans la liste des joueurs préparés. (Où N désigne le nombre prévu de combattants dans l'arène).
 
 La flotte de chaque joueur apparaît ensuite dans un "coin" différent de l'arène (à une certaine distance, dépendant du nombre de participants), orientée vers le centre.
 La caméra de chaque joueur est repositionnée derrière la flotte, toujours libre, mais dispose maintenant de la capacité de prendre le contrôle du vaisseau de sa flotte de son choix.
@@ -27,13 +27,17 @@ L'objectif du jeu est alors de détruire toutes les flottes des autres joueurs d
 
 Chaque vaisseau est composé de modules articulés autour d'une coque.
 
-Une coque de vaisseau est ce qui lui donne la majeure partie de sa masse, son apparence, et 
+Lors de la création d'un vaisseau, le joueur commence par choisir une coque pour le nouveau vaisseau.
 
+La coque est l'élément central, elle confère une apparence, une taille, une masse au vaisseau ainsi que différents points d'attaches sur lesquels certains modules pourront se greffer.
 
-L'utilisateur peut à l'aide du client :
-- Paramétrer ses options
-- S'enregistrer (faire un nouveau compte)
-- Se connecter à un compte existant
-- Créer, éditer et supprimer ses vaisseaux
-- Créer, éditer et supprimer ses flottes
-- Rejoindre/quitter une arène
+Les modules sont les composants actifs du vaisseau, ils remplissent différentes fonctions selon leurs catégories :
+- L'attaque (modules d'armement)
+- La défense (modules bouclier)
+- La détection (modules radar)
+- Les déplacement (modules navigation et modules moteur)
+- Les communications (modules communications)
+
+Ils sont expliqués plus en détails sur la [page qui leur est dédiée](Modules).
+
+Les vaisseaux sont ensuite programmés.

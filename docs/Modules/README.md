@@ -28,17 +28,17 @@ Module de communication, permet d'envoyer et de recevoir des messages vers d'aut
 
 Le module moteur contrôle directement les moteurs et les déplacements du vaisseau, néanmoins celui-ci donne un contrôle très bas-niveau sur le moteur, permettant uniquement de donner des impulsions d'une certaine durée.
 
-[Page dédiée au module de communications](Engine.md)
+[Page dédiée au module moteur](Engine.md)
 
 ## Navigation
 
 Le module de navigation est un co-processeur dédié aux calculs de contrôle des propulseurs. Il vous permet de donner des ordres simples pour diriger votre vaisseau sans avoir à contrôler directement le moteur.
 
-[Page dédiée au module de communications](Navigation.md)
+[Page dédiée au module de navigation](Navigation.md)
 
 ## Radar
 
 Le radar est le module permettant à votre vaisseau de connaître son entourage, il permet d'effectuer des scans donnant des informations brutes sur les divers objets à proximité d'un vaisseau ainsi que d'obtenir des informations plus précises à l'aide de scan ciblés.
 En outre, certains radars disposent d'un scan passif, déclenchant des événements lorsqu'un objet rentre dans le champ de détection.
 
-[Page dédiée au module de communications](Radar.md)
+[Page dédiée au module de radar](Radar.md)
