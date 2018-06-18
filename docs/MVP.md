@@ -40,4 +40,8 @@ Les modules sont les composants actifs du vaisseau, ils remplissent différentes
 
 Ils sont expliqués plus en détails sur la [page qui leur est dédiée](Modules).
 
-Les vaisseaux sont ensuite programmés.
+Les vaisseaux sont ensuite programmés par le joueur dans un langage de script ([https://www.lua.org](Lua)) permettant de définir le comportement de ce vaisseau à l'aide des modules plus haut.
+
+### Customisation des flottes
+
+Une flotte est un ensemble hétérogène de vaisseaux agencés dans une disposition particulière. Lors de l'édition de la flotte, le joueur est libre d'ajouter, de repositionner ou d'enlever des vaisseaux à sa volonté, avec pour seule limite actuellement le nombre de vaisseaux pouvant faire partie de la flotte (actuellement dix).
