@@ -120,7 +120,7 @@ function Spaceship:FindNewTarget()
 	local closestTargetDist = math.huge
 	local ourPos = self.Core:GetPosition()
 	for _,info in pairs(self.Radar:Scan()) do
-		if (info.emSignature < 100 and info.distance < closestTargetDist and not self.FriendList[info.signature]) then
+		if (info.emSignature > 10 and info.emSignature < 100 and info.distance < closestTargetDist and not self.FriendList[info.signature]) then
 			closestTarget = info.signature
 			closestTargetDist = info.distance
 		end
