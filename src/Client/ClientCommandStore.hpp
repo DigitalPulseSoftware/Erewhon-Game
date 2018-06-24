@@ -13,7 +13,7 @@ namespace ewn
 {
 	class ServerConnection;
 
-	class ClientCommandStore final : public CommandStore
+	class ClientCommandStore final : public CommandStore<ServerConnection*>
 	{
 		public:
 			ClientCommandStore(ServerConnection* app);

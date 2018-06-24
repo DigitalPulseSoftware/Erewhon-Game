@@ -3,17 +3,15 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerCommandStore.hpp>
-#include <Server/ServerApplication.hpp>
+#include <Server/ClientSession.hpp>
 
 namespace ewn
 {
-	ServerCommandStore::ServerCommandStore(ServerApplication* app)
+	ServerCommandStore::ServerCommandStore()
 	{
-		using namespace std::placeholders;
-
-#define IncomingCommand(Type) RegisterIncomingCommand<Packets::Type>(#Type, [app](std::size_t peerId, const Packets::Type& packet) \
+#define IncomingCommand(Type) RegisterIncomingCommand<Packets::Type>(#Type, [](ClientSession& session, const Packets::Type& packet) \
 { \
-	app->Handle##Type(peerId, packet); \
+	session.Handle##Type(packet); \
 })
 #define OutgoingCommand(Type, Flags, Channel) RegisterOutgoingCommand<Packets::Type>(#Type, Flags, Channel)
 

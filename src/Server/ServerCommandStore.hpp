@@ -11,12 +11,13 @@
 
 namespace ewn
 {
+	class ClientSession;
 	class ServerApplication;
 
-	class ServerCommandStore final : public CommandStore
+	class ServerCommandStore final : public CommandStore<ClientSession>
 	{
 		public:
-			ServerCommandStore(ServerApplication* app);
+			ServerCommandStore();
 			~ServerCommandStore() = default;
 	};
 }

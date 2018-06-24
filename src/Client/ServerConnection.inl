@@ -44,6 +44,11 @@ namespace ewn
 		return m_stringStore;
 	}
 
+	inline std::size_t ServerConnection::GetPeerId() const
+	{
+		return m_peerId;
+	}
+
 	inline bool ServerConnection::IsConnected() const
 	{
 		return m_connected;
@@ -78,7 +83,7 @@ namespace ewn
 
 	inline void ServerConnection::DispatchIncomingPacket(Nz::NetPacket&& packet)
 	{
-		m_commandStore.UnserializePacket(m_peerId, std::move(packet));
+		m_commandStore.UnserializePacket(this, std::move(packet));
 	}
 
 	inline void ServerConnection::NotifyConnected(Nz::UInt32 data)

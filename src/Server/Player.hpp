@@ -12,6 +12,7 @@
 #include <Nazara/Math/Box.hpp>
 #include <NDK/EntityOwner.hpp>
 #include <Shared/NetworkReactor.hpp>
+#include <Server/ClientSession.hpp>
 #include <Server/ServerCommandStore.hpp>
 
 namespace ewn
@@ -24,12 +25,10 @@ namespace ewn
 
 	class Player : public Nz::HandledObject<Player>
 	{
-		friend class ServerCommandStore;
-
 		public:
 			struct FleetData;
 
-			Player(ServerApplication* app, std::size_t peerId, std::size_t sessionId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
+			Player(ServerApplication* app);
 			~Player();
 
 			void Authenticate(Nz::Int32 dbId, std::function<void (Player*, bool succeeded)> authenticationCallback);
@@ -52,7 +51,8 @@ namespace ewn
 			inline const std::string& GetLogin() const;
 			inline Nz::UInt16 GetPermissionLevel() const;
 			inline const std::string& GetName() const;
-			inline std::size_t GetPeerId() const;
+			inline ClientSession* GetSession();
+			inline const ClientSession* GetSession() const;
 			inline std::size_t GetSessionId() const;
 
 			const Ndk::EntityHandle& InstantiateBot(const std::string& name, std::size_t spaceshipHullId, Nz::Vector3f positionOffset = Nz::Vector3f::Zero());
@@ -72,6 +72,7 @@ namespace ewn
 			void UpdateControlledEntity(const Ndk::EntityHandle& entity);
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
 			void UpdatePermissionLevel(Nz::UInt16 permissionLevel, std::function<void(bool updateSucceeded)> databaseCallback = nullptr);
+			void UpdateSession(ClientSession* session);
 
 			struct FleetData
 			{
@@ -91,6 +92,8 @@ namespace ewn
 				std::vector<Spaceship> spaceships;
 			};
 
+			static constexpr std::size_t InvalidSessionId = std::numeric_limits<std::size_t>::max();
+
 		private:
 			void OnAuthenticated(std::string login, std::string displayName, Nz::UInt16 permissionLevel);
 
@@ -103,11 +106,8 @@ namespace ewn
 			};
 
 			Arena* m_arena;
+			ClientSession* m_session;
 			ServerApplication* m_app;
-			NetworkReactor& m_networkReactor;
-			const ServerCommandStore& m_commandStore;
-			std::size_t m_peerId;
-			std::size_t m_sessionId;
 			std::string m_displayName;
 			std::string m_login;
 			std::variant<NoAction, ShootAction> m_pendingAction;

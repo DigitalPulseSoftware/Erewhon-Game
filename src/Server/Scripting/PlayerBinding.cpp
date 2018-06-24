@@ -23,7 +23,6 @@ namespace ewn
 		s_playerBinding.BindMethod("GetLastInputProcessedTime", &Player::GetLastInputProcessedTime);
 		s_playerBinding.BindMethod("GetLogin", &Player::GetLogin);
 		s_playerBinding.BindMethod("GetName", &Player::GetName);
-		s_playerBinding.BindMethod("GetPeerId", &Player::GetPeerId);
 		s_playerBinding.BindMethod("GetPermissionLevel", &Player::GetPermissionLevel);
 		s_playerBinding.BindMethod("GetSessionId", &Player::GetSessionId);
 		s_playerBinding.BindMethod("InstantiateBot", &Player::InstantiateBot);

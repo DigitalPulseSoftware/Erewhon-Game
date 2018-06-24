@@ -9,9 +9,7 @@ namespace ewn
 {
 	ClientCommandStore::ClientCommandStore(ServerConnection* server)
 	{
-		using namespace std::placeholders;
-
-#define IncomingCommand(Type) RegisterIncomingCommand<Packets::Type>(#Type, [server](std::size_t peerId, const Packets::Type& data) \
+#define IncomingCommand(Type) RegisterIncomingCommand<Packets::Type>(#Type, [](ServerConnection* server, const Packets::Type& data) \
 { \
 	server->On##Type(server, data); \
 })

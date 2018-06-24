@@ -14,13 +14,10 @@
 
 namespace ewn
 {
-	Player::Player(ServerApplication* app, std::size_t peerId, std::size_t sessionId, NetworkReactor& reactor, const ServerCommandStore& commandStore) :
+	Player::Player(ServerApplication* app) :
 	m_arena(nullptr),
+	m_session(nullptr),
 	m_app(app),
-	m_networkReactor(reactor),
-	m_commandStore(commandStore),
-	m_peerId(peerId),
-	m_sessionId(sessionId),
 	m_permissionLevel(0),
 	m_databaseId(0),
 	m_lastInputTime(0),
@@ -381,7 +378,7 @@ namespace ewn
 		    !std::isfinite(movement.y) ||
 		    !std::isfinite(movement.z))
 		{
-			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite movement: " << movement << std::endl;
+			std::cout << "Client #" << GetSessionId() << " (" << m_login << " has non-finite movement: " << movement << std::endl;
 			return;
 		}
 
@@ -389,7 +386,7 @@ namespace ewn
 		    !std::isfinite(rotation.y) ||
 		    !std::isfinite(rotation.z))
 		{
-			std::cout << "Client #" << m_peerId << " (" << m_login << " has non-finite rotation: " << movement << std::endl;
+			std::cout << "Client #" << GetSessionId() << " (" << m_login << " has non-finite rotation: " << movement << std::endl;
 			return;
 		}
 
@@ -424,6 +421,11 @@ namespace ewn
 			if (cb)
 				cb(result.IsValid() && result.GetAffectedRowCount() > 0);
 		});
+	}
+
+	void Player::UpdateSession(ClientSession* session)
+	{
+		m_session = session;
 	}
 
 	void Player::OnAuthenticated(std::string login, std::string displayName, Nz::UInt16 permissionLevel)

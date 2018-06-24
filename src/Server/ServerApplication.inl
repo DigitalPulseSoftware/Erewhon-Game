@@ -17,6 +17,27 @@ namespace ewn
 		return *m_globalDatabase;
 	}
 
+	inline Arena* ServerApplication::GetArena(std::size_t arenaIndex) const
+	{
+		assert(arenaIndex < m_arenas.size());
+		return m_arenas[arenaIndex].get();
+	}
+
+	inline std::size_t ServerApplication::GetArenaCount() const
+	{
+		return m_arenas.size();
+	}
+
+	inline ServerChatCommandStore& ServerApplication::GetChatCommandStore()
+	{
+		return m_chatCommandStore;
+	}
+
+	inline const ServerChatCommandStore& ServerApplication::GetChatCommandStore() const
+	{
+		return m_chatCommandStore;
+	}
+
 	inline CollisionMeshStore& ServerApplication::GetCollisionMeshStore()
 	{
 		return m_collisionMeshStore;
@@ -49,9 +70,9 @@ namespace ewn
 
 	inline Player* ServerApplication::GetPlayerBySession(std::size_t sessionId)
 	{
-		auto it = m_sessionIdToPlayer.find(sessionId);
-		if (it != m_sessionIdToPlayer.end())
-			return m_players[it->second];
+		auto it = m_sessionIdToPeer.find(sessionId);
+		if (it != m_sessionIdToPeer.end())
+			return m_sessions[it->second]->GetPlayer();
 		else
 			return nullptr;
 	}
@@ -69,6 +90,16 @@ namespace ewn
 	inline const SpaceshipHullStore& ServerApplication::GetSpaceshipHullStore() const
 	{
 		return m_spaceshipHullStore;
+	}
+
+	inline VisualMeshStore& ServerApplication::GetVisualMeshStore()
+	{
+		return m_visualMeshStore;
+	}
+
+	inline const VisualMeshStore& ServerApplication::GetVisualMeshStore() const
+	{
+		return m_visualMeshStore;
 	}
 
 	inline void ServerApplication::RegisterCallback(ServerCallback callback)

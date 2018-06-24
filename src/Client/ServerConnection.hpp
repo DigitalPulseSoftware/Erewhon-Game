@@ -40,6 +40,7 @@ namespace ewn
 			inline const ClientApplication& GetApp() const;
 			inline const ConnectionInfo& GetConnectionInfo() const;
 			inline const NetworkStringStore& GetNetworkStringStore() const;
+			inline std::size_t GetPeerId() const;
 
 			inline bool IsConnected() const;
 
