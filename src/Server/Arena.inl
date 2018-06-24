@@ -23,6 +23,11 @@ namespace ewn
 		return m_world.GetEntity(entityId);
 	}
 
+	inline Nz::LuaInstance& Arena::GetLuaInstance()
+	{
+		return m_script;
+	}
+
 	inline const std::string& Arena::GetName() const
 	{
 		return m_name;

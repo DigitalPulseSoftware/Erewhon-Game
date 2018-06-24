@@ -34,6 +34,7 @@ namespace ewn
 		RegisterCommand("debugparticles", &ServerChatCommandStore::HandleDebugParticles);
 		RegisterCommand("kamikaze", &ServerChatCommandStore::HandleSuicide);
 		RegisterCommand("kick", &ServerChatCommandStore::HandleKickPlayer);
+		RegisterCommand("reloadarena", &ServerChatCommandStore::HandleReloadArena);
 		RegisterCommand("reloadmodules", &ServerChatCommandStore::HandleReloadModules);
 		RegisterCommand("resetarena", &ServerChatCommandStore::HandleResetArena);
 		RegisterCommand("spawnfleet", &ServerChatCommandStore::HandleSpawnFleet);
@@ -95,6 +96,17 @@ namespace ewn
 		return true;
 	}
 
+	bool ServerChatCommandStore::HandleReloadArena(ServerApplication * app, Player * player)
+	{
+		if (player->GetPermissionLevel() < 30)
+			return false;
+
+		if (Arena* arena = player->GetArena())
+			arena->Reload();
+
+		return true;
+	}
+
 	bool ServerChatCommandStore::HandleReloadModules(ServerApplication* app, Player* player)
 	{
 		if (player->GetPermissionLevel() < 30)
@@ -125,6 +137,9 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName)
 	{
+		if (player->GetPermissionLevel() < 40)
+			return false;
+
 		if (Arena* arena = player->GetArena())
 			arena->SpawnFleet(player, fleetName);
 
@@ -133,6 +148,9 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleSpawnBot(ServerApplication* app, Player* player, std::string spaceshipName, std::size_t spaceshipCount)
 	{
+		if (player->GetPermissionLevel() < 40)
+			return false;
+
 		if (spaceshipCount < 1 || spaceshipCount > 10)
 		{
 			player->PrintMessage("Invalid count, must be in range [1,10]");

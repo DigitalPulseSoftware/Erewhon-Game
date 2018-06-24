@@ -37,6 +37,7 @@ namespace ewn
 
 	Arena::Arena(ServerApplication* app, std::string name, std::string scriptName) :
 	m_name(std::move(name)),
+	m_scriptName(std::move(scriptName)),
 	m_app(app),
 	m_stateBroadcastAccumulator(0.f)
 	{
@@ -73,7 +74,7 @@ namespace ewn
 			return HandleTorpedoProjectileCollision(firstBody, secondBody);
 		});
 
-		LoadScript(scriptName);
+		LoadScript(m_scriptName);
 
 		Reset();
 
@@ -111,15 +112,6 @@ namespace ewn
 		return projectile;
 	}
 
-	void Arena::DispatchChatMessage(const Nz::String& message)
-	{
-		Packets::ChatMessage chatPacket;
-		chatPacket.message = message.ToStdString();
-
-		for (Player* player : m_players)
-			player->SendPacket(chatPacket);
-	}
-
 	Player* Arena::FindPlayerByName(const std::string& name) const
 	{
 		for (Player* player : m_players)
@@ -129,6 +121,54 @@ namespace ewn
 		}
 
 		return nullptr;
+	}
+
+	void Arena::HandleChatMessage(Player* sender, const std::string& message)
+	{
+		bool shouldPrintMessage = true;
+		if (m_script.GetGlobal("OnPlayerChat") == Nz::LuaType_Function)
+		{
+			m_script.Push(sender);
+			m_script.Push(message);
+
+			if (!m_script.Call(2, 1))
+				std::cerr << "An error occurred during OnPlayerChat call: " << m_script.GetLastError() << std::endl;
+
+			shouldPrintMessage = m_script.ToBoolean(-1);
+		}
+		else
+			m_script.Pop();
+
+		if (!shouldPrintMessage)
+			return;
+
+		static constexpr std::size_t MaxChatLine = 255;
+
+		Nz::String completeMessage = sender->GetName() + ": " + message;
+		if (completeMessage.GetSize() > MaxChatLine)
+		{
+			completeMessage.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
+			completeMessage += "...";
+		}
+
+		PrintChatMessage(completeMessage.ToStdString());
+	}
+
+	void Arena::PrintChatMessage(const std::string& message)
+	{
+		std::cout << "(" << m_name << ") " << message << std::endl;
+
+		Packets::ChatMessage chatPacket;
+		chatPacket.message = message;
+
+		for (Player* player : m_players)
+			player->SendPacket(chatPacket);
+	}
+
+	void Arena::Reload()
+	{
+		LoadScript(m_scriptName);
+		Reset();
 	}
 
 	void Arena::Reset()
@@ -151,7 +191,27 @@ namespace ewn
 
 	void Arena::SpawnFleet(Player* owner, const std::string& fleetName)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { owner->GetDatabaseId(), fleetName }, [this, fleetName, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		Nz::Vector3f spawnPos;
+		Nz::Quaternionf spawnRot;
+		if (const Ndk::EntityHandle& spaceship = owner->GetControlledEntity(); spaceship != Ndk::EntityHandle::InvalidHandle)
+		{
+			Ndk::NodeComponent& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+
+			spawnRot = spaceshipNode.GetRotation();
+			spawnPos = spaceshipNode.GetPosition() + spawnRot * Nz::Vector3f::Down() * 15.f;
+		}
+		else
+		{
+			spawnPos = Nz::Vector3f::Zero();
+			spawnRot = Nz::Quaternionf::Identity();
+		}
+
+		SpawnFleet(owner, fleetName, spawnPos, spawnRot);
+	}
+
+	void Arena::SpawnFleet(Player* owner, const std::string& fleetName, const Nz::Vector3f& spawnPos, const Nz::Quaternionf& spawnRot)
+	{
+		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { owner->GetDatabaseId(), fleetName }, [this, fleetName, spawnPos, spawnRot, sessionId = owner->GetSessionId()](DatabaseResult& result)
 		{
 			if (!result)
 			{
@@ -174,7 +234,7 @@ namespace ewn
 
 			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
 
-			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [this, fleetName, sessionId](DatabaseResult& result)
+			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [this, fleetName, sessionId, spawnPos, spawnRot](DatabaseResult& result)
 			{
 				if (!result)
 				{
@@ -196,20 +256,7 @@ namespace ewn
 					return;
 				}
 
-				Nz::Vector3f spawnPos;
-				Nz::Quaternionf spawnRot;
-				if (const Ndk::EntityHandle& spaceship = ply->GetControlledEntity(); spaceship != Ndk::EntityHandle::InvalidHandle)
-				{
-					Ndk::NodeComponent& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
-
-					spawnRot = spaceshipNode.GetRotation();
-					spawnPos = spaceshipNode.GetPosition() + spawnRot * Nz::Vector3f::Down() * 15.f;
-				}
-				else
-				{
-					spawnPos = Nz::Vector3f::Zero();
-					spawnRot = Nz::Quaternionf::Identity();
-				}
+				Nz::Vector3f pos = spawnPos;
 
 				for (std::size_t i = 0; i < rowCount; ++i)
 				{
@@ -222,7 +269,7 @@ namespace ewn
 					std::size_t collisionMeshId = m_app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipHullId);
 					const Nz::Boxf& dimensions = m_app->GetCollisionMeshStore().GetEntryDimensions(collisionMeshId);
 
-					m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, spawnPos, spawnRot, offset = dimensions.width * 1.5f, sessionId, spaceshipCount, spaceshipName = std::move(name), spaceshipScript = std::move(script), spaceshipHullId](ewn::DatabaseResult& result)
+					m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, pos, spawnRot, offset = dimensions.width * 1.5f, sessionId, spaceshipCount, spaceshipName = std::move(name), spaceshipScript = std::move(script), spaceshipHullId](ewn::DatabaseResult& result)
 					{
 						Player* ply = m_app->GetPlayerBySession(sessionId);
 						if (!ply)
@@ -250,16 +297,16 @@ namespace ewn
 							return;
 						}
 
-						Nz::Vector3f pos = spawnPos;
+						Nz::Vector3f spaceshipPos = pos;
 						for (Nz::Int16 j = 0; j < spaceshipCount; ++j)
 						{
-							SpawnSpaceship(ply, spaceshipScript, spaceshipHullId, moduleIds, pos, spawnRot);
+							SpawnSpaceship(ply, spaceshipScript, spaceshipHullId, moduleIds, spaceshipPos, spawnRot);
 
-							pos += spawnRot * Nz::Vector3f::Left() * offset;
+							spaceshipPos += spawnRot * Nz::Vector3f::Left() * offset;
 						}
 					});
 
-					spawnPos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth * 1.5f;
+					pos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth * 1.5f;
 				}
 			});
 		});
@@ -480,9 +527,9 @@ namespace ewn
 					auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
 
 					Player* attackerPlayer = attackerOwner.GetOwner();
-					Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
+					std::string attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
 
-					DispatchChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
+					PrintChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
 				}
 			}
 
@@ -543,7 +590,7 @@ namespace ewn
 		return newEntity;
 	}
 
-	void Arena::LoadScript(std::string fileName)
+	bool Arena::LoadScript(std::string fileName)
 	{
 		m_script = Nz::LuaInstance();
 		m_script.LoadLibraries();
@@ -555,7 +602,12 @@ namespace ewn
 		m_script.SetGlobal("Arena");
 
 		if (!m_script.ExecuteFromFile(fileName))
-			throw std::runtime_error("Failed to execute arena script: " + m_script.GetLastError().ToStdString());
+		{
+			std::cerr << "Failed to execute arena script: " + m_script.GetLastError() << std::endl;
+			return false;
+		}
+
+		return true;
 	}
 
 	void Arena::HandlePlayerLeave(Player* player)
@@ -735,7 +787,7 @@ namespace ewn
 		});
 	}
 
-	void Arena::SpawnSpaceship(Player* owner, std::string code, std::size_t spaceshipHullId, const std::vector<std::size_t>& modules, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	const Ndk::EntityHandle& Arena::SpawnSpaceship(Player* owner, std::string code, std::size_t spaceshipHullId, const std::vector<std::size_t>& modules, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
 		assert(owner);
 
@@ -744,7 +796,7 @@ namespace ewn
 		if (!botScript.Initialize(m_app, modules))
 		{
 			owner->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
-			return;
+			return spaceship;
 		}
 
 		Nz::String lastError;
@@ -752,6 +804,8 @@ namespace ewn
 			owner->PrintMessage("Server: Script loaded with success");
 		else
 			owner->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
+
+		return spaceship;
 	}
 
 	bool Arena::HandleDefaultDefaultCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)

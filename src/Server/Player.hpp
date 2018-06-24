@@ -9,6 +9,7 @@
 
 #include <Nazara/Core/HandledObject.hpp>
 #include <Nazara/Core/ObjectHandle.hpp>
+#include <Nazara/Math/Box.hpp>
 #include <NDK/EntityOwner.hpp>
 #include <Shared/NetworkReactor.hpp>
 #include <Server/ServerCommandStore.hpp>
@@ -26,6 +27,8 @@ namespace ewn
 		friend class ServerCommandStore;
 
 		public:
+			struct FleetData;
+
 			Player(ServerApplication* app, std::size_t peerId, std::size_t sessionId, NetworkReactor& reactor, const ServerCommandStore& commandStore);
 			~Player();
 
@@ -40,9 +43,11 @@ namespace ewn
 
 			inline void Disconnect(Nz::UInt32 data = 0);
 
+			inline ServerApplication* GetApp() const;
 			inline Arena* GetArena() const;
 			inline const Ndk::EntityHandle& GetControlledEntity() const;
 			inline Nz::Int32 GetDatabaseId() const;
+			void GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback);
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetLogin() const;
 			inline Nz::UInt16 GetPermissionLevel() const;
@@ -67,6 +72,24 @@ namespace ewn
 			void UpdateControlledEntity(const Ndk::EntityHandle& entity);
 			void UpdateInput(Nz::UInt64 time, Nz::Vector3f direction, Nz::Vector3f rotation);
 			void UpdatePermissionLevel(Nz::UInt16 permissionLevel, std::function<void(bool updateSucceeded)> databaseCallback = nullptr);
+
+			struct FleetData
+			{
+				struct Spaceship
+				{
+					Nz::Boxf dimensions;
+					Nz::Int32 spaceshipId;
+					std::size_t count;
+					std::size_t hullId;
+					std::size_t collisionMeshId;
+					std::string script;
+					std::string name;
+					std::vector<std::size_t> modules;
+				};
+
+				std::size_t fleetId;
+				std::vector<Spaceship> spaceships;
+			};
 
 		private:
 			void OnAuthenticated(std::string login, std::string displayName, Nz::UInt16 permissionLevel);

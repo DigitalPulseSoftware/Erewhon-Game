@@ -15,6 +15,30 @@ namespace ewn
 	template<typename T>
 	struct AlwaysFalse : std::false_type {};
 
+	template<typename... Args>
+	struct OverloadResolver
+	{
+		template<typename R, typename T>
+		constexpr auto operator()(R(T::*ptr)(Args...)) const noexcept
+		{
+			return ptr;
+		}
+
+		template<typename R, typename T>
+		constexpr auto operator()(R(T::*ptr)(Args...) const) const noexcept
+		{
+			return ptr;
+		}
+
+		template<typename R>
+		constexpr auto operator()(R(*ptr)(Args...)) const noexcept
+		{
+			return ptr;
+		}
+	};
+
+	template<typename... Args> constexpr OverloadResolver<Args...> Overload = {};
+
 	Nz::Vector3f DampenedString(const Nz::Vector3f& currentPos, const Nz::Vector3f& targetPos, float frametime, float springStrength = 3.f);
 }
 

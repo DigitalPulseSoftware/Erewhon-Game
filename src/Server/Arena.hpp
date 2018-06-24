@@ -47,22 +47,27 @@ namespace ewn
 			const Ndk::EntityHandle& CreateSpaceship(std::string name, Player* owner, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			const Ndk::EntityHandle& CreateTorpedo(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 
-			void DispatchChatMessage(const Nz::String& message);
-
 			Player* FindPlayerByName(const std::string& name) const;
 
 			inline const Ndk::EntityHandle& GetEntity(Ndk::EntityId entityId);
+			inline Nz::LuaInstance& GetLuaInstance();
 			inline const std::string& GetName() const;
+
+			void HandleChatMessage(Player* sender, const std::string& message);
 
 			inline bool IsEntityIdValid(Ndk::EntityId entityId) const;
 
+			void PrintChatMessage(const std::string& message);
+
+			void Reload();
 			void Reset();
 
 			void SpawnFleet(Player* owner, const std::string& fleetName);
+			void SpawnFleet(Player* owner, const std::string& fleetName, const Nz::Vector3f& spawnPos, const Nz::Quaternionf& spawnRot);
 			void SpawnSpaceship(Player* owner, const std::string& spaceshipName, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			void SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 			void SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, std::string code, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
-			void SpawnSpaceship(Player* owner, std::string code, std::size_t spaceshipHullId, const std::vector<std::size_t>& modules, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
+			const Ndk::EntityHandle& SpawnSpaceship(Player* owner, std::string code, std::size_t spaceshipHullId, const std::vector<std::size_t>& modules, const Nz::Vector3f& position, const Nz::Quaternionf& rotation);
 
 			void Update(float elapsedTime);
 
@@ -70,7 +75,7 @@ namespace ewn
 			Arena& operator=(Arena&&) = delete;
 
 		private:
-			void LoadScript(std::string fileName);
+			bool LoadScript(std::string fileName);
 
 			void HandlePlayerLeave(Player* player);
 			void HandlePlayerJoin(Player* player);
@@ -90,6 +95,7 @@ namespace ewn
 			Ndk::EntityList m_scriptControlledEntities;
 			Ndk::World m_world;
 			std::string m_name;
+			std::string m_scriptName;
 			std::unordered_set<Player*> m_players;
 			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;

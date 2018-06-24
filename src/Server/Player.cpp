@@ -124,6 +124,110 @@ namespace ewn
 		});
 	}
 
+	void Player::GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback)
+	{
+		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { GetDatabaseId(), fleetName }, [app = m_app, fleetName, cb = std::move(callback), sessionId = GetSessionId()](DatabaseResult& result)
+		{
+			if (!result)
+			{
+				cb(false, FleetData());
+
+				std::cerr << "FindFleetByOwnerIdAndName failed: " << result.GetLastErrorMessage() << std::endl;
+				return;
+			}
+
+			Player* ply = app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (result.GetRowCount() == 0)
+			{
+				cb(false, FleetData());
+				return;
+			}
+
+			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
+
+			app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [app, fleetCallback = std::move(cb), fleetId, fleetName, sessionId](DatabaseResult& result)
+			{
+				if (!result)
+				{
+					fleetCallback(false, FleetData());
+
+					std::cerr << "FindFleetSpaceshipByFleetId failed: " << result.GetLastErrorMessage() << std::endl;
+					return;
+				}
+
+				Player* ply = app->GetPlayerBySession(sessionId);
+				if (!ply)
+					return;
+
+				std::size_t rowCount = result.GetRowCount();
+				if (rowCount == 0)
+				{
+					fleetCallback(false, FleetData());
+					return;
+				}
+
+				Nz::Vector3f pos = Nz::Vector3f::Zero();
+
+				ewn::DatabaseTransaction trans;
+
+				FleetData pendingFleetData;
+				pendingFleetData.fleetId = static_cast<std::size_t>(fleetId);
+				pendingFleetData.spaceships.reserve(rowCount);
+
+				for (std::size_t i = 0; i < rowCount; ++i)
+				{
+					Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+
+					auto& spaceshipData = pendingFleetData.spaceships.emplace_back();
+					spaceshipData.spaceshipId = static_cast<std::size_t>(spaceshipId);
+					spaceshipData.count = static_cast<std::size_t>(std::get<Nz::Int16>(result.GetValue(1)));
+					spaceshipData.name = std::get<std::string>(result.GetValue(2));
+					spaceshipData.script = std::get<std::string>(result.GetValue(3));
+					spaceshipData.hullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(4)));
+					spaceshipData.collisionMeshId = app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipData.hullId);
+					spaceshipData.dimensions = app->GetCollisionMeshStore().GetEntryDimensions(spaceshipData.collisionMeshId);
+
+					trans.AppendPreparedStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId });
+				}
+
+				app->GetGlobalDatabase().ExecuteTransaction(std::move(trans), [cb = std::move(fleetCallback), fleetData = std::move(pendingFleetData)](bool transactionSucceeded, std::vector<ewn::DatabaseResult>& results) mutable
+				{
+					if (!transactionSucceeded)
+					{
+						cb(false, FleetData());
+						return;
+					}
+
+					for (std::size_t i = 0; i < fleetData.spaceships.size(); ++i)
+					{
+						ewn::DatabaseResult& result = results[i + 1]; //< +1 because of begin
+
+						std::size_t moduleCount = result.GetRowCount();
+
+						fleetData.spaceships[i].modules.reserve(moduleCount);
+						try
+						{
+							for (std::size_t j = 0; j < moduleCount; ++j)
+								fleetData.spaceships[i].modules.push_back(static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, j))));
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+
+							cb(false, FleetData());
+							return;
+						}
+					}
+
+					cb(true, fleetData);
+				});
+			});
+		});
+	}
+
 	const Ndk::EntityHandle& Player::InstantiateBot(const std::string& name, std::size_t spaceshipHullId, Nz::Vector3f positionOffset)
 	{
 		constexpr std::size_t MaxBots = 10;
@@ -299,6 +403,9 @@ namespace ewn
 		rotation.z = Nz::Clamp(rotation.z, -1.f, 1.f);
 
 		auto& controlComponent = m_controlledEntity->GetComponent<InputComponent>();
+		if (lastInputTime <= controlComponent.GetLastInputTime())
+			return; //< FIXME?
+
 		controlComponent.PushInput(lastInputTime, movement, rotation);
 	}
 

@@ -19,6 +19,11 @@ namespace ewn
 		m_networkReactor.DisconnectPeer(m_peerId, data);
 	}
 
+	inline ServerApplication* Player::GetApp() const
+	{
+		return m_app;
+	}
+
 	inline Arena* Player::GetArena() const
 	{
 		return m_arena;

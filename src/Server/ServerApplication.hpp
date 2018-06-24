@@ -38,6 +38,8 @@ namespace ewn
 			ServerApplication();
 			virtual ~ServerApplication();
 
+			Arena& CreateArena(std::string name, std::string script);
+
 			inline void DispatchWork(WorkerFunction workFunc);
 
 			inline CollisionMeshStore& GetCollisionMeshStore();

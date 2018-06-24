@@ -27,9 +27,6 @@ namespace ewn
 	{
 		RegisterConfigOptions();
 		RegisterNetworkedStrings();
-
-		m_arenas.emplace_back(std::make_unique<Arena>(this, "Le Royaume de Belgique", "arena.lua"));
-		m_arenas.emplace_back(std::make_unique<Arena>(this, "La Cinquième République", "arena.lua"));
 	}
 
 	ServerApplication::~ServerApplication()
@@ -42,6 +39,12 @@ namespace ewn
 				m_playerPool.Delete(player);
 			}
 		}
+	}
+
+	Arena& ServerApplication::CreateArena(std::string name, std::string script)
+	{
+		m_arenas.emplace_back(std::make_unique<Arena>(this, std::move(name), std::move(script)));
+		return *m_arenas.back().get();
 	}
 
 	bool ServerApplication::LoadDatabase()
@@ -169,7 +172,9 @@ namespace ewn
 		if (!receivedModules.all())
 			return;
 
-		std::vector<std::size_t> modules(data.modules.size());
+		std::vector<std::size_t> modules;
+		modules.reserve(data.modules.size());
+
 		for (const auto& packetModule : data.modules)
 			modules.push_back(packetModule.moduleId);
 
@@ -345,7 +350,7 @@ namespace ewn
 		m_sessionIdToPlayer.insert_or_assign(m_nextSessionId, peerId);
 		m_nextSessionId++;
 
-		// Send newtorked strings
+		// Send networked strings
 		m_players[peerId]->SendPacket(m_stringStore.BuildPacket(0));
 	}
 
@@ -707,20 +712,7 @@ namespace ewn
 		}
 
 		if (Arena* arena = player->GetArena())
-		{
-			static constexpr std::size_t MaxChatLine = 255;
-
-			Nz::String message = player->GetName() + ": " + data.text;
-			if (message.GetSize() > MaxChatLine)
-			{
-				message.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
-				message += "...";
-			}
-
-			std::cout << message << std::endl;
-
-			arena->DispatchChatMessage(message);
-		}
+			arena->HandleChatMessage(player, data.text);
 	}
 
 	void ServerApplication::HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data)

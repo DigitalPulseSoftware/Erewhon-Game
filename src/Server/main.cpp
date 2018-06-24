@@ -64,6 +64,10 @@ int main()
 		return EXIT_FAILURE;
 	}
 
+	app.CreateArena("L'Arène de trèfle", "arena.lua");
+	app.CreateArena("L'Arène d'Angleterre", "arena.lua");
+	app.CreateArena("Le bac à sable", "sandbox.lua");
+
 	const ewn::ConfigFile& config = app.GetConfig();
 	if (!app.SetupNetwork(config.GetIntegerOption<std::size_t>("Game.MaxClients"), 1, Nz::NetProtocol_Any, config.GetIntegerOption<Nz::UInt16>("Game.Port")))
 	{
