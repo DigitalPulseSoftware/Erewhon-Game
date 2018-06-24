@@ -677,10 +677,13 @@ namespace ewn
 		arenaSoundsPacket.sounds.back().filePath = "sounds/laserTurretlow.ogg";
 
 		arenaSoundsPacket.sounds.emplace_back();
-		arenaSoundsPacket.sounds.back().filePath = "sounds/106733__crunchynut__sci-fi-loop-2.wav";
+		arenaSoundsPacket.sounds.back().filePath = "sounds/torpedo_loop.wav";
 
 		arenaSoundsPacket.sounds.emplace_back();
 		arenaSoundsPacket.sounds.back().filePath = "sounds/spaceship_explosion.wav";
+
+		arenaSoundsPacket.sounds.emplace_back();
+		arenaSoundsPacket.sounds.back().filePath = "sounds/plasmabeam_loop.wav";
 
 		player->SendPacket(arenaSoundsPacket);
 
@@ -705,6 +708,11 @@ namespace ewn
 
 		// Plasma beam
 		arenaPrefabsPacket.prefabs.emplace_back();
+
+		arenaPrefabsPacket.prefabs.back().sounds.emplace_back();
+		arenaPrefabsPacket.prefabs.back().sounds.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().sounds.back().soundId = 3;
+
 		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("plasmabeam");
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
@@ -713,6 +721,11 @@ namespace ewn
 
 		// Torpedo
 		arenaPrefabsPacket.prefabs.emplace_back();
+
+		arenaPrefabsPacket.prefabs.back().sounds.emplace_back();
+		arenaPrefabsPacket.prefabs.back().sounds.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().sounds.back().soundId = 1;
+
 		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("torpedo");
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
