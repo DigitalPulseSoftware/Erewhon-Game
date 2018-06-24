@@ -97,6 +97,7 @@ function OnPlayerChat(player, message)
 				player:PrintMessage("Your fighting fleet has been updated to \"" .. fleetName .. "\"")
 			else
 				player:PrintMessage("Your participation has been registered with fleet \"" .. fleetName .. "\"")
+				Arena:PrintChatMessage(player:GetName() .. " is ready to fight!")
 			end
 
 			fightingPlayers[player:GetSessionId()] = {FleetData = fleet, Player = player}
