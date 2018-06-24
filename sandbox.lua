@@ -40,6 +40,11 @@ end
 function OnPlayerLeave(player)
 	Arena:PrintChatMessage(string.format("Player %s left", player:GetName()));
 
+	local playerData = players[player:GetSessionId()]
+	if (playerData.Spaceship and playerData.Spaceship:IsValidHandle()) then
+		playerData.Spaceship:Kill()
+	end
+
 	players[player:GetSessionId()] = nil
 end
 
@@ -62,8 +67,8 @@ function OnUpdate(elapsedTime)
 
 	for sessionId, playerData in pairs(players) do
 		if (playerData.RespawnTime < timeSinceStart and not playerData.Player:GetControlledEntity():IsValidHandle()) then
-			local spaceship = Arena:CreateSpaceship(playerData.Player:GetName(), playerData.Player, 1, Vector3(0, 0, 0), Quaternion.Identity)
-			playerData.Player:UpdateControlledEntity(spaceship)
+			playerData.Spaceship = Arena:CreateSpaceship(playerData.Player:GetName(), playerData.Player, 1, Vector3(0, 0, 0), Quaternion.Identity)
+			playerData.Player:UpdateControlledEntity(playerData.Spaceship)
 		end
 	end
 end
