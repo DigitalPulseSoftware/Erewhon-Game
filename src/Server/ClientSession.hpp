@@ -46,6 +46,7 @@ namespace ewn
 			void HandlePlayerMovement(const Packets::PlayerMovement& data);
 			void HandlePlayerShoot(const Packets::PlayerShoot& data);
 			void HandleQueryArenaList(const Packets::QueryArenaList& data);
+			void HandleQueryFleetList(const Packets::QueryFleetList& data);
 			void HandleQueryHullList(const Packets::QueryHullList& data);
 			void HandleQueryModuleList(const Packets::QueryModuleList& data);
 			void HandleQuerySpaceshipInfo(const Packets::QuerySpaceshipInfo& data);

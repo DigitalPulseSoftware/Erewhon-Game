@@ -58,14 +58,15 @@ namespace ewn
 	}
 
 	template<typename T>
-	PacketSerializer::SerializeArraySize(T& array)
+	void PacketSerializer::SerializeArraySize(T& array)
 	{
 		CompressedUnsigned<Nz::UInt32> arraySize;
 		if (IsWriting())
 			arraySize = Nz::UInt32(array.size());
 
-		serializer &= arraySize;
-		if (!serializer.IsWriting())
+		Serialize(arraySize);
+
+		if (!IsWriting())
 			array.resize(arraySize);
 	}
 
