@@ -197,13 +197,13 @@ function StartFight()
 		playerData.Name = fightData.Player:GetName()
 		playerData.Spaceships = {}
 
-		for k,spaceshipData in pairs(fightData.FleetData.spaceships) do
-			for i = 1, spaceshipData.count do
-				local spaceship = Arena:SpawnSpaceship(fightData.Player, spaceshipData.script, spaceshipData.hullId, spaceshipData.modules, startPos, Quaternion.Identity)
-				table.insert(playerData.Spaceships, spaceship)
-				startPos.z = startPos.z + 15
-			end
-			startPos.x = startPos.x + 15
+		local fleetData = fightData.FleetData
+		for k,spaceshipData in pairs(fleetData.spaceships) do
+			local spaceshipType = fleetData.spaceshipTypes[spaceshipData.spaceshipType]
+
+			local position = Vector3(startPos.x + spaceshipData.position.x, startPos.y + spaceshipData.position.y, startPos.z + spaceshipData.position.z)
+			local spaceship = Arena:SpawnSpaceship(fightData.Player, spaceshipType.script, spaceshipType.hullId, spaceshipType.modules, position, Quaternion.Identity)
+			table.insert(playerData.Spaceships, spaceship)
 		end
 
 		table.insert(fightInfo.Players, playerData)

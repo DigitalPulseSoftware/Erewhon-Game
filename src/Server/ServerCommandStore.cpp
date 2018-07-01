@@ -17,7 +17,9 @@ namespace ewn
 
 		// Incoming commands
 		IncomingCommand(ControlEntity);
+		IncomingCommand(CreateFleet);
 		IncomingCommand(CreateSpaceship);
+		IncomingCommand(DeleteFleet);
 		IncomingCommand(DeleteSpaceship);
 		IncomingCommand(JoinArena);
 		IncomingCommand(LeaveArena);
@@ -27,12 +29,14 @@ namespace ewn
 		IncomingCommand(PlayerMovement);
 		IncomingCommand(PlayerShoot);
 		IncomingCommand(QueryArenaList);
+		IncomingCommand(QueryFleetList);
 		IncomingCommand(QueryHullList);
 		IncomingCommand(QueryModuleList);
 		IncomingCommand(QuerySpaceshipInfo);
 		IncomingCommand(QuerySpaceshipList);
 		IncomingCommand(Register);
 		IncomingCommand(TimeSyncRequest);
+		IncomingCommand(UpdateFleet);
 		IncomingCommand(UpdateSpaceship);
 
 		// Outgoing commands
@@ -45,11 +49,16 @@ namespace ewn
 		OutgoingCommand(ChatMessage,               Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ControlEntity,             Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateEntity,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateFleetFailure,        Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateFleetSuccess,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateSpaceshipSuccess,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteEntity,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteFleetFailure,        Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteFleetSuccess,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteSpaceshipSuccess,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(FleetList,                 Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(HullList,                  Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(InstantiateParticleSystem, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(IntegrityUpdate,           Nz::ENetPacketFlag_Reliable, 0);
@@ -63,6 +72,8 @@ namespace ewn
 		OutgoingCommand(SpaceshipInfo,             Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(SpaceshipList,             Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncResponse,          0,                           0);
+		OutgoingCommand(UpdateFleetFailure,        Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(UpdateFleetSuccess,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(UpdateSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(UpdateSpaceshipSuccess,    Nz::ENetPacketFlag_Reliable, 0);
 

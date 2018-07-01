@@ -10,7 +10,6 @@
 #include <NDK/Components/LightComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/StateMachine.hpp>
-#include <Shared/Protocol/Packets.hpp>
 #include <cassert>
 
 namespace ewn

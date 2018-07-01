@@ -35,7 +35,9 @@ namespace ewn
 
 		private:
 			void HandleControlEntity(const Packets::ControlEntity& data);
+			void HandleCreateFleet(const Packets::CreateFleet& data);
 			void HandleCreateSpaceship(const Packets::CreateSpaceship& data);
+			void HandleDeleteFleet(const Packets::DeleteFleet& data);
 			void HandleDeleteSpaceship(const Packets::DeleteSpaceship& data);
 			void HandleLogin(const Packets::Login& data);
 			void HandleLoginByToken(const Packets::LoginByToken& data);
@@ -53,6 +55,7 @@ namespace ewn
 			void HandleQuerySpaceshipList(const Packets::QuerySpaceshipList& data);
 			void HandleRegister(const Packets::Register& data);
 			void HandleTimeSyncRequest(const Packets::TimeSyncRequest& data);
+			void HandleUpdateFleet(const Packets::UpdateFleet& data);
 			void HandleUpdateSpaceship(const Packets::UpdateSpaceship& data);
 
 			std::shared_ptr<Player> m_player;

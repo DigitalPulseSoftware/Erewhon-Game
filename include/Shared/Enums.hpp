@@ -18,6 +18,19 @@ namespace ewn
 		Info
 	};
 
+	enum class CreateFleetFailureReason : Nz::UInt8
+	{
+		AlreadyExists,
+		ServerError
+	};
+
+	enum class DeleteFleetFailureReason : Nz::UInt8
+	{
+		MustHaveAtLeastOne,
+		NotFound,
+		ServerError
+	};
+
 	enum class CreateSpaceshipFailureReason : Nz::UInt8
 	{
 		AlreadyExists,
@@ -55,6 +68,12 @@ namespace ewn
 	{
 		EmailAlreadyTaken,
 		LoginAlreadyTaken,
+		ServerError
+	};
+
+	enum class UpdateFleetFailureReason : Nz::UInt8
+	{
+		NotFound,
 		ServerError
 	};
 

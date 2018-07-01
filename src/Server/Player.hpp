@@ -76,11 +76,10 @@ namespace ewn
 
 			struct FleetData
 			{
-				struct Spaceship
+				struct SpaceshipType
 				{
 					Nz::Boxf dimensions;
 					Nz::Int32 spaceshipId;
-					std::size_t count;
 					std::size_t hullId;
 					std::size_t collisionMeshId;
 					std::string script;
@@ -88,8 +87,16 @@ namespace ewn
 					std::vector<std::size_t> modules;
 				};
 
+				struct Spaceship
+				{
+					Nz::Vector3f position;
+					std::size_t spaceshipType;
+				};
+
 				std::size_t fleetId;
+				std::string fleetName;
 				std::vector<Spaceship> spaceships;
+				std::vector<SpaceshipType> spaceshipTypes;
 			};
 
 			static constexpr std::size_t InvalidSessionId = std::numeric_limits<std::size_t>::max();

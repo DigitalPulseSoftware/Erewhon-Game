@@ -12,6 +12,7 @@
 #include <Shared/Protocol/PacketSerializer.hpp>
 #include <Nazara/Prerequisites.hpp>
 #include <Nazara/Core/String.hpp>
+#include <Nazara/Math/Box.hpp>
 #include <Nazara/Math/Quaternion.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <Nazara/Network/NetPacket.hpp>
@@ -32,13 +33,20 @@ namespace ewn
 		ChatMessage,
 		ControlEntity,
 		CreateEntity,
+		CreateFleet,
+		CreateFleetFailure,
+		CreateFleetSuccess,
 		CreateSpaceship,
 		CreateSpaceshipFailure,
 		CreateSpaceshipSuccess,
 		DeleteEntity,
+		DeleteFleet,
+		DeleteFleetFailure,
+		DeleteFleetSuccess,
 		DeleteSpaceship,
 		DeleteSpaceshipFailure,
 		DeleteSpaceshipSuccess,
+		FleetList,
 		HullList,
 		InstantiateParticleSystem,
 		IntegrityUpdate,
@@ -55,6 +63,7 @@ namespace ewn
 		PlayerMovement,
 		PlayerShoot,
 		QueryArenaList,
+		QueryFleetList,
 		QueryHullList,
 		QueryModuleList,
 		QuerySpaceshipInfo,
@@ -66,6 +75,9 @@ namespace ewn
 		SpaceshipList,
 		TimeSyncRequest,
 		TimeSyncResponse,
+		UpdateFleet,
+		UpdateFleetFailure,
+		UpdateFleetSuccess,
 		UpdateSpaceship,
 		UpdateSpaceshipFailure,
 		UpdateSpaceshipSuccess
@@ -199,6 +211,28 @@ namespace ewn
 			Nz::String visualName;
 		};
 
+		DeclarePacket(CreateFleet)
+		{
+			struct Spaceship
+			{
+				CompressedUnsigned<Nz::UInt32> spaceshipNameId;
+				Nz::Vector3f spaceshipPosition;
+			};
+
+			std::string fleetName;
+			std::vector<std::string> spaceshipNames;
+			std::vector<Spaceship> spaceships;
+		};
+
+		DeclarePacket(CreateFleetFailure)
+		{
+			CreateFleetFailureReason reason;
+		};
+
+		DeclarePacket(CreateFleetSuccess)
+		{
+		};
+
 		DeclarePacket(CreateSpaceship)
 		{
 			struct ModuleInfo
@@ -227,6 +261,20 @@ namespace ewn
 			CompressedUnsigned<Nz::UInt32> id;
 		};
 
+		DeclarePacket(DeleteFleet)
+		{
+			std::string fleetName;
+		};
+
+		DeclarePacket(DeleteFleetFailure)
+		{
+			DeleteFleetFailureReason reason;
+		};
+
+		DeclarePacket(DeleteFleetSuccess)
+		{
+		};
+
 		DeclarePacket(DeleteSpaceship)
 		{
 			std::string spaceshipName;
@@ -239,6 +287,16 @@ namespace ewn
 
 		DeclarePacket(DeleteSpaceshipSuccess)
 		{
+		};
+
+		DeclarePacket(FleetList)
+		{
+			struct Fleet
+			{
+				std::string name;
+			};
+
+			std::vector<Fleet> fleets;
 		};
 
 		DeclarePacket(HullList)
@@ -354,6 +412,10 @@ namespace ewn
 		{
 		};
 
+		DeclarePacket(QueryFleetList)
+		{
+		};
+
 		DeclarePacket(QueryHullList)
 		{
 		};
@@ -395,9 +457,12 @@ namespace ewn
 				CompressedUnsigned<Nz::UInt16> currentModule;
 			};
 
+			Nz::Boxf collisionBox;
 			CompressedUnsigned<Nz::UInt32> hullId;
 			std::string hullModelPath;
+			std::string spaceshipName;
 			std::vector<ModuleInfo> modules;
+			float scale;
 		};
 
 		DeclarePacket(SpaceshipList)
@@ -419,6 +484,29 @@ namespace ewn
 		{
 			Nz::UInt8 requestId;
 			CompressedUnsigned<Nz::UInt64> serverTime;
+		};
+
+		DeclarePacket(UpdateFleet)
+		{
+			struct Spaceship
+			{
+				CompressedUnsigned<Nz::UInt32> spaceshipNameId;
+				Nz::Vector3f spaceshipPosition;
+			};
+
+			std::string fleetName;
+			std::string newFleetName;
+			std::vector<std::string> spaceshipNames;
+			std::vector<Spaceship> spaceships;
+		};
+
+		DeclarePacket(UpdateFleetFailure)
+		{
+			UpdateFleetFailureReason reason;
+		};
+
+		DeclarePacket(UpdateFleetSuccess)
+		{
 		};
 
 		DeclarePacket(UpdateSpaceship)
@@ -456,13 +544,20 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, ChatMessage& data);
 		void Serialize(PacketSerializer& serializer, ControlEntity& data);
 		void Serialize(PacketSerializer& serializer, CreateEntity& data);
+		void Serialize(PacketSerializer& serializer, CreateFleet& data);
+		void Serialize(PacketSerializer& serializer, CreateFleetFailure& data);
+		void Serialize(PacketSerializer& serializer, CreateFleetSuccess& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceshipFailure& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceshipSuccess& data);
 		void Serialize(PacketSerializer& serializer, DeleteEntity& data);
+		void Serialize(PacketSerializer& serializer, DeleteFleet& data);
+		void Serialize(PacketSerializer& serializer, DeleteFleetFailure& data);
+		void Serialize(PacketSerializer& serializer, DeleteFleetSuccess& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceshipFailure& data);
 		void Serialize(PacketSerializer& serializer, DeleteSpaceshipSuccess& data);
+		void Serialize(PacketSerializer& serializer, FleetList& data);
 		void Serialize(PacketSerializer& serializer, HullList& data);
 		void Serialize(PacketSerializer& serializer, InstantiateParticleSystem& data);
 		void Serialize(PacketSerializer& serializer, IntegrityUpdate& data);
@@ -479,6 +574,7 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, PlayerShoot& data);
 		void Serialize(PacketSerializer& serializer, PlaySound& data);
 		void Serialize(PacketSerializer& serializer, QueryArenaList& data);
+		void Serialize(PacketSerializer& serializer, QueryFleetList& data);
 		void Serialize(PacketSerializer& serializer, QueryHullList& data);
 		void Serialize(PacketSerializer& serializer, QueryModuleList& data);
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data);
@@ -490,6 +586,9 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, SpaceshipList& data);
 		void Serialize(PacketSerializer& serializer, TimeSyncRequest& data);
 		void Serialize(PacketSerializer& serializer, TimeSyncResponse& data);
+		void Serialize(PacketSerializer& serializer, UpdateFleet& data);
+		void Serialize(PacketSerializer& serializer, UpdateFleetFailure& data);
+		void Serialize(PacketSerializer& serializer, UpdateFleetSuccess& data);
 		void Serialize(PacketSerializer& serializer, UpdateSpaceship& data);
 		void Serialize(PacketSerializer& serializer, UpdateSpaceshipFailure& data);
 		void Serialize(PacketSerializer& serializer, UpdateSpaceshipSuccess& data);

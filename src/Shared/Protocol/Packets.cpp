@@ -118,6 +118,30 @@ namespace ewn
 			serializer &= data.visualName;
 		}
 
+		void Serialize(PacketSerializer& serializer, CreateFleet& data)
+		{
+			serializer &= data.fleetName;
+			serializer.SerializeArraySize(data.spaceshipNames);
+			for (auto& name : data.spaceshipNames)
+				serializer &= name;
+
+			serializer.SerializeArraySize(data.spaceships);
+			for (auto& spaceship : data.spaceships)
+			{
+				serializer &= spaceship.spaceshipNameId;
+				serializer &= spaceship.spaceshipPosition;
+			}
+		}
+
+		void Serialize(PacketSerializer& serializer, CreateFleetFailure& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.reason);
+		}
+
+		void Serialize(PacketSerializer& serializer, CreateFleetSuccess& data)
+		{
+		}
+
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data)
 		{
 			serializer &= data.hullId;
@@ -146,6 +170,20 @@ namespace ewn
 			serializer &= data.id;
 		}
 
+		void Serialize(PacketSerializer& serializer, DeleteFleet& data)
+		{
+			serializer &= data.fleetName;
+		}
+
+		void Serialize(PacketSerializer& serializer, DeleteFleetFailure& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.reason);
+		}
+
+		void Serialize(PacketSerializer& serializer, DeleteFleetSuccess& data)
+		{
+		}
+
 		void Serialize(PacketSerializer& serializer, DeleteSpaceship& data)
 		{
 			serializer &= data.spaceshipName;
@@ -158,6 +196,13 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, DeleteSpaceshipSuccess& data)
 		{
+		}
+
+		void Serialize(PacketSerializer& serializer, FleetList& data)
+		{
+			serializer.SerializeArraySize(data.fleets);
+			for (auto& fleet : data.fleets)
+				serializer &= fleet.name;
 		}
 
 		void Serialize(PacketSerializer& serializer, HullList& data)
@@ -280,6 +325,10 @@ namespace ewn
 		{
 		}
 
+		void Serialize(PacketSerializer& serializer, QueryFleetList& data)
+		{
+		}
+
 		void Serialize(PacketSerializer& serializer, QueryHullList& data)
 		{
 		}
@@ -315,8 +364,11 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, SpaceshipInfo& data)
 		{
+			serializer &= data.collisionBox;
 			serializer &= data.hullId;
 			serializer &= data.hullModelPath;
+			serializer &= data.scale;
+			serializer &= data.spaceshipName;
 
 			// Modules
 			serializer.SerializeArraySize(data.modules);
@@ -343,6 +395,31 @@ namespace ewn
 		{
 			serializer &= data.requestId;
 			serializer &= data.serverTime;
+		}
+
+		void Serialize(PacketSerializer& serializer, UpdateFleet& data)
+		{
+			serializer &= data.fleetName;
+			serializer &= data.newFleetName;
+			serializer.SerializeArraySize(data.spaceshipNames);
+			for (auto& name : data.spaceshipNames)
+				serializer &= name;
+
+			serializer.SerializeArraySize(data.spaceships);
+			for (auto& spaceship : data.spaceships)
+			{
+				serializer &= spaceship.spaceshipNameId;
+				serializer &= spaceship.spaceshipPosition;
+			}
+		}
+
+		void Serialize(PacketSerializer& serializer, UpdateFleetFailure& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.reason);
+		}
+
+		void Serialize(PacketSerializer& serializer, UpdateFleetSuccess& data)
+		{
 		}
 
 		void Serialize(PacketSerializer& serializer, UpdateSpaceship& data)
