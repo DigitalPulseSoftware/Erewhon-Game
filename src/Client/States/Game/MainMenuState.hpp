@@ -29,9 +29,11 @@ namespace ewn
 			void OnArenaButtonPressed(std::size_t arenaId);
 			void OnArenaList(ServerConnection* server, const Packets::ArenaList& arenaList);
 			void OnDisconnectPressed();
+			void OnFleetFactoryPressed();
 			void OnRefreshPressed();
 			void OnSpaceshipFactoryPressed();
 
+			Ndk::ButtonWidget* m_fleetButton;
 			Ndk::ButtonWidget* m_disconnectButton;
 			Ndk::ButtonWidget* m_refreshButton;
 			Ndk::ButtonWidget* m_spaceshipButton;

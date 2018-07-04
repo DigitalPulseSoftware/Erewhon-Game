@@ -10,6 +10,7 @@
 #include <Client/States/BackgroundState.hpp>
 #include <Client/States/ConnectionLostState.hpp>
 #include <Client/States/DisconnectionState.hpp>
+#include <Client/States/Game/FleetListState.hpp>
 #include <Client/States/Game/SpaceshipListState.hpp>
 #include <Client/States/Game/TimeSyncState.hpp>
 #include <cassert>
@@ -38,6 +39,15 @@ namespace ewn
 		m_refreshButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnRefreshPressed();
+		});
+
+		m_fleetButton = CreateWidget<Ndk::ButtonWidget>();
+		m_fleetButton->UpdateText(Nz::SimpleTextDrawer::Draw("Fleet factory", 24));
+		m_fleetButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		m_fleetButton->ResizeToContent();
+		m_fleetButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
+		{
+			OnFleetFactoryPressed();
 		});
 
 		m_spaceshipButton = CreateWidget<Ndk::ButtonWidget>();
@@ -77,6 +87,8 @@ namespace ewn
 		m_spaceshipButton->SetPosition({ leftCursor.x - m_spaceshipButton->GetSize().x / 2.f, leftCursor.y, 0.f });
 		leftCursor.y += m_spaceshipButton->GetSize().y + 10.f;
 
+		m_fleetButton->SetPosition({ leftCursor.x - m_fleetButton->GetSize().x / 2.f, leftCursor.y, 0.f });
+		leftCursor.y += m_fleetButton->GetSize().y + 10.f;
 
 		// Center
 		m_welcomeTextLabel->CenterHorizontal();
@@ -135,6 +147,11 @@ namespace ewn
 		StateData& stateData = GetStateData();
 		stateData.fsm->ResetState(std::make_shared<BackgroundState>(stateData));
 		stateData.fsm->PushState(std::make_shared<DisconnectionState>(stateData, false));
+	}
+
+	void MainMenuState::OnFleetFactoryPressed()
+	{
+		GetStateData().fsm->ChangeState(std::make_shared<FleetListState>(GetStateData(), shared_from_this()));
 	}
 
 	void MainMenuState::OnRefreshPressed()

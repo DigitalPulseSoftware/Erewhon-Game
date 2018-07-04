@@ -25,11 +25,17 @@ namespace ewn
 		IncomingCommand(ChatMessage);
 		IncomingCommand(ControlEntity);
 		IncomingCommand(CreateEntity);
+		IncomingCommand(CreateFleetFailure);
+		IncomingCommand(CreateFleetSuccess);
 		IncomingCommand(CreateSpaceshipFailure);
 		IncomingCommand(CreateSpaceshipSuccess);
 		IncomingCommand(DeleteEntity);
+		IncomingCommand(DeleteFleetFailure);
+		IncomingCommand(DeleteFleetSuccess);
 		IncomingCommand(DeleteSpaceshipFailure);
 		IncomingCommand(DeleteSpaceshipSuccess);
+		IncomingCommand(FleetInfo);
+		IncomingCommand(FleetList);
 		IncomingCommand(HullList);
 		IncomingCommand(InstantiateParticleSystem);
 		IncomingCommand(IntegrityUpdate);
@@ -43,27 +49,34 @@ namespace ewn
 		IncomingCommand(SpaceshipInfo);
 		IncomingCommand(SpaceshipList);
 		IncomingCommand(TimeSyncResponse);
+		IncomingCommand(UpdateFleetFailure);
+		IncomingCommand(UpdateFleetSuccess);
 		IncomingCommand(UpdateSpaceshipFailure);
 		IncomingCommand(UpdateSpaceshipSuccess);
 
 		// Outgoing commands
 		OutgoingCommand(ControlEntity,      Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateFleet,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteFleet,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(LeaveArena,         Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(JoinArena,          Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(LeaveArena,         Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Login,              Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(LoginByToken,       Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerChat,         Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(PlayerMovement,     0,                           0);
 		OutgoingCommand(PlayerShoot,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QueryArenaList,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(QueryFleetInfo,     Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(QueryFleetList,     Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QueryHullList,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QueryModuleList,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QuerySpaceshipInfo, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(QuerySpaceshipList, Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(Register,           Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(TimeSyncRequest,    0,                           0);
+		OutgoingCommand(UpdateFleet,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(UpdateSpaceship,    Nz::ENetPacketFlag_Reliable, 0);
 
 #undef IncomingCommand

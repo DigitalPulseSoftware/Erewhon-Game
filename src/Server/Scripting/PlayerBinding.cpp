@@ -60,18 +60,18 @@ namespace ewn
 				luaInstance.PushTable(0, 2);
 				{
 					luaInstance.PushField("fleetId", fleetData.fleetId);
+					luaInstance.PushField("fleetName", fleetData.fleetName);
 
-					luaInstance.PushTable(fleetData.spaceships.size(), 0);
+					luaInstance.PushTable(fleetData.spaceshipTypes.size(), 0);
 					{
 						std::size_t spaceshipIndex = 1;
-						for (const auto& spaceshipData : fleetData.spaceships)
+						for (const auto& spaceshipData : fleetData.spaceshipTypes)
 						{
 							luaInstance.PushInteger(spaceshipIndex++);
 
 							luaInstance.PushTable(0, 8);
 							{
 								luaInstance.PushField("spaceshipId", spaceshipData.spaceshipId);
-								luaInstance.PushField("count", spaceshipData.count);
 								luaInstance.PushField("hullId", spaceshipData.hullId);
 								luaInstance.PushField("collisionMeshId", spaceshipData.collisionMeshId);
 								luaInstance.PushField("script", spaceshipData.script);
@@ -88,6 +88,24 @@ namespace ewn
 									}
 								}
 								luaInstance.SetField("modules");
+							}
+
+							luaInstance.SetTable();
+						}
+					}
+					luaInstance.SetField("spaceshipTypes");
+
+					luaInstance.PushTable(fleetData.spaceships.size(), 0);
+					{
+						std::size_t spaceshipIndex = 1;
+						for (const auto& spaceshipData : fleetData.spaceships)
+						{
+							luaInstance.PushInteger(spaceshipIndex++);
+
+							luaInstance.PushTable(0, 2);
+							{
+								luaInstance.PushField("spaceshipType", spaceshipData.spaceshipType + 1);
+								luaInstance.PushField("position", spaceshipData.position);
 							}
 
 							luaInstance.SetTable();

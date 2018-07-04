@@ -35,6 +35,12 @@ namespace ewn
 		return m_collisionInfos[entryId].filePath;
 	}
 
+	inline float CollisionMeshStore::GetEntryScale(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_collisionInfos[entryId].scale;
+	}
+
 	inline bool CollisionMeshStore::IsEntryLoaded(std::size_t entryId) const
 	{
 		assert(entryId < m_collisionInfos.size());

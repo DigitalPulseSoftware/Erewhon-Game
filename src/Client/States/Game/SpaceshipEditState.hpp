@@ -88,7 +88,7 @@ namespace ewn
 			Ndk::TextAreaWidget* m_codeFilenameTextArea;
 			Ndk::TextAreaWidget* m_nameTextArea;
 			Nz::String m_spaceshipCode;
-			Nz::UInt32 m_spaceshipHullId;;
+			Nz::UInt32 m_spaceshipHullId;
 			Ndk::EntityOwner m_light;
 			Ndk::EntityOwner m_spaceship;
 			std::shared_ptr<Ndk::State> m_previousState;

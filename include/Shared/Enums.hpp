@@ -8,6 +8,7 @@
 #define EREWHON_SHARED_ENUMS_HPP
 
 #include <Nazara/Prerequisites.hpp>
+#include <Nazara/Core/Flags.hpp>
 
 namespace ewn
 {
@@ -18,9 +19,22 @@ namespace ewn
 		Info
 	};
 
+	enum class CreateFleetFailureReason : Nz::UInt8
+	{
+		AlreadyExists,
+		ServerError
+	};
+
 	enum class CreateSpaceshipFailureReason : Nz::UInt8
 	{
 		AlreadyExists,
+		ServerError
+	};
+
+	enum class DeleteFleetFailureReason : Nz::UInt8
+	{
+		MustHaveAtLeastOne,
+		NotFound,
 		ServerError
 	};
 
@@ -58,6 +72,22 @@ namespace ewn
 		ServerError
 	};
 
+	enum class SpaceshipQueryInfo : Nz::UInt8
+	{
+		Code,
+		HullModelPath,
+		Modules,
+		Name,
+
+		Max = Name
+	};
+
+	enum class UpdateFleetFailureReason : Nz::UInt8
+	{
+		NotFound,
+		ServerError
+	};
+
 	enum class UpdateSpaceshipFailureReason : Nz::UInt8
 	{
 		NotFound,
@@ -65,6 +95,20 @@ namespace ewn
 	};
 
 	const char* EnumToString(ModuleType moduleType);
+}
+
+namespace Nz
+{
+	template<>
+	struct EnumAsFlags<ewn::SpaceshipQueryInfo>
+	{
+		static constexpr ewn::SpaceshipQueryInfo max = ewn::SpaceshipQueryInfo::Max;
+	};
+}
+
+namespace ewn
+{
+	using SpaceshipQueryInfoFlags = Nz::Flags<SpaceshipQueryInfo>;
 }
 
 #endif // EREWHON_SHARED_ENUMS_HPP
