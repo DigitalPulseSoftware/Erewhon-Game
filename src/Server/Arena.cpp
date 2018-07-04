@@ -673,13 +673,13 @@ namespace ewn
 		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
 		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(0.01f);
 
-		// Mothership
+		// Space Frigate
 		arenaPrefabsPacket.prefabs.emplace_back();
 		arenaPrefabsPacket.prefabs.back().models.emplace_back();
-		arenaPrefabsPacket.prefabs.back().models.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("mothership/mothership.obj");
+		arenaPrefabsPacket.prefabs.back().models.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("space_frigate_6/space_frigate_6.obj");
 		arenaPrefabsPacket.prefabs.back().models.back().position = Nz::Vector3f::Zero();
 		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
-		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(20.f);
+		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(0.1f);
 
 		player->SendPacket(arenaPrefabsPacket);
 	}
