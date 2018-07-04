@@ -96,11 +96,14 @@ namespace ewn
 
 					if constexpr (std::is_same_v<T, Database::QueryRequest>)
 					{
-						Database::QueryResult result;
-						result.callback = std::move(request.callback);
-						result.result = connection.ExecPreparedStatement(request.statement, request.parameters);
+						Database::QueryResult resultData;
+						resultData.callback = std::move(request.callback);
+						resultData.result = connection.ExecPreparedStatement(request.statement, request.parameters);
 
-						m_database.SubmitResult(std::move(result));
+						if (!resultData.result)
+							std::cerr << "[Database] statement \"" << request.statement << "\" failed: " << resultData.result.GetLastErrorMessage() << std::endl;
+
+						m_database.SubmitResult(std::move(resultData));
 					}
 					else if constexpr (std::is_same_v<T, Database::TransactionRequest>)
 					{
@@ -118,12 +121,14 @@ namespace ewn
 
 								if (!statementResult)
 								{
+									std::cerr << "[Database] Transaction failed: " << statementResult.GetLastErrorMessage();
+
 									failure = true;
 									if (connection.IsConnected())
 									{
 										DatabaseResult rollbackResult = connection.Exec("ROLLBACK");
 										if (!rollbackResult)
-											std::cerr << "Rollback failed: " << rollbackResult.GetLastErrorMessage();
+											std::cerr << "[Database] Rollback failed: " << rollbackResult.GetLastErrorMessage();
 									}
 									break;
 								}
