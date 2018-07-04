@@ -38,8 +38,7 @@ namespace ewn
 	Arena::Arena(ServerApplication* app, std::string name, std::string scriptName) :
 	m_name(std::move(name)),
 	m_scriptName(std::move(scriptName)),
-	m_app(app),
-	m_stateBroadcastAccumulator(0.f)
+	m_app(app)
 	{
 		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>();
 		broadcastSystem.BroadcastEntityCreation.Connect(this,    &Arena::OnBroadcastEntityCreation);
@@ -303,8 +302,6 @@ namespace ewn
 		}
 		else
 			m_script.Pop();
-
-		m_stateBroadcastAccumulator += elapsedTime;
 	}
 
 	const Ndk::EntityHandle& Arena::CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
@@ -899,20 +896,14 @@ namespace ewn
 
 	void Arena::OnBroadcastStateUpdate(const BroadcastSystem* /*system*/, Packets::ArenaState& statePacket)
 	{
-		constexpr float stateBroadcastInterval = 1.f / 30.f;
-		if (m_stateBroadcastAccumulator >= stateBroadcastInterval)
+		static Nz::UInt16 snapshotId = 0;
+		statePacket.stateId = snapshotId++;
+
+		for (Player* player : m_players)
 		{
-			m_stateBroadcastAccumulator -= stateBroadcastInterval;
+			statePacket.lastProcessedInputTime = player->GetLastInputProcessedTime();
 
-			static Nz::UInt16 snapshotId = 0;
-			statePacket.stateId = snapshotId++;
-
-			for (Player* player : m_players)
-			{
-				statePacket.lastProcessedInputTime = player->GetLastInputProcessedTime();
-
-				player->SendPacket(statePacket);
-			}
+			player->SendPacket(statePacket);
 		}
 
 		if constexpr (sendServerGhosts)

@@ -99,7 +99,6 @@ namespace ewn
 			std::unordered_set<Player*> m_players;
 			std::vector<Packets::CreateEntity> m_createEntityCache;
 			ServerApplication* m_app;
-			float m_stateBroadcastAccumulator;
 			int m_plasmaMaterial;
 			int m_torpedoMaterial;
 	};
