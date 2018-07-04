@@ -199,6 +199,7 @@ namespace ewn
 		UpdateStatus("Loading " + m_spaceshipName + "...");
 
 		Packets::QuerySpaceshipInfo packet;
+		packet.info = SpaceshipQueryInfo::HullModelPath | SpaceshipQueryInfo::Modules;
 		packet.spaceshipName = m_spaceshipName;
 
 		GetStateData().server->SendPacket(std::move(packet));

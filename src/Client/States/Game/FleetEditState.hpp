@@ -32,7 +32,7 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void AddSpaceship(const SpaceshipData& data);
+			void AddSpaceship(std::size_t spaceshipDataId, const Nz::Vector3f& position = Nz::Vector3f::Zero());
 
 			void CreateGrid();
 
@@ -40,6 +40,8 @@ namespace ewn
 			inline bool IsInEditMode() const;
 
 			void LayoutWidgets() override;
+
+			std::size_t RegisterSpaceshipData(std::string spaceshipName, const std::string& modelPath, float scale, const Nz::Boxf& collisionBox);
 
 			void QueryFleetInfo();
 			void QuerySpaceshipInfo(std::string spaceshipName);
@@ -70,7 +72,7 @@ namespace ewn
 			void OnCreateFleetSuccess(ServerConnection* server, const Packets::CreateFleetSuccess& createPacket);
 			void OnDeleteFleetFailure(ServerConnection* server, const Packets::DeleteFleetFailure& deletePacket);
 			void OnDeleteFleetSuccess(ServerConnection* server, const Packets::DeleteFleetSuccess& deletePacket);
-			//void OnFleetInfo(ServerConnection* server,          const Packets::FleetInfo& listPacket);
+			void OnFleetInfo(ServerConnection* server,          const Packets::FleetInfo& listPacket);
 			void OnUpdateFleetFailure(ServerConnection* server, const Packets::UpdateFleetFailure& updatePacket);
 			void OnUpdateFleetSuccess(ServerConnection* server, const Packets::UpdateFleetSuccess& updatePacket);
 			void OnSpaceshipInfo(ServerConnection* server, const Packets::SpaceshipInfo& spaceshipInfo);

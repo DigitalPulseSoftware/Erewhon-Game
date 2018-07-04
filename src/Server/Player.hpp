@@ -46,7 +46,7 @@ namespace ewn
 			inline Arena* GetArena() const;
 			inline const Ndk::EntityHandle& GetControlledEntity() const;
 			inline Nz::Int32 GetDatabaseId() const;
-			void GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback);
+			void GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback, SpaceshipQueryInfoFlags infoFlags = SpaceshipQueryInfoFlags::ValueMask);
 			Nz::UInt64 GetLastInputProcessedTime() const;
 			inline const std::string& GetLogin() const;
 			inline Nz::UInt16 GetPermissionLevel() const;

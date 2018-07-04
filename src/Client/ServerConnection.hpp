@@ -76,6 +76,7 @@ namespace ewn
 			NazaraSignal(OnDeleteFleetSuccess,        ServerConnection* /*server*/, const Packets::DeleteFleetSuccess&        /*data*/);
 			NazaraSignal(OnDeleteSpaceshipFailure,    ServerConnection* /*server*/, const Packets::DeleteSpaceshipFailure&    /*data*/);
 			NazaraSignal(OnDeleteSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::DeleteSpaceshipSuccess&    /*data*/);
+			NazaraSignal(OnFleetInfo,                 ServerConnection* /*server*/, const Packets::FleetInfo&                 /*data*/);
 			NazaraSignal(OnFleetList,                 ServerConnection* /*server*/, const Packets::FleetList&                 /*data*/);
 			NazaraSignal(OnHullList,                  ServerConnection* /*server*/, const Packets::HullList&                  /*data*/);
 			NazaraSignal(OnInstantiateParticleSystem, ServerConnection* /*server*/, const Packets::InstantiateParticleSystem& /*data*/);

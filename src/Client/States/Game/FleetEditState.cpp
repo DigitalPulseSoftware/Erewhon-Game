@@ -114,7 +114,7 @@ namespace ewn
 		ConnectSignal(stateData.server->OnCreateFleetSuccess, this, &FleetEditState::OnCreateFleetSuccess);
 		ConnectSignal(stateData.server->OnDeleteFleetFailure, this, &FleetEditState::OnDeleteFleetFailure);
 		ConnectSignal(stateData.server->OnDeleteFleetSuccess, this, &FleetEditState::OnDeleteFleetSuccess);
-		//ConnectSignal(stateData.server->OnFleetInfo, this, &FleetEditState::OnFleetInfo);
+		ConnectSignal(stateData.server->OnFleetInfo,          this, &FleetEditState::OnFleetInfo);
 		ConnectSignal(stateData.server->OnUpdateFleetFailure, this, &FleetEditState::OnUpdateFleetFailure);
 		ConnectSignal(stateData.server->OnUpdateFleetSuccess, this, &FleetEditState::OnUpdateFleetSuccess);
 		ConnectSignal(stateData.server->OnSpaceshipInfo, this, &FleetEditState::OnSpaceshipInfo);
@@ -180,14 +180,20 @@ namespace ewn
 		return true;
 	}
 
-	void FleetEditState::AddSpaceship(const SpaceshipData& data)
+	void FleetEditState::AddSpaceship(std::size_t spaceshipDataId, const Nz::Vector3f& position)
 	{
 		StateData& stateData = GetStateData();
 
+		const SpaceshipData& data = m_spaceshipData[spaceshipDataId];
+
 		auto& spaceship = m_spaceships.emplace_back();
+		spaceship.dataId = spaceshipDataId;
 		spaceship.entity = stateData.world3D->CreateEntity();
-		spaceship.targetPosition = Nz::Vector3f::Zero();
+		spaceship.targetPosition = position;
 		spaceship.collisionBox = data.collisionBox;
+		spaceship.collisionBox.x = spaceship.targetPosition.x - spaceship.collisionBox.width / 2.f;
+		spaceship.collisionBox.y = spaceship.targetPosition.y - spaceship.collisionBox.height / 2.f;
+		spaceship.collisionBox.z = spaceship.targetPosition.z - spaceship.collisionBox.depth / 2.f;
 
 		auto& spaceshipNode = spaceship.entity->AddComponent<Ndk::NodeComponent>();
 		spaceshipNode.SetPosition(spaceship.targetPosition);
@@ -306,21 +312,47 @@ namespace ewn
 		m_createUpdateButton->SetPosition(m_createUpdateButton->GetPosition().x, m_nameTextArea->GetPosition().y + m_nameTextArea->GetSize().y + 20.f);
 	}
 
+	std::size_t FleetEditState::RegisterSpaceshipData(std::string spaceshipName, const std::string& modelPath, float scale, const Nz::Boxf& collisionBox)
+	{
+		auto it = m_spaceshipNameToData.find(spaceshipName);
+		assert(it != m_spaceshipNameToData.end());
+
+		Nz::ModelRef originalModel = Nz::ModelManager::Get(modelPath);
+
+		std::size_t spaceshipDataIndex = m_spaceshipData.size();
+		it.value().emplace(spaceshipDataIndex);
+		SpaceshipData& spaceshipData = m_spaceshipData.emplace_back();
+		spaceshipData.collisionBox = collisionBox;
+		spaceshipData.spaceshipName = std::move(spaceshipName);
+		spaceshipData.scale = scale;
+
+		// Duplicate model to add collision skin
+		spaceshipData.model = Nz::Model::New(*originalModel);
+		spaceshipData.model->SetSkinCount(2);
+
+		for (std::size_t i = 0; i < spaceshipData.model->GetMaterialCount(); ++i)
+			spaceshipData.model->SetMaterial(1, i, m_collisionMaterial);
+
+		return spaceshipDataIndex;
+	}
+
 	void FleetEditState::QueryFleetInfo()
 	{
 		m_titleLabel->Show(false);
 
 		UpdateStatus("Loading " + m_fleetName + "...");
 
-		/*Packets::QueryFleetInfo packet;
-		packet.spaceshipName = m_fleetName;
+		Packets::QueryFleetInfo packet;
+		packet.fleetName = m_fleetName;
+		packet.spaceshipInfo = SpaceshipQueryInfo::HullModelPath | SpaceshipQueryInfo::Name;
 
-		GetStateData().server->SendPacket(std::move(packet));*/
+		GetStateData().server->SendPacket(std::move(packet));
 	}
 
 	void FleetEditState::QuerySpaceshipInfo(std::string spaceshipName)
 	{
 		Packets::QuerySpaceshipInfo packet;
+		packet.info = SpaceshipQueryInfo::HullModelPath | SpaceshipQueryInfo::Name;
 		packet.spaceshipName = std::move(spaceshipName);
 
 		GetStateData().server->SendPacket(std::move(packet));
@@ -437,63 +469,28 @@ namespace ewn
 				m_movingEntity = m_hoveredEntityId;
 			}
 		}
-		else if (event.button == Nz::Mouse::Right)
-		{
-			auto& cameraComp = stateData.camera3D->GetComponent<Ndk::CameraComponent>();
-			auto& gridNode = m_grid->GetComponent<Ndk::NodeComponent>();
-
-			// Make all computations in grid referential
-			Nz::Planef plane = Nz::Planef::XZ();
-
-			Nz::Vector2f fMousePos(event.x, event.y);
-			Nz::Vector3f nearPoint = cameraComp.Unproject(Nz::Vector3f(fMousePos.x, fMousePos.y, 0.f));
-			Nz::Vector3f farPoint = cameraComp.Unproject(Nz::Vector3f(fMousePos.x, fMousePos.y, 1.f));
-
-			Nz::Vector3f rayOrigin = gridNode.ToLocalPosition(nearPoint);
-			Nz::Vector3f rayEnd = gridNode.ToLocalPosition(farPoint);
-			Nz::Vector3f rayNormal = (rayEnd - rayOrigin).Normalize();
-
-			Nz::Rayf ray(rayOrigin, rayNormal);
-
-			float hitDist;
-			if (ray.Intersect(plane, &hitDist))
-			{
-				Nz::MaterialRef cubeMat = Nz::Material::New();
-				cubeMat->SetDiffuseColor(Nz::Color(std::rand() % 255, std::rand() % 255, std::rand() % 255));
-				cubeMat->SetShader("PhongLighting");
-
-				Nz::MeshRef cubeMesh = Nz::Mesh::New();
-				cubeMesh->CreateStatic();
-				cubeMesh->BuildSubMesh(Nz::Primitive::Box(Nz::Vector3f::Unit(), Nz::Vector3ui(0)));
-
-				Nz::ModelRef cubeModel = Nz::Model::New();
-				cubeModel->SetMesh(cubeMesh);
-				cubeModel->SetSkinCount(2);
-
-				cubeModel->SetMaterial(0, 0, cubeMat);
-				cubeModel->SetMaterial(1, 0, m_collisionMaterial);
-
-				auto& spaceship = m_spaceships.emplace_back();
-				spaceship.entity = stateData.world3D->CreateEntity();
-				spaceship.targetPosition = SnapToGrid(ray.GetPoint(hitDist));
-				spaceship.targetPosition.y = 0.f;
-				spaceship.collisionBox = Nz::Boxf(spaceship.targetPosition.x - 0.5f, spaceship.targetPosition .y - 0.5f, spaceship.targetPosition .z - 0.5f, 1.f, 1.f, 1.f);
-
-				auto& testNode = spaceship.entity->AddComponent<Ndk::NodeComponent>();
-
-				spaceship.entity->AddComponent<Ndk::GraphicsComponent>().Attach(cubeModel);
-				testNode.SetPosition(spaceship.targetPosition);
-				testNode.SetParent(m_grid);
-
-				UpdateCollisions();
-			}
-		}
 	}
 
 	void FleetEditState::OnMouseButtonReleased(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseButtonEvent& event)
 	{
 		if (event.button == Nz::Mouse::Left)
 			m_rotatingMode = MovementType::None;
+		else if (event.button == Nz::Mouse::Right)
+		{
+			if (m_hoveredEntityId != NoEntity)
+			{
+				m_spaceships.erase(m_spaceships.begin() + m_hoveredEntityId);
+
+				if (m_movingEntity == m_hoveredEntityId)
+				{
+					m_movingEntity = NoEntity;
+					m_rotatingMode = MovementType::None;
+				}
+
+				m_hoveredEntity->Disable();
+				m_hoveredEntityId = NoEntity;
+			}
+		}
 	}
 
 	void FleetEditState::OnMouseMoved(const Nz::EventHandler* /*eventHandler*/, const Nz::WindowEvent::MouseMoveEvent& event)
@@ -634,7 +631,7 @@ namespace ewn
 
 		const std::optional<std::size_t>& spaceshipDataIndex = it->second;
 		if (spaceshipDataIndex)
-			AddSpaceship(m_spaceshipData[spaceshipDataIndex.value()]);
+			AddSpaceship(spaceshipDataIndex.value());
 		else
 			QuerySpaceshipInfo(spaceshipName);
 	}
@@ -819,11 +816,29 @@ namespace ewn
 		SetupForCreate();
 	}
 
-	/*void FleetEditState::OnFleetInfo(ServerConnection* server, const Packets::FleetInfo& infoPacket)
+	void FleetEditState::OnFleetInfo(ServerConnection* server, const Packets::FleetInfo& fleetInfo)
 	{
-		
-		//LayoutWidgets();
-	}*/
+		StateData& stateData = GetStateData();
+		const std::string& assetsFolder = stateData.app->GetConfig().GetStringOption("AssetsFolder");
+
+		for (const auto& spaceshipType : fleetInfo.spaceshipTypes)
+		{
+			std::string filePath = assetsFolder + '/' + spaceshipType.hullModelPath;
+
+			RegisterSpaceshipData(spaceshipType.name, filePath, spaceshipType.scale, spaceshipType.dimensions);
+		}
+
+		for (const auto& spaceship : fleetInfo.spaceships)
+		{
+			auto it = m_spaceshipNameToData.find(fleetInfo.spaceshipTypes[spaceship.spaceshipType].name);
+			assert(it != m_spaceshipNameToData.end());
+
+			const std::optional<std::size_t>& spaceshipDataIndex = it->second;
+			assert(spaceshipDataIndex);
+
+			AddSpaceship(*spaceshipDataIndex, spaceship.position);
+		}
+	}
 
 	void FleetEditState::OnUpdateFleetFailure(ServerConnection* server, const Packets::UpdateFleetFailure& updatePacket)
 	{
@@ -863,28 +878,10 @@ namespace ewn
 			return;
 		}
 
-		auto it = m_spaceshipNameToData.find(spaceshipInfo.spaceshipName);
-		assert(it != m_spaceshipNameToData.end());
-
 		const std::string& assetsFolder = stateData.app->GetConfig().GetStringOption("AssetsFolder");
+
 		std::string filePath = assetsFolder + '/' + spaceshipInfo.hullModelPath;
-
-		Nz::ModelRef originalModel = Nz::ModelManager::Get(filePath);
-
-		it.value().emplace(m_spaceshipData.size());
-		SpaceshipData& spaceshipData = m_spaceshipData.emplace_back();
-		spaceshipData.collisionBox = spaceshipInfo.collisionBox;
-		spaceshipData.spaceshipName = spaceshipInfo.spaceshipName;
-		spaceshipData.scale = spaceshipInfo.scale;
-
-		// Duplicate model to add collision skin
-		spaceshipData.model = Nz::Model::New(*originalModel);
-		spaceshipData.model->SetSkinCount(2);
-
-		for (std::size_t i = 0; i < spaceshipData.model->GetMaterialCount(); ++i)
-			spaceshipData.model->SetMaterial(1, i, m_collisionMaterial);
-
-		AddSpaceship(spaceshipData);
+		AddSpaceship(RegisterSpaceshipData(spaceshipInfo.spaceshipName, filePath, spaceshipInfo.scale, spaceshipInfo.collisionBox));
 	}
 
 	void FleetEditState::OnSpaceshipList(ServerConnection* /*server*/, const Packets::SpaceshipList& spaceshipList)

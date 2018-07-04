@@ -40,7 +40,7 @@ namespace ewn
 
 	inline Nz::Vector3f FleetEditState::SnapToGrid(Nz::Vector3f position)
 	{
-		constexpr float halfGridSize = GridSize / 2.f;
+		constexpr float halfGridSize = (GridSize / GridScale) / 2.f;
 
 		position.x = Nz::Clamp(Snap(position.x), -halfGridSize, halfGridSize);
 		position.z = Nz::Clamp(Snap(position.z), -halfGridSize, halfGridSize);

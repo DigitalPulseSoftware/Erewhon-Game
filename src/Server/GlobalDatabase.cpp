@@ -56,6 +56,7 @@ namespace ewn
 			PrepareStatement(conn, "CreateSpaceship", "INSERT INTO spaceships(name, script, owner_id, spaceship_hull_id, last_update_date) VALUES(LOWER($2), $3, $1, $4, NOW()) RETURNING id;", { DatabaseType::Int32, DatabaseType::Text, DatabaseType::Text, DatabaseType::Int32 });
 			PrepareStatement(conn, "DeleteAccountTokenByAccountId", "DELETE FROM account_tokens WHERE account_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "DeleteFleet", "DELETE FROM fleets WHERE owner_id = $1 AND name = LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
+			PrepareStatement(conn, "DeleteFleetSpaceships", "DELETE FROM fleet_spaceships WHERE fleet_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "DeleteSpaceship", "DELETE FROM spaceships WHERE owner_id = $1 AND name = LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)", { DatabaseType::Text });
 			PrepareStatement(conn, "FindAccountByToken", "SELECT account_id FROM account_tokens WHERE token=$1", { DatabaseType::Text });

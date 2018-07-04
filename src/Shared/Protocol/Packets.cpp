@@ -198,6 +198,45 @@ namespace ewn
 		{
 		}
 
+		void Serialize(PacketSerializer& serializer, FleetInfo& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.spaceshipInfo);
+			serializer &= data.fleetName;
+
+			serializer.SerializeArraySize(data.spaceshipTypes);
+			for (auto& spaceshipType : data.spaceshipTypes)
+			{
+				serializer &= spaceshipType.dimensions;
+				serializer &= spaceshipType.scale;
+
+				if (data.spaceshipInfo & SpaceshipQueryInfo::Code)
+					serializer &= spaceshipType.script;
+
+				if (data.spaceshipInfo & SpaceshipQueryInfo::HullModelPath)
+					serializer &= spaceshipType.hullModelPath;
+
+				if (data.spaceshipInfo & SpaceshipQueryInfo::Modules)
+				{
+					serializer.SerializeArraySize(spaceshipType.modules);
+					for (auto& moduleData : spaceshipType.modules)
+					{
+						serializer &= moduleData.currentModule;
+						serializer.Serialize<Nz::UInt8>(moduleData.type);
+					}
+				}
+
+				if (data.spaceshipInfo & SpaceshipQueryInfo::Name)
+					serializer &= spaceshipType.name;
+			}
+
+			serializer.SerializeArraySize(data.spaceships);
+			for (auto& spaceship : data.spaceships)
+			{
+				serializer &= spaceship.position;
+				serializer &= spaceship.spaceshipType;
+			}
+		}
+
 		void Serialize(PacketSerializer& serializer, FleetList& data)
 		{
 			serializer.SerializeArraySize(data.fleets);
@@ -325,6 +364,12 @@ namespace ewn
 		{
 		}
 
+		void Serialize(PacketSerializer& serializer, QueryFleetInfo& data)
+		{
+			serializer.Serialize<Nz::UInt8>(data.spaceshipInfo);
+			serializer &= data.fleetName;
+		}
+
 		void Serialize(PacketSerializer& serializer, QueryFleetList& data)
 		{
 		}
@@ -339,6 +384,7 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, QuerySpaceshipInfo& data)
 		{
+			serializer.Serialize<Nz::UInt8>(data.info);
 			serializer &= data.spaceshipName;
 		}
 
@@ -364,18 +410,28 @@ namespace ewn
 
 		void Serialize(PacketSerializer& serializer, SpaceshipInfo& data)
 		{
+			serializer.Serialize<Nz::UInt8>(data.info);
 			serializer &= data.collisionBox;
 			serializer &= data.hullId;
-			serializer &= data.hullModelPath;
 			serializer &= data.scale;
-			serializer &= data.spaceshipName;
 
-			// Modules
-			serializer.SerializeArraySize(data.modules);
-			for (auto& moduleInfo : data.modules)
+			if (data.info & SpaceshipQueryInfo::Code)
+				serializer &= data.code;
+
+			if (data.info & SpaceshipQueryInfo::HullModelPath)
+				serializer &= data.hullModelPath;
+
+			if (data.info & SpaceshipQueryInfo::Name)
+				serializer &= data.spaceshipName;
+
+			if (data.info & SpaceshipQueryInfo::Modules)
 			{
-				serializer &= moduleInfo.currentModule;
-				serializer.Serialize<Nz::UInt8>(moduleInfo.type);
+				serializer.SerializeArraySize(data.modules);
+				for (auto& moduleInfo : data.modules)
+				{
+					serializer &= moduleInfo.currentModule;
+					serializer.Serialize<Nz::UInt8>(moduleInfo.type);
+				}
 			}
 		}
 
