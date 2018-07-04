@@ -47,8 +47,11 @@ int main()
 
 	ewn::ServerConnection serverConnection(app);
 
+	Nz::RenderTargetParameters windowParameters;
+	windowParameters.antialiasingLevel = 4;
+
 	bool fullscreen = config.GetBoolOption("Options.Fullscreen");
-	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>((fullscreen) ? Nz::VideoMode::GetFullscreenModes()[0] : Nz::VideoMode(1280, 720), "Utopia", (fullscreen) ? Nz::WindowStyle_Fullscreen : Nz::WindowStyle_Default);
+	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>((fullscreen) ? Nz::VideoMode::GetFullscreenModes()[0] : Nz::VideoMode(1280, 720), "Utopia", (fullscreen) ? Nz::WindowStyle_Fullscreen : Nz::WindowStyle_Default, windowParameters);
 	window.EnableCloseOnQuit(false);
 	window.EnableVerticalSync(config.GetBoolOption("Options.VerticalSync"));
 
@@ -163,5 +166,10 @@ int main()
 		window.Display();
 	}
 
+	Nz::MeshLibrary::Clear();
+	Nz::MeshManager::Clear();
+	Nz::ModelLibrary::Clear();
 	Nz::ModelManager::Clear();
+	Nz::TextureLibrary::Clear();
+	Nz::TextureManager::Clear();
 }

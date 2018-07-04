@@ -10,7 +10,6 @@
 #include <NDK/Components/LightComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/StateMachine.hpp>
-#include <Shared/Protocol/Packets.hpp>
 #include <cassert>
 
 namespace ewn
@@ -200,6 +199,7 @@ namespace ewn
 		UpdateStatus("Loading " + m_spaceshipName + "...");
 
 		Packets::QuerySpaceshipInfo packet;
+		packet.info = SpaceshipQueryInfo::HullModelPath | SpaceshipQueryInfo::Modules;
 		packet.spaceshipName = m_spaceshipName;
 
 		GetStateData().server->SendPacket(std::move(packet));

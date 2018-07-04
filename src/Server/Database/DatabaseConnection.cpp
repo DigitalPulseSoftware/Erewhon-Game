@@ -3,7 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Database/DatabaseConnection.hpp>
-#include <Nazara/Core/MemoryHelper.hpp>
+#include <Nazara/Core/StackArray.hpp>
 #include <Nazara/Network/Algorithm.hpp>
 #include <Shared/Utils.hpp>
 #include <Server/Database/DatabaseResult.hpp>
@@ -75,9 +75,9 @@ namespace ewn
 
 	DatabaseResult DatabaseConnection::ExecPreparedStatement(const std::string& statementName, const DatabaseValue* parameters, std::size_t parameterCount)
 	{
-		Nz::StackArray<const char*> parameterValues = NazaraStackAllocationNoInit(const char*, parameterCount);
-		Nz::StackArray<int> parameterSize = NazaraStackAllocationNoInit(int, parameterCount);
-		Nz::StackArray<int> parameterFormat = NazaraStackAllocationNoInit(int, parameterCount);
+		Nz::StackArray<const char*> parameterValues = NazaraStackArrayNoInit(const char*, parameterCount);
+		Nz::StackArray<int> parameterSize = NazaraStackArrayNoInit(int, parameterCount);
+		Nz::StackArray<int> parameterFormat = NazaraStackArrayNoInit(int, parameterCount);
 
 		Nz::Int8 boolTrue = 1;
 		Nz::Int8 boolFalse = 0;
@@ -113,7 +113,7 @@ namespace ewn
 			}, parameters[i]);
 		}
 
-		Nz::StackArray<Nz::UInt8> internalRepresentations = NazaraStackAllocationNoInit(Nz::UInt8, memSize);
+		Nz::StackArray<Nz::UInt8> internalRepresentations = NazaraStackArrayNoInit(Nz::UInt8, memSize);
 		std::size_t internalRepresentationOffset = 0;
 
 		for (std::size_t i = 0; i < parameterCount; ++i)
@@ -216,7 +216,7 @@ namespace ewn
 
 	ewn::DatabaseResult DatabaseConnection::PrepareStatement(const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes)
 	{
-		Nz::StackArray<Oid> parameterIds = NazaraStackAllocationNoInit(Oid, parameterTypes.size());
+		Nz::StackArray<Oid> parameterIds = NazaraStackArrayNoInit(Oid, parameterTypes.size());
 
 		auto parameterId = parameterTypes.begin();
 		for (std::size_t i = 0; i < parameterTypes.size(); ++i)

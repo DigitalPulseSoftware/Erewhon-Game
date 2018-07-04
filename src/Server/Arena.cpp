@@ -211,104 +211,25 @@ namespace ewn
 
 	void Arena::SpawnFleet(Player* owner, const std::string& fleetName, const Nz::Vector3f& spawnPos, const Nz::Quaternionf& spawnRot)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { owner->GetDatabaseId(), fleetName }, [this, fleetName, spawnPos, spawnRot, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		owner->GetFleetData(fleetName, [this, fleetName, spawnPos, spawnRot, sessionId = owner->GetSessionId()](bool found, const Player::FleetData& fleet)
 		{
-			if (!result)
-			{
-				if (Player* ply = m_app->GetPlayerBySession(sessionId))
-					ply->PrintMessage("An error occurred");
-
-				std::cerr << "FindFleetByOwnerIdAndName failed: " << result.GetLastErrorMessage() << std::endl;
-				return;
-			}
-
 			Player* ply = m_app->GetPlayerBySession(sessionId);
 			if (!ply)
 				return;
 
-			if (result.GetRowCount() == 0)
+			if (!found)
 			{
 				ply->PrintMessage("Fleet " + fleetName + " not found");
 				return;
 			}
 
-			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
-
-			m_app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [this, fleetName, sessionId, spawnPos, spawnRot](DatabaseResult& result)
+			for (const auto& spaceship : fleet.spaceships)
 			{
-				if (!result)
-				{
-					if (Player* ply = m_app->GetPlayerBySession(sessionId))
-						ply->PrintMessage("An error occurred");
+				const auto& spaceshipTypeData = fleet.spaceshipTypes[spaceship.spaceshipType];
 
-					std::cerr << "FindFleetSpaceshipByFleetId failed: " << result.GetLastErrorMessage() << std::endl;
-					return;
-				}
-
-				Player* ply = m_app->GetPlayerBySession(sessionId);
-				if (!ply)
-					return;
-
-				std::size_t rowCount = result.GetRowCount();
-				if (rowCount == 0)
-				{
-					ply->PrintMessage("An error occurred: fleet " + fleetName + " has no spaceship");
-					return;
-				}
-
-				Nz::Vector3f pos = spawnPos;
-
-				for (std::size_t i = 0; i < rowCount; ++i)
-				{
-					Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
-					Nz::Int16 spaceshipCount = std::get<Nz::Int16>(result.GetValue(1));
-					std::string name = std::get<std::string>(result.GetValue(2));
-					std::string script = std::get<std::string>(result.GetValue(3));
-					Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(4));
-
-					std::size_t collisionMeshId = m_app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipHullId);
-					const Nz::Boxf& dimensions = m_app->GetCollisionMeshStore().GetEntryDimensions(collisionMeshId);
-
-					m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, pos, spawnRot, offset = dimensions.width * 1.5f, sessionId, spaceshipCount, spaceshipName = std::move(name), spaceshipScript = std::move(script), spaceshipHullId](ewn::DatabaseResult& result)
-					{
-						Player* ply = m_app->GetPlayerBySession(sessionId);
-						if (!ply)
-							return;
-
-						if (!result)
-						{
-							ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-							return;
-						}
-
-						std::size_t moduleCount = result.GetRowCount();
-
-						std::vector<std::size_t> moduleIds(moduleCount);
-						try
-						{
-							for (std::size_t i = 0; i < moduleCount; ++i)
-								moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
-						}
-						catch (const std::exception& e)
-						{
-							std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
-
-							ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-							return;
-						}
-
-						Nz::Vector3f spaceshipPos = pos;
-						for (Nz::Int16 j = 0; j < spaceshipCount; ++j)
-						{
-							SpawnSpaceship(ply, spaceshipScript, spaceshipHullId, moduleIds, spaceshipPos, spawnRot);
-
-							spaceshipPos += spawnRot * Nz::Vector3f::Left() * offset;
-						}
-					});
-
-					pos += spawnRot * Nz::Vector3f::Backward() * dimensions.depth * 1.5f;
-				}
-			});
+				Nz::Vector3f position = spawnPos + spawnRot * spaceship.position;
+				SpawnSpaceship(ply, spaceshipTypeData.script, spaceshipTypeData.hullId, spaceshipTypeData.modules, position, spawnRot);
+			}
 		});
 	}
 

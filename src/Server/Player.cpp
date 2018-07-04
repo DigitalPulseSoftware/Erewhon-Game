@@ -3,6 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Player.hpp>
+#include <Nazara/Core/StackArray.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/Arena.hpp>
@@ -99,7 +100,7 @@ namespace ewn
 
 			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
 
-			Nz::StackArray<Nz::Int32> moduleIds = NazaraStackAllocationNoInit(Nz::Int32, spaceshipModules.size());
+			Nz::StackArray<Nz::Int32> moduleIds = NazaraStackArrayNoInit(Nz::Int32, spaceshipModules.size());
 			for (std::size_t i = 0; i < spaceshipModules.size(); ++i)
 				moduleIds[i] = static_cast<Nz::Int32>(spaceshipModules[i]);
 
@@ -121,9 +122,9 @@ namespace ewn
 		});
 	}
 
-	void Player::GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback)
+	void Player::GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback, SpaceshipQueryInfoFlags infoFlags)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { GetDatabaseId(), fleetName }, [app = m_app, fleetName, cb = std::move(callback), sessionId = GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { GetDatabaseId(), fleetName }, [app = m_app, infoFlags, fleetName, cb = std::move(callback), sessionId = GetSessionId()](DatabaseResult& result)
 		{
 			if (!result)
 			{
@@ -145,7 +146,7 @@ namespace ewn
 
 			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
 
-			app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [app, fleetCallback = std::move(cb), fleetId, fleetName, sessionId](DatabaseResult& result)
+			app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [app, infoFlags, fleetCallback = std::move(cb), fleetId, fleetName, sessionId](DatabaseResult& result)
 			{
 				if (!result)
 				{
@@ -172,25 +173,42 @@ namespace ewn
 
 				FleetData pendingFleetData;
 				pendingFleetData.fleetId = static_cast<std::size_t>(fleetId);
+				pendingFleetData.fleetName = std::move(fleetName);
 				pendingFleetData.spaceships.reserve(rowCount);
 
 				for (std::size_t i = 0; i < rowCount; ++i)
 				{
-					Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+					Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0, i));
+					float posX = std::get<float>(result.GetValue(1, i));
+					float posY = std::get<float>(result.GetValue(2, i));
+					float posZ = std::get<float>(result.GetValue(3, i));
 
 					auto& spaceshipData = pendingFleetData.spaceships.emplace_back();
-					spaceshipData.spaceshipId = static_cast<std::size_t>(spaceshipId);
-					spaceshipData.count = static_cast<std::size_t>(std::get<Nz::Int16>(result.GetValue(1)));
-					spaceshipData.name = std::get<std::string>(result.GetValue(2));
-					spaceshipData.script = std::get<std::string>(result.GetValue(3));
-					spaceshipData.hullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(4)));
-					spaceshipData.collisionMeshId = app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipData.hullId);
-					spaceshipData.dimensions = app->GetCollisionMeshStore().GetEntryDimensions(spaceshipData.collisionMeshId);
+					spaceshipData.position.Set(posX, posY, posZ);
 
-					trans.AppendPreparedStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId });
+					auto it = std::find_if(pendingFleetData.spaceshipTypes.begin(), pendingFleetData.spaceshipTypes.end(), [&](const auto& spaceshipTypeData)
+					{
+						return spaceshipTypeData.spaceshipId == spaceshipId;
+					});
+
+					if (it == pendingFleetData.spaceshipTypes.end())
+					{
+						spaceshipData.spaceshipType = pendingFleetData.spaceshipTypes.size();
+
+						auto& spaceshipTypeData = pendingFleetData.spaceshipTypes.emplace_back();
+						spaceshipTypeData.spaceshipId = spaceshipId;
+
+						// New spaceship type, add it to request list
+						trans.AppendPreparedStatement("FindSpaceshipById", { spaceshipId });
+
+						if (infoFlags & SpaceshipQueryInfo::Modules)
+							trans.AppendPreparedStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId });
+					}
+					else
+						spaceshipData.spaceshipType = std::distance(pendingFleetData.spaceshipTypes.begin(), it);
 				}
 
-				app->GetGlobalDatabase().ExecuteTransaction(std::move(trans), [cb = std::move(fleetCallback), fleetData = std::move(pendingFleetData)](bool transactionSucceeded, std::vector<ewn::DatabaseResult>& results) mutable
+				app->GetGlobalDatabase().ExecuteTransaction(std::move(trans), [app, infoFlags, cb = std::move(fleetCallback), fleetData = std::move(pendingFleetData)](bool transactionSucceeded, std::vector<ewn::DatabaseResult>& results) mutable
 				{
 					if (!transactionSucceeded)
 					{
@@ -198,25 +216,33 @@ namespace ewn
 						return;
 					}
 
-					for (std::size_t i = 0; i < fleetData.spaceships.size(); ++i)
+					std::size_t resultIndex = 1; //< Because of begin
+					for (auto& spaceshipTypeData : fleetData.spaceshipTypes)
 					{
-						ewn::DatabaseResult& result = results[i + 1]; //< +1 because of begin
+						ewn::DatabaseResult& spaceshipResult = results[resultIndex];
+						
+						spaceshipTypeData.hullId = static_cast<std::size_t>(std::get<Nz::Int32>(spaceshipResult.GetValue(2)));
+						spaceshipTypeData.collisionMeshId = app->GetSpaceshipHullStore().GetEntryCollisionMeshId(spaceshipTypeData.hullId);
+						spaceshipTypeData.dimensions = app->GetCollisionMeshStore().GetEntryDimensions(spaceshipTypeData.collisionMeshId);
 
-						std::size_t moduleCount = result.GetRowCount();
+						if (infoFlags & SpaceshipQueryInfo::Code)
+							spaceshipTypeData.script = std::get<std::string>(spaceshipResult.GetValue(1));
 
-						fleetData.spaceships[i].modules.reserve(moduleCount);
-						try
+						if (infoFlags & SpaceshipQueryInfo::Name)
+							spaceshipTypeData.name = std::get<std::string>(spaceshipResult.GetValue(0));
+
+						if (infoFlags & SpaceshipQueryInfo::Modules)
 						{
-							for (std::size_t j = 0; j < moduleCount; ++j)
-								fleetData.spaceships[i].modules.push_back(static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, j))));
-						}
-						catch (const std::exception& e)
-						{
-							std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+							ewn::DatabaseResult& moduleResult = results[resultIndex + 1];
+							std::size_t moduleCount = moduleResult.GetRowCount();
+							spaceshipTypeData.modules.reserve(moduleCount);
+							for (std::size_t j = 0; j < moduleCount; ++j)
+								spaceshipTypeData.modules.push_back(static_cast<std::size_t>(std::get<Nz::Int32>(moduleResult.GetValue(0, j))));
 
-							cb(false, FleetData());
-							return;
+							resultIndex++;
 						}
+
+						resultIndex++;
 					}
 
 					cb(true, fleetData);

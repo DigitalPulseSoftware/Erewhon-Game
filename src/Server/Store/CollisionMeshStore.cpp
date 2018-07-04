@@ -93,6 +93,7 @@ namespace ewn
 				}
 
 				collisionInfo.dimensions = collisionInfo.collider->ComputeAABB();
+				collisionInfo.scale = scale;
 
 				collisionInfo.isLoaded = true;
 				meshLoaded++;

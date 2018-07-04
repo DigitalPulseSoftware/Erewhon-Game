@@ -28,6 +28,8 @@ namespace ewn
 			inline const Nz::Boxf& GetEntryDimensions(std::size_t entryId) const;
 			inline std::size_t GetEntryCount() const;
 			inline const std::string& GetEntryFilePath(std::size_t entryId) const;
+			inline float GetEntryScale(std::size_t entryId) const;
+
 			inline bool IsEntryLoaded(std::size_t entryId) const;
 
 		private:
@@ -40,6 +42,7 @@ namespace ewn
 				std::string filePath;
 				bool doesExist = false;
 				bool isLoaded = false;
+				float scale;
 			};
 
 			std::vector<CollisionMeshInfo> m_collisionInfos;

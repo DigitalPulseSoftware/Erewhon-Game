@@ -3,7 +3,7 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ClientSession.hpp>
-#include <Nazara/Core/MemoryHelper.hpp>
+#include <Nazara/Core/StackArray.hpp>
 #include <Shared/SecureRandomGenerator.hpp>
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
@@ -57,6 +57,127 @@ namespace ewn
 			else
 				player->UpdateControlledEntity(Ndk::EntityHandle::InvalidHandle);
 		}
+	}
+
+	void ClientSession::HandleCreateFleet(const Packets::CreateFleet& data)
+	{
+		Player* player = GetPlayer();
+		if (!player->IsAuthenticated())
+			return;
+
+		if (data.fleetName.empty())
+			return;
+
+		if (data.spaceships.empty())
+			return;
+
+		Nz::Bitset<> usedNames(data.spaceshipNames.size(), false);
+		for (const auto& spaceship : data.spaceships)
+		{
+			if (spaceship.spaceshipNameId >= data.spaceshipNames.size())
+				return;
+
+			usedNames[spaceship.spaceshipNameId] = true;
+
+			constexpr float gridSize = 30.f;
+			constexpr float maxHeight = 10.f;
+
+			if (spaceship.spaceshipPosition.x < -gridSize || spaceship.spaceshipPosition.x > gridSize ||
+			    spaceship.spaceshipPosition.z < -gridSize || spaceship.spaceshipPosition.z > gridSize ||
+			    spaceship.spaceshipPosition.y < -maxHeight || spaceship.spaceshipPosition.y > maxHeight)
+				return;
+		}
+
+		// If any name is not used, this may be a forged packet to increase database requests
+		if (!usedNames.TestAll())
+			return;
+
+		DatabaseTransaction nameTransaction;
+		for (const std::string& spaceshipName : data.spaceshipNames)
+			nameTransaction.AppendPreparedStatement("FindSpaceshipIdByOwnerIdAndName", { player->GetDatabaseId(), spaceshipName });
+
+		m_app->GetGlobalDatabase().ExecuteTransaction(std::move(nameTransaction), [data, app = m_app, sessionId = GetSessionId()](bool success, std::vector<DatabaseResult>& results)
+		{
+			Player* ply = app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!success)
+			{
+				std::cerr << "Fleet creation id first pass failed: " << results.back().GetLastErrorMessage() << std::endl;
+
+				Packets::CreateFleetFailure fleetFailure;
+				fleetFailure.reason = CreateFleetFailureReason::ServerError;
+
+				ply->SendPacket(fleetFailure);
+				return;
+			}
+
+			for (std::size_t i = 1; i < results.size() - 1; ++i)
+			{
+				if (results[i].GetRowCount() == 0)
+				{
+					Packets::CreateFleetFailure fleetFailure;
+					fleetFailure.reason = CreateFleetFailureReason::ServerError;
+
+					ply->SendPacket(fleetFailure);
+					return;
+				}
+			}
+
+			struct SpaceshipData
+			{
+				Nz::Int32 spaceshipId;
+				Nz::Vector3f position;
+			};
+
+			std::vector<SpaceshipData> spaceshipData;
+			for (std::size_t i = 0; i < data.spaceships.size(); ++i)
+			{
+				auto& spaceship = spaceshipData.emplace_back();
+				spaceship.position = data.spaceships[i].spaceshipPosition;
+
+				std::size_t nameId = data.spaceships[i].spaceshipNameId;
+				spaceship.spaceshipId = std::get<Nz::Int32>(results[1 + nameId].GetValue(0));
+			}
+
+			DatabaseTransaction fleetTrans;
+			fleetTrans.AppendPreparedStatement("CreateFleet", { ply->GetDatabaseId(), data.fleetName }, [data = std::move(spaceshipData)](DatabaseTransaction& transaction, DatabaseResult result)
+			{
+				if (!result)
+					return result;
+
+				auto spaceshipData = std::move(data);
+
+				Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
+
+				for (const auto& spaceship : spaceshipData)
+					transaction.AppendPreparedStatement("CreateFleetSpaceship", { fleetId, spaceship.spaceshipId, spaceship.position.x, spaceship.position.y, spaceship.position.z });
+
+				return result;
+			});
+
+			app->GetGlobalDatabase().ExecuteTransaction(std::move(fleetTrans), [app, sessionId](bool success, std::vector<DatabaseResult>& results)
+			{
+				Player* ply = app->GetPlayerBySession(sessionId);
+				if (!ply)
+					return;
+
+				if (!success)
+				{
+					Packets::CreateFleetFailure creationFailed;
+					if (results.size() == 2) //< Begin + CreateFleet result
+						creationFailed.reason = CreateFleetFailureReason::AlreadyExists;
+					else
+						creationFailed.reason = CreateFleetFailureReason::ServerError;
+
+					ply->SendPacket(creationFailed);
+					return;
+				}
+
+				ply->SendPacket(Packets::CreateFleetSuccess());
+			});
+		});
 	}
 
 	void ClientSession::HandleCreateSpaceship(const Packets::CreateSpaceship& data)
@@ -129,6 +250,31 @@ namespace ewn
 			}
 
 			player->SendPacket(Packets::CreateSpaceshipSuccess{});
+		});
+	}
+
+	void ClientSession::HandleDeleteFleet(const Packets::DeleteFleet & data)
+	{
+		Player* player = GetPlayer();
+		if (!player->IsAuthenticated())
+			return;
+
+		m_app->GetGlobalDatabase().ExecuteQuery("DeleteFleet", { player->GetDatabaseId(), data.fleetName }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
+		{
+			Player* ply = app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (result.GetAffectedRowCount() == 0)
+			{
+				Packets::DeleteFleetFailure deleteFailure;
+				deleteFailure.reason = DeleteFleetFailureReason::NotFound;
+
+				ply->SendPacket(deleteFailure);
+				return;
+			}
+
+			ply->SendPacket(Packets::DeleteFleetSuccess());
 		});
 	}
 
@@ -338,8 +484,8 @@ namespace ewn
 
 			app->DispatchWork([app, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, sessionId, login, iCost, mCost, tCost, hashLength, needToken]()
 			{
-				Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
-				Nz::StackArray<char> outputHex = NazaraStackAllocationNoInit(char, hashLength * 2 + 1);
+				Nz::StackArray<uint8_t> output = NazaraStackArrayNoInit(uint8_t, hashLength);
+				Nz::StackArray<char> outputHex = NazaraStackArrayNoInit(char, hashLength * 2 + 1);
 
 				argon2_context context;
 				std::memset(&context, 0, sizeof(argon2_context));
@@ -560,6 +706,109 @@ namespace ewn
 		player->SendPacket(listPacket);
 	}
 
+	void ClientSession::HandleQueryFleetInfo(const Packets::QueryFleetInfo& data)
+	{
+		Player* player = GetPlayer();
+		if (!player->IsAuthenticated())
+			return;
+
+		player->GetFleetData(data.fleetName, [app = m_app, infoFlags = data.spaceshipInfo, sessionId = GetSessionId()](bool found, const Player::FleetData& fleet)
+		{
+			Player* player = app->GetPlayerBySession(sessionId);
+			if (!player->IsAuthenticated())
+				return;
+
+			Packets::FleetInfo fleetInfo;
+
+			if (!found)
+			{
+				player->SendPacket(fleetInfo);
+				return;
+			}
+
+			fleetInfo.fleetName = fleet.fleetName;
+			fleetInfo.spaceshipInfo = infoFlags;
+
+			auto& collisionMeshStore = app->GetCollisionMeshStore();
+			auto& moduleStore = app->GetModuleStore();
+			auto& spaceshipHullStore = app->GetSpaceshipHullStore();
+			auto& visualMeshStore = app->GetVisualMeshStore();
+
+			for (const auto& type : fleet.spaceshipTypes)
+			{
+				std::size_t collisionMeshId = spaceshipHullStore.GetEntryCollisionMeshId(type.hullId);
+
+				auto& typeData = fleetInfo.spaceshipTypes.emplace_back();
+				typeData.dimensions = type.dimensions;
+				typeData.scale = collisionMeshStore.GetEntryScale(collisionMeshId);
+
+				if (infoFlags & SpaceshipQueryInfo::Code)
+					typeData.script = type.script;
+
+				if (infoFlags & SpaceshipQueryInfo::HullModelPath)
+				{
+					std::size_t visualMeshId = spaceshipHullStore.GetEntryVisualMeshId(type.hullId);
+					typeData.hullModelPath = visualMeshStore.GetEntryFilePath(visualMeshId);
+				}
+
+				if (infoFlags & SpaceshipQueryInfo::Name)
+					typeData.name = type.name;
+
+				if (infoFlags & SpaceshipQueryInfo::Modules)
+				{
+					for (std::size_t moduleId : type.modules)
+					{
+						auto& moduleData = typeData.modules.emplace_back();
+						moduleData.currentModule = static_cast<Nz::UInt32>(moduleId);
+						moduleData.type = moduleStore.GetEntryType(moduleId);
+					}
+				}
+			}
+
+			for (const auto& spaceship : fleet.spaceships)
+			{
+				auto& spaceshipData = fleetInfo.spaceships.emplace_back();
+				spaceshipData.position = spaceship.position;
+				spaceshipData.spaceshipType = spaceship.spaceshipType;
+			}
+
+			player->SendPacket(fleetInfo);
+
+		}, data.spaceshipInfo);
+	}
+
+	void ClientSession::HandleQueryFleetList(const Packets::QueryFleetList& data)
+	{
+		Player* player = GetPlayer();
+		if (!player->IsAuthenticated())
+			return;
+
+		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetsByOwnerId", { player->GetDatabaseId() }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
+		{
+			Player* ply = app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			Packets::FleetList fleetList;
+
+			if (!result)
+			{
+				std::cerr << "FindFleetsByOwnerId failed: " << result.GetLastErrorMessage() << std::endl;
+				ply->SendPacket(fleetList);
+				return;
+			}
+
+			std::size_t fleetCount = result.GetRowCount();
+			for (std::size_t i = 0; i < fleetCount; ++i)
+			{
+				auto& fleetData = fleetList.fleets.emplace_back();
+				fleetData.name = std::get<std::string>(result.GetValue(1, i));
+			}
+
+			ply->SendPacket(fleetList);
+		});
+	}
+
 	void ClientSession::HandleQueryHullList(const Packets::QueryHullList& data)
 	{
 		Player* player = GetPlayer();
@@ -582,7 +831,7 @@ namespace ewn
 				auto& hullInfo = hullList.hulls.emplace_back();
 				hullInfo.description = spaceshipHullStore.GetEntryDescription(i);
 				hullInfo.hullId = static_cast<Nz::UInt32>(i);
-				hullInfo.hullModelPathId = stringStore.GetStringIndex(visualMeshStore.GetEntryFilePath(i));
+				hullInfo.hullModelPathId = stringStore.GetStringIndex(visualMeshStore.GetEntryFilePath(visualMeshId));
 				hullInfo.name = spaceshipHullStore.GetEntryName(i);
 
 				hullInfo.slots.reserve(spaceshipHullStore.GetEntrySlotCount(i));
@@ -646,7 +895,8 @@ namespace ewn
 		if (data.spaceshipName.empty())
 			return;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [app = m_app, sessionId = player->GetSessionId()](DatabaseResult& result)
+		//TODO: SQL function
+		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [app = m_app, infoFlags = data.info, name = data.spaceshipName, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
 			if (!ply)
@@ -656,71 +906,89 @@ namespace ewn
 			{
 				std::cerr << "FindSpaceshipByOwnerIdAndName failed: " << result.GetLastErrorMessage() << std::endl;
 
-				ply->SendPacket(Packets::SpaceshipInfo{});
+				ply->SendPacket(Packets::SpaceshipInfo());
 				return;
 			}
 
 			if (result.GetRowCount() == 0)
 			{
-				ply->SendPacket(Packets::SpaceshipInfo{});
+				ply->SendPacket(Packets::SpaceshipInfo());
 				return;
 			}
 
-			auto& spaceshipHullStore = app->GetSpaceshipHullStore();
-
 			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
-
+			std::string spaceshipCode = std::get<std::string>(result.GetValue(1));
 			Nz::UInt32 spaceshipHullId = static_cast<Nz::UInt32>(std::get<Nz::Int32>(result.GetValue(2)));
-			std::size_t visualMeshId = spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
 
-			app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [=](DatabaseResult& result)
+			auto SendResponse = [=, code = std::move(spaceshipCode)](Player* ply, DatabaseResult& result)
 			{
-				if (!ply)
-					return; //< Player has disconnected, ignore
-
+				auto& collisionMeshStore = app->GetCollisionMeshStore();
 				auto& moduleStore = app->GetModuleStore();
+				auto& spaceshipHullStore = app->GetSpaceshipHullStore();
 				auto& visualMeshStore = app->GetVisualMeshStore();
 
-				Packets::SpaceshipInfo spaceshipInfo;
+				std::size_t visualMeshId = spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
 
-				if (result.IsValid())
-				{
-					spaceshipInfo.hullId = spaceshipHullId;
+				Packets::SpaceshipInfo spaceshipInfo;
+				spaceshipInfo.info = infoFlags;
+
+				std::size_t collisionMeshId = spaceshipHullStore.GetEntryCollisionMeshId(spaceshipHullId);
+				spaceshipInfo.collisionBox = collisionMeshStore.GetEntryDimensions(collisionMeshId);
+				spaceshipInfo.hullId = spaceshipHullId;
+				spaceshipInfo.scale = collisionMeshStore.GetEntryScale(collisionMeshId);
+
+				if (infoFlags & SpaceshipQueryInfo::Code)
+					spaceshipInfo.code = std::move(code);
+
+				if (infoFlags & SpaceshipQueryInfo::HullModelPath)
 					spaceshipInfo.hullModelPath = visualMeshStore.GetEntryFilePath(visualMeshId);
 
-					if (!result)
-					{
-						ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-						return;
-					}
+				if (infoFlags & SpaceshipQueryInfo::Name)
+					spaceshipInfo.spaceshipName = name;
 
-					// Spaceship actual modules
-					try
-					{
-						std::size_t moduleCount = result.GetRowCount();
+				// Spaceship actual modules
+				if (infoFlags & SpaceshipQueryInfo::Modules)
+				{
+					assert(result);
 
-						spaceshipInfo.modules.reserve(moduleCount);
-						for (std::size_t i = 0; i < moduleCount; ++i)
-						{
-							Nz::UInt32 moduleId = static_cast<Nz::UInt32>(std::get<Nz::Int32>(result.GetValue(0, i)));
+					std::size_t moduleCount = result.GetRowCount();
 
-							auto& moduleInfo = spaceshipInfo.modules.emplace_back();
-							moduleInfo.type = moduleStore.GetEntryType(moduleId);
-							moduleInfo.currentModule = moduleId;
-						}
-					}
-					catch (const std::exception& e)
+					spaceshipInfo.modules.reserve(moduleCount);
+					for (std::size_t i = 0; i < moduleCount; ++i)
 					{
-						std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
-						ply->SendPacket(Packets::SpaceshipInfo{});
-						return;
+						Nz::UInt32 moduleId = static_cast<Nz::UInt32>(std::get<Nz::Int32>(result.GetValue(0, i)));
+
+						auto& moduleInfo = spaceshipInfo.modules.emplace_back();
+						moduleInfo.type = moduleStore.GetEntryType(moduleId);
+						moduleInfo.currentModule = moduleId;
 					}
 				}
-				else
-					std::cerr << "FindSpaceshipByOwnerIdAndName failed:" << result.GetLastErrorMessage() << std::endl;
 
 				ply->SendPacket(spaceshipInfo);
-			});
+			};
+
+			if (infoFlags & SpaceshipQueryInfo::Modules)
+			{
+				app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, sessionId, cb = std::move(SendResponse)](DatabaseResult& result)
+				{
+					Player* ply = app->GetPlayerBySession(sessionId);
+					if (!ply)
+						return; //< Player has disconnected, ignore
+
+					if (!result.IsValid())
+					{
+						ply->SendPacket(Packets::SpaceshipInfo());
+						return;
+					}
+
+					cb(ply, result);
+				});
+			}
+			else
+			{
+				DatabaseResult dummy;
+				SendResponse(ply, dummy);
+			}
 		});
 	}
 
@@ -831,7 +1099,7 @@ namespace ewn
 
 		m_app->DispatchWork([app = m_app, sessionId = player->GetSessionId(), s = std::move(salt), uSalt = std::move(userSalt), data, iCost, mCost, tCost, hashLength]()
 		{
-			Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
+			Nz::StackArray<uint8_t> output = NazaraStackArrayNoInit(uint8_t, hashLength);
 
 			argon2_context context;
 			std::memset(&context, 0, sizeof(argon2_context));
@@ -910,6 +1178,137 @@ namespace ewn
 		response.serverTime = m_app->GetAppTime();
 
 		player->SendPacket(response);
+	}
+
+	void ClientSession::HandleUpdateFleet(const Packets::UpdateFleet& data)
+	{
+		Player* player = GetPlayer();
+		if (!player->IsAuthenticated())
+			return;
+
+		if (data.fleetName.empty())
+			return;
+
+		if (data.spaceships.empty())
+			return;
+
+		Nz::Bitset<> usedNames(data.spaceshipNames.size(), false);
+		for (const auto& spaceship : data.spaceships)
+		{
+			if (spaceship.spaceshipNameId >= data.spaceshipNames.size())
+				return;
+
+			usedNames[spaceship.spaceshipNameId] = true;
+
+			constexpr float gridSize = 30.f;
+			constexpr float maxHeight = 10.f;
+
+			if (spaceship.spaceshipPosition.x < -gridSize  || spaceship.spaceshipPosition.x > gridSize ||
+			    spaceship.spaceshipPosition.z < -gridSize  || spaceship.spaceshipPosition.z > gridSize ||
+			    spaceship.spaceshipPosition.y < -maxHeight || spaceship.spaceshipPosition.y > maxHeight)
+				return;
+		}
+
+		// If any name is not used, this may be a forged packet to increase database requests
+		if (!usedNames.TestAll())
+			return;
+
+		DatabaseTransaction nameTransaction;
+		for (const std::string& spaceshipName : data.spaceshipNames)
+			nameTransaction.AppendPreparedStatement("FindSpaceshipIdByOwnerIdAndName", { player->GetDatabaseId(), spaceshipName });
+
+		m_app->GetGlobalDatabase().ExecuteTransaction(std::move(nameTransaction), [data, app = m_app, sessionId = GetSessionId()](bool success, std::vector<DatabaseResult>& results)
+		{
+			Player* ply = app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!success)
+			{
+				std::cerr << "Fleet creation id first pass failed: " << results.back().GetLastErrorMessage() << std::endl;
+
+				Packets::UpdateFleetFailure fleetFailure;
+				fleetFailure.reason = UpdateFleetFailureReason::ServerError;
+
+				ply->SendPacket(fleetFailure);
+				return;
+			}
+
+			for (std::size_t i = 1; i < results.size() - 1; ++i)
+			{
+				if (results[i].GetRowCount() == 0)
+				{
+					Packets::UpdateFleetFailure fleetFailure;
+					fleetFailure.reason = UpdateFleetFailureReason::ServerError;
+
+					ply->SendPacket(fleetFailure);
+					return;
+				}
+			}
+
+			struct SpaceshipData
+			{
+				Nz::Int32 spaceshipId;
+				Nz::Vector3f position;
+			};
+
+			std::vector<SpaceshipData> spaceshipData;
+			for (std::size_t i = 0; i < data.spaceships.size(); ++i)
+			{
+				auto& spaceship = spaceshipData.emplace_back();
+				spaceship.position = data.spaceships[i].spaceshipPosition;
+
+				std::size_t nameId = data.spaceships[i].spaceshipNameId;
+				spaceship.spaceshipId = std::get<Nz::Int32>(results[1 + nameId].GetValue(0));
+			}
+
+			DatabaseTransaction fleetTrans;
+			fleetTrans.AppendPreparedStatement("FindFleetByOwnerIdAndName", { ply->GetDatabaseId(), data.fleetName }, [data = std::move(spaceshipData), newName = data.newFleetName](DatabaseTransaction& transaction, DatabaseResult result) -> DatabaseResult
+			{
+				if (!result)
+					return result;
+
+				if (result.GetRowCount() == 0)
+					return DatabaseResult{};
+
+				// Move data out of lambda memory, because AppendPreparedStatement will move its memory
+				auto spaceshipData = std::move(data);
+
+				Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
+
+				if (!newName.empty())
+					transaction.AppendPreparedStatement("UpdateFleetNameById", { fleetId, std::move(newName) });
+
+				transaction.AppendPreparedStatement("DeleteFleetSpaceships", { fleetId });
+				for (const auto& spaceship : spaceshipData)
+					transaction.AppendPreparedStatement("CreateFleetSpaceship", { fleetId, spaceship.spaceshipId, spaceship.position.x, spaceship.position.y, spaceship.position.z });
+
+				transaction.AppendPreparedStatement("UpdateFleetUpdateDate", { fleetId });
+
+				return result;
+			});
+
+			app->GetGlobalDatabase().ExecuteTransaction(std::move(fleetTrans), [app, sessionId](bool success, std::vector<DatabaseResult>& results)
+			{
+				Player* ply = app->GetPlayerBySession(sessionId);
+				if (!ply)
+					return;
+
+				if (!success)
+				{
+					Packets::UpdateFleetFailure creationFailed;
+					if (results.size() == 2) //< Begin + FindFleetByOwnerIdAndName result
+						creationFailed.reason = UpdateFleetFailureReason::NotFound;
+					else
+						creationFailed.reason = UpdateFleetFailureReason::ServerError;
+
+					ply->SendPacket(creationFailed);
+					return;
+				}
+
+				ply->SendPacket(Packets::UpdateFleetSuccess());
+			});
+		});
 	}
 
 	void ClientSession::HandleUpdateSpaceship(const Packets::UpdateSpaceship& data)
