@@ -36,7 +36,7 @@ namespace ewn
 	{
 		m_databaseId = dbId;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("LoadAccount", { Nz::Int32(dbId) }, [app = m_app, ply = CreateHandle(), cb = std::move(authenticationCallback)](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("LoadAccount", { Nz::Int32(dbId) }, [app = m_app, ply = CreateHandle(), cb = std::move(authenticationCallback)](DatabaseResult& result)
 		{
 			if (!ply)
 				return;
@@ -65,7 +65,7 @@ namespace ewn
 
 				cb(ply, true);
 
-				app->GetGlobalDatabase().ExecuteQuery("UpdateLastLoginDate", { Nz::Int32(ply->GetDatabaseId()) }, [dbId = ply->GetDatabaseId()](DatabaseResult& result)
+				app->GetGlobalDatabase().ExecuteStatement("UpdateLastLoginDate", { Nz::Int32(ply->GetDatabaseId()) }, [dbId = ply->GetDatabaseId()](DatabaseResult& result)
 				{
 					if (!result.IsValid() || result.GetAffectedRowCount() == 0)
 						std::cerr << "Failed to update last login date for player #" << dbId << ": " << result.GetLastErrorMessage() << std::endl;
@@ -124,7 +124,7 @@ namespace ewn
 
 	void Player::GetFleetData(const std::string& fleetName, std::function<void(bool found, const FleetData& fleet)> callback, SpaceshipQueryInfoFlags infoFlags)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetByOwnerIdAndName", { GetDatabaseId(), fleetName }, [app = m_app, infoFlags, fleetName, cb = std::move(callback), sessionId = GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindFleetByOwnerIdAndName", { GetDatabaseId(), fleetName }, [app = m_app, infoFlags, fleetName, cb = std::move(callback), sessionId = GetSessionId()](DatabaseResult& result)
 		{
 			if (!result)
 			{
@@ -146,7 +146,7 @@ namespace ewn
 
 			Nz::Int32 fleetId = std::get<Nz::Int32>(result.GetValue(0));
 
-			app->GetGlobalDatabase().ExecuteQuery("FindFleetSpaceshipsByFleetId", { fleetId }, [app, infoFlags, fleetCallback = std::move(cb), fleetId, fleetName, sessionId](DatabaseResult& result)
+			app->GetGlobalDatabase().ExecuteStatement("FindFleetSpaceshipsByFleetId", { fleetId }, [app, infoFlags, fleetCallback = std::move(cb), fleetId, fleetName, sessionId](DatabaseResult& result)
 			{
 				if (!result)
 				{
@@ -437,7 +437,7 @@ namespace ewn
 		assert(m_authenticated);
 
 		m_permissionLevel = permissionLevel;
-		m_app->GetGlobalDatabase().ExecuteQuery("UpdatePermissionLevel", { Nz::Int32(m_databaseId), Nz::Int16(permissionLevel) }, [cb = std::move(databaseCallback)](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("UpdatePermissionLevel", { Nz::Int32(m_databaseId), Nz::Int16(permissionLevel) }, [cb = std::move(databaseCallback)](DatabaseResult& result)
 		{
 			if (!result.IsValid())
 				std::cerr << "Failed to update permission level: " << result.GetLastErrorMessage() << std::endl;

@@ -43,7 +43,7 @@ namespace ewn
 					throw std::runtime_error("Hull depends on collision mesh #" + std::to_string(hullInfo.collisionMeshId) + " which is not loaded");
 
 				// Load slots
-				app->GetGlobalDatabase().ExecuteQuery("LoadSpaceshipHullSlots", { id }, [this, id](DatabaseResult& slotResult) { LoadSlots(id, slotResult); });
+				app->GetGlobalDatabase().ExecuteStatement("LoadSpaceshipHullSlots", { id }, [this, id](DatabaseResult& slotResult) { LoadSlots(id, slotResult); });
 
 				hullInfo.isLoaded = true;
 				hullLoaded++;

@@ -47,6 +47,7 @@ namespace ewn
 			request.Exec(conn);
 
 			PrepareStatement<AddSpaceshipModule>();*/
+			PrepareStatement<Account_QueryConnectionInfoByLogin>(conn);
 			PrepareStatement(conn, "AddSpaceshipModule", "INSERT INTO spaceship_modules(spaceship_id, module_id) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Int32 });
 			PrepareStatement(conn, "CountFleetByOwnerIdExceptName", "SELECT COUNT(id) FROM spaceships WHERE owner_id = $1 AND name <> LOWER($2)", { DatabaseType::Int32 });
 			PrepareStatement(conn, "CountSpaceshipByOwnerIdExceptName", "SELECT COUNT(id) FROM spaceships WHERE owner_id = $1 AND name <> LOWER($2)", { DatabaseType::Int32 });
@@ -58,7 +59,7 @@ namespace ewn
 			PrepareStatement(conn, "DeleteFleet", "DELETE FROM fleets WHERE owner_id = $1 AND name = LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "DeleteFleetSpaceships", "DELETE FROM fleet_spaceships WHERE fleet_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "DeleteSpaceship", "DELETE FROM spaceships WHERE owner_id = $1 AND name = LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
-			PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)", { DatabaseType::Text });
+			//PrepareStatement(conn, "FindAccountByLogin", "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)", { DatabaseType::Text });
 			PrepareStatement(conn, "FindAccountByToken", "SELECT account_id FROM account_tokens WHERE token=$1", { DatabaseType::Text });
 			PrepareStatement(conn, "FindFleetByOwnerIdAndName", "SELECT id FROM fleets WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindFleetSpaceshipsByFleetId", "SELECT spaceship_id, position_x, position_y, position_z FROM fleet_spaceships WHERE fleet_id = $1", { DatabaseType::Int32 });

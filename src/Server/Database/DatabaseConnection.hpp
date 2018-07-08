@@ -36,6 +36,7 @@ namespace ewn
 			bool IsInTransaction() const;
 
 			DatabaseResult PrepareStatement(const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes);
+			DatabaseResult PrepareStatement(const std::string& statementName, const std::string& query, const DatabaseType* parameterTypes, std::size_t typeCount);
 
 			DatabaseConnection& operator=(const DatabaseConnection&) = delete;
 			DatabaseConnection& operator=(DatabaseConnection&&) noexcept = default;

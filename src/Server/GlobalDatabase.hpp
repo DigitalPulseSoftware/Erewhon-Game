@@ -22,6 +22,34 @@ namespace ewn
 		private:
 			void PrepareStatements(DatabaseConnection& conn) override;
 	};
+
+	struct Account_QueryConnectionInfoByLogin : PreparedStatement<Account_QueryConnectionInfoByLogin>
+	{
+		std::string login;
+
+		void FillParameters(std::vector<DatabaseValue>& values)
+		{
+			values.emplace_back(std::move(login));
+		}
+
+		struct Result
+		{
+			Nz::Int32 id;
+			std::string password;
+			std::string salt;
+
+			Result(DatabaseResult& result)
+			{
+				id = std::get<Nz::Int32>(result.GetValue(0));
+				password = std::get<std::string>(result.GetValue(1));
+				salt = std::get<std::string>(result.GetValue(2));
+			}
+		};
+
+		static constexpr const char* StatementName = "Account_QueryConnectionDataByLogin";
+		static constexpr const char* Query = "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)";
+		static constexpr std::array<DatabaseType, 1> Parameters = { DatabaseType::Text };
+	};
 }
 
 #include <Server/GlobalDatabase.inl>

@@ -12,18 +12,28 @@
 #include <Server/Database/DatabaseTransaction.hpp>
 #include <Server/Database/DatabaseWorker.hpp>
 #include <concurrentqueue/blockingconcurrentqueue.h>
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace ewn
 {
+	template<typename T>
+	struct PreparedStatement
+	{
+		static DatabaseResult Prepare(ewn::DatabaseConnection& conn)
+		{
+			return conn.PrepareStatement(T::StatementName, T::Query, T::Parameters.data(), T::Parameters.size());
+		}
+	};
+
 	class Database
 	{
 		friend DatabaseWorker;
 
 		public:
-			using QueryCallback = std::function<void(DatabaseResult& result)>;
+			using StatementCallback = std::function<void(DatabaseResult& result)>;
 			using TransactionCallback = std::function<void(bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)>;
 
 			inline Database(std::string name, std::string dbHost, Nz::UInt16 port, std::string dbUser, std::string dbPassword, std::string dbName);
@@ -31,7 +41,8 @@ namespace ewn
 
 			DatabaseConnection CreateConnection();
 
-			inline void ExecuteQuery(std::string statement, std::vector<DatabaseValue> parameters, QueryCallback callback);
+			template<typename T> void ExecuteStatement(T statement, StatementCallback callback);
+			inline void ExecuteStatement(std::string statement, std::vector<DatabaseValue> parameters, StatementCallback callback);
 			inline void ExecuteTransaction(DatabaseTransaction transaction, TransactionCallback callback);
 
 			void Poll();
@@ -41,6 +52,7 @@ namespace ewn
 			void WaitForCompletion();
 
 		protected:
+			template<typename T> DatabaseResult PrepareStatement(DatabaseConnection& connection);
 			void PrepareStatement(DatabaseConnection& connection, const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes);
 			virtual void PrepareStatements(DatabaseConnection& connection) = 0;
 
@@ -49,7 +61,7 @@ namespace ewn
 			{
 				std::string statement;
 				std::vector<DatabaseValue> parameters;
-				QueryCallback callback;
+				StatementCallback callback;
 			};
 
 			struct TransactionRequest
@@ -62,7 +74,7 @@ namespace ewn
 
 			struct QueryResult
 			{
-				QueryCallback callback;
+				StatementCallback callback;
 				DatabaseResult result;
 			};
 

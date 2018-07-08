@@ -259,7 +259,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("DeleteFleet", { player->GetDatabaseId(), data.fleetName }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("DeleteFleet", { player->GetDatabaseId(), data.fleetName }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
 			if (!ply)
@@ -438,7 +438,10 @@ namespace ewn
 		if (data.login.empty() || data.login.size() > 20)
 			return;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("FindAccountByLogin", { data.login },
+		Account_QueryConnectionInfoByLogin request;
+		request.login = data.login;
+
+		m_app->GetGlobalDatabase().ExecuteStatement(std::move(request),
 		[app = m_app, sessionId = player->GetSessionId(), login = data.login, pwd = data.passwordHash, needToken = data.generateConnectionToken](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
@@ -447,8 +450,6 @@ namespace ewn
 
 			if (!result.IsValid())
 			{
-				std::cerr << "FindAccountByLogin failed: " << result.GetLastErrorMessage() << std::endl;
-
 				Packets::LoginFailure loginFailure;
 				loginFailure.reason = LoginFailureReason::ServerError;
 
@@ -472,17 +473,14 @@ namespace ewn
 			ConfigFile& config = app->GetConfig();
 			const std::string& globalSalt = config.GetStringOption("Security.PasswordSalt");
 
-			Nz::Int32 dbId = std::get<Nz::Int32>(result.GetValue(0));
-			std::string dbPassword = std::get<std::string>(result.GetValue(1));
-			std::string dbSalt = std::get<std::string>(result.GetValue(2));
-			std::string salt = globalSalt + dbSalt;
+			Account_QueryConnectionInfoByLogin::Result dbResult(result);
 
 			int iCost = config.GetIntegerOption<int>("Security.Argon2.IterationCost");
 			int mCost = config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
 			int tCost = config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
 			int hashLength = config.GetIntegerOption<int>("Security.HashLength");
 
-			app->DispatchWork([app, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, sessionId, login, iCost, mCost, tCost, hashLength, needToken]()
+			app->DispatchWork([app, salt = globalSalt + dbResult.salt, pass = std::move(pwd), dbPass = dbResult.password, id = dbResult.id, sessionId, login, iCost, mCost, tCost, hashLength, needToken]()
 			{
 				Nz::StackArray<uint8_t> output = NazaraStackArrayNoInit(uint8_t, hashLength);
 				Nz::StackArray<char> outputHex = NazaraStackArrayNoInit(char, hashLength * 2 + 1);
@@ -546,18 +544,18 @@ namespace ewn
 
 						switch (reason)
 						{
-						case LoginFailureReason::PasswordMismatch:
-							std::cout << "Player #" << ply->GetSession()->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
-							break;
+							case LoginFailureReason::PasswordMismatch:
+								std::cout << "Player #" << ply->GetSession()->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
+								break;
 
-						case LoginFailureReason::ServerError:
-							std::cout << "Player #" << ply->GetSession()->GetPeerId() << " authentication as " << login << " failed: argon2 failure (err: " << argon2Ret << ")" << std::endl;
-							break;
+							case LoginFailureReason::ServerError:
+								std::cout << "Player #" << ply->GetSession()->GetPeerId() << " authentication as " << login << " failed: argon2 failure (err: " << argon2Ret << ")" << std::endl;
+								break;
 
-						case LoginFailureReason::AccountNotFound:
-						default:
-							assert(false);
-							break;
+							case LoginFailureReason::AccountNotFound:
+							default:
+								assert(false);
+								break;
 						}
 					});
 				}
@@ -783,7 +781,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("FindFleetsByOwnerId", { player->GetDatabaseId() }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindFleetsByOwnerId", { player->GetDatabaseId() }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
 			if (!ply)
@@ -896,7 +894,7 @@ namespace ewn
 			return;
 
 		//TODO: SQL function
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [app = m_app, infoFlags = data.info, name = data.spaceshipName, sessionId = player->GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [app = m_app, infoFlags = data.info, name = data.spaceshipName, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
 			if (!ply)
@@ -969,7 +967,7 @@ namespace ewn
 
 			if (infoFlags & SpaceshipQueryInfo::Modules)
 			{
-				app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, sessionId, cb = std::move(SendResponse)](DatabaseResult& result)
+				app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, sessionId, cb = std::move(SendResponse)](DatabaseResult& result)
 				{
 					Player* ply = app->GetPlayerBySession(sessionId);
 					if (!ply)
@@ -998,7 +996,7 @@ namespace ewn
 		if (!player->IsAuthenticated())
 			return;
 
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [app = m_app, sessionId = player->GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [app = m_app, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
 			if (!ply)
@@ -1127,7 +1125,7 @@ namespace ewn
 
 				outputHex.resize(hashLength * 2);
 
-				app->GetGlobalDatabase().ExecuteQuery("RegisterAccount", { data.login, std::move(outputHex), uSalt.ToStdString(), data.email },
+				app->GetGlobalDatabase().ExecuteStatement("RegisterAccount", { data.login, std::move(outputHex), uSalt.ToStdString(), data.email },
 				[app, sessionId, login = data.login](DatabaseResult& result)
 				{
 					Player* ply = app->GetPlayerBySession(sessionId);
@@ -1337,7 +1335,7 @@ namespace ewn
 				return;
 		}
 
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipIdByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [=, app = m_app, sessionId = player->GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipIdByOwnerIdAndName", { player->GetDatabaseId(), data.spaceshipName }, [=, app = m_app, sessionId = player->GetSessionId()](DatabaseResult& result)
 		{
 			if (!result)
 			{

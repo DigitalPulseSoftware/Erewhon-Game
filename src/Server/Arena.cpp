@@ -234,7 +234,7 @@ namespace ewn
 
 	void Arena::SpawnSpaceship(Player* owner, const std::string& spaceshipName, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { owner->GetDatabaseId(), spaceshipName }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipByOwnerIdAndName", { owner->GetDatabaseId(), spaceshipName }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
@@ -265,7 +265,7 @@ namespace ewn
 
 	void Arena::SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByIdAndOwnerId", { spaceshipId, owner->GetDatabaseId() }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipByIdAndOwnerId", { spaceshipId, owner->GetDatabaseId() }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
@@ -683,7 +683,7 @@ namespace ewn
 
 	void Arena::SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, std::string code, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
-		m_app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, position, rotation, sessionId = owner->GetSessionId(), spaceshipHullId, spaceshipCode = std::move(code)](DatabaseResult& result)
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, position, rotation, sessionId = owner->GetSessionId(), spaceshipHullId, spaceshipCode = std::move(code)](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;

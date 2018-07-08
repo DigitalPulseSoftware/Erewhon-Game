@@ -157,7 +157,7 @@ namespace ewn
 			return false;
 		}
 
-		app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), spaceshipName }, [app, spaceshipCount, sessionId = player->GetSessionId(), spaceshipName](DatabaseResult& result)
+		app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), spaceshipName }, [app, spaceshipCount, sessionId = player->GetSessionId(), spaceshipName](DatabaseResult& result)
 		{
 			if (!result)
 				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
@@ -182,7 +182,7 @@ namespace ewn
 			std::string code = std::get<std::string>(result.GetValue(1));
 			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
 
-			app->GetGlobalDatabase().ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, ply, spaceshipHullId, spaceshipCount, shipName = std::move(spaceshipName), spaceshipCode = std::move(code)](DatabaseResult& result)
+			app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [app, ply, spaceshipHullId, spaceshipCount, shipName = std::move(spaceshipName), spaceshipCode = std::move(code)](DatabaseResult& result)
 			{
 				if (!result)
 					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;

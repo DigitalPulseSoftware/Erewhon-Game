@@ -214,13 +214,17 @@ namespace ewn
 		}
 	}
 
-	ewn::DatabaseResult DatabaseConnection::PrepareStatement(const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes)
+	DatabaseResult DatabaseConnection::PrepareStatement(const std::string& statementName, const std::string& query, std::initializer_list<DatabaseType> parameterTypes)
 	{
-		Nz::StackArray<Oid> parameterIds = NazaraStackArrayNoInit(Oid, parameterTypes.size());
+		return PrepareStatement(statementName, query, &*parameterTypes.begin(), parameterTypes.size());
+	}
 
-		auto parameterId = parameterTypes.begin();
-		for (std::size_t i = 0; i < parameterTypes.size(); ++i)
-			parameterIds[i] = GetDatabaseOid(*parameterId++);
+	DatabaseResult DatabaseConnection::PrepareStatement(const std::string & statementName, const std::string & query, const DatabaseType* parameterTypes, std::size_t typeCount)
+	{
+		Nz::StackArray<Oid> parameterIds = NazaraStackArrayNoInit(Oid, typeCount);
+
+		for (std::size_t i = 0; i < typeCount; ++i)
+			parameterIds[i] = GetDatabaseOid(*parameterTypes++);
 
 		return DatabaseResult(PQprepare(m_connection, statementName.data(), query.data(), int(parameterIds.size()), parameterIds.data()));
 	}
