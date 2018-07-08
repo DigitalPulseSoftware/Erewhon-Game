@@ -262,8 +262,12 @@ namespace ewn
 			gridMesh->AddSubMesh(subMesh);
 			gridMesh->SetMaterialCount(1);
 
+			Nz::MaterialRef gridMaterial = Nz::Material::New("Translucent3D");
+			gridMaterial->SetDiffuseColor(Nz::Color(255, 255, 255, 50));
+
 			Nz::ModelRef gridModel = Nz::Model::New();
 			gridModel->SetMesh(gridMesh);
+			gridModel->SetMaterial(0, gridMaterial);
 
 			Nz::ModelLibrary::Register("FleetEditGrid", std::move(gridModel));
 		}
