@@ -16,15 +16,14 @@ namespace ewn
 	class NavigationSystem : public Ndk::System<NavigationSystem>
 	{
 		public:
-			NavigationSystem();
+			NavigationSystem(ServerApplication* app);
 
 			static Ndk::SystemIndex systemIndex;
 
 		private:
 			void OnUpdate(float elapsedTime) override;
 
-			Nz::UInt64 m_appTime;
-			float m_timeAccumulator;
+			ServerApplication* m_app;
 	};
 }
 

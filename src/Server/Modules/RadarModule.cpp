@@ -79,7 +79,7 @@ namespace ewn
 	{
 		if (m_isPassiveScanEnabled)
 		{
-			Nz::UInt64 now = ServerApplication::GetAppTime();
+			Nz::UInt64 now = GetCore()->GetApp()->GetAppTime();
 			if (now - m_lastPassiveScanTime > 500)
 			{
 				PerformScan();

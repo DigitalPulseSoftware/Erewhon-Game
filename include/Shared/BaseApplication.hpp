@@ -10,6 +10,7 @@
 #include <NDK/Application.hpp>
 #include <Shared/ConfigFile.hpp>
 #include <Shared/NetworkReactor.hpp>
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -21,6 +22,7 @@ namespace ewn
 			BaseApplication() = default;
 			virtual ~BaseApplication();
 
+			inline Nz::UInt64 GetAppTime();
 			inline ConfigFile& GetConfig();
 			inline const ConfigFile& GetConfig() const;
 			inline std::size_t GetReactorCount() const;
@@ -28,8 +30,6 @@ namespace ewn
 			inline bool LoadConfig(const std::string& configFile);
 
 			virtual bool Run() = 0;
-
-			static inline Nz::UInt64 GetAppTime();
 
 		protected:
 			inline std::size_t AddReactor(std::unique_ptr<NetworkReactor> reactor);
@@ -43,12 +43,12 @@ namespace ewn
 
 			virtual void OnConfigLoaded(const ConfigFile& config);
 
+			std::atomic<Nz::UInt64> m_appTime;
+			Nz::Clock m_appClock;
 			ConfigFile m_config;
 
 		private:
 			std::vector<std::unique_ptr<NetworkReactor>> m_reactors;
-
-			static Nz::Clock s_appClock;
 	};
 }
 

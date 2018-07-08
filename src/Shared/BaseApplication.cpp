@@ -11,6 +11,8 @@ namespace ewn
 
 	bool BaseApplication::Run()
 	{
+		m_appTime.store(m_appClock.GetMilliseconds(), std::memory_order_relaxed);
+
 		for (const auto& reactorPtr : m_reactors)
 		{
 			reactorPtr->Poll([&](bool outgoing, std::size_t clientId, Nz::UInt32 data) { HandlePeerConnection(outgoing, clientId, data); },
@@ -29,6 +31,4 @@ namespace ewn
 	void BaseApplication::OnConfigLoaded(const ConfigFile& /*config*/)
 	{
 	}
-
-	Nz::Clock BaseApplication::s_appClock;
 }

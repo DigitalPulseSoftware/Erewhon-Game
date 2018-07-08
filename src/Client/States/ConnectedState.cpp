@@ -78,7 +78,7 @@ namespace ewn
 	{
 		constexpr Nz::UInt64 connectionTimeout = 5'000;
 
-		Nz::UInt64 timeSinceLastPacket = ClientApplication::GetAppTime() - info.lastReceiveTime;
+		Nz::UInt64 timeSinceLastPacket = m_stateData.app->GetAppTime() - info.lastReceiveTime;
 		if (timeSinceLastPacket >= connectionTimeout)
 		{
 			if (!m_connectionLost)

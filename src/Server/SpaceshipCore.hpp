@@ -20,6 +20,7 @@
 
 namespace ewn
 {
+	class ServerApplication;
 	class SpaceshipCore;
 	class SpaceshipModule;
 
@@ -30,12 +31,14 @@ namespace ewn
 		public:
 			using CallbackArgFunction = std::function<int(Nz::LuaState& state)>;
 
-			inline SpaceshipCore(const Ndk::EntityHandle& spaceship);
+			inline SpaceshipCore(ServerApplication* app, const Ndk::EntityHandle& spaceship);
 			SpaceshipCore(const SpaceshipCore&) = delete;
 			~SpaceshipCore();
 
 			void AddModule(std::shared_ptr<SpaceshipModule> newModule);
 			template<typename T> T* GetModule(ModuleType type);
+
+			inline ServerApplication* GetApp();
 
 			void Register(Nz::LuaState& lua);
 			void Run(float elapsedTime);
@@ -67,6 +70,7 @@ namespace ewn
 			std::vector<std::shared_ptr<SpaceshipModule>> m_runnableModules;
 			std::vector<Callback> m_callbacks;
 			Ndk::EntityHandle m_spaceship;
+			ServerApplication* m_app;
 
 			static std::optional<Nz::LuaClass<SpaceshipCoreHandle>> s_binding;
 	};

@@ -734,7 +734,7 @@ namespace ewn
 
 	void SpaceshipController::Shoot()
 	{
-		Nz::UInt64 currentTime = ClientApplication::GetAppTime();
+		Nz::UInt64 currentTime = m_app->GetAppTime();
 		if (currentTime - m_lastShootTime < 500)
 			return;
 

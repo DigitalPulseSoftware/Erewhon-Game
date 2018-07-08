@@ -88,7 +88,7 @@ namespace ewn
 
 	bool ScriptComponent::Initialize(ServerApplication* app, const std::vector<std::size_t>& moduleIds)
 	{
-		m_core.emplace(m_entity);
+		m_core.emplace(app, m_entity);
 
 		const ModuleStore& moduleStore = app->GetModuleStore();
 		for (std::size_t moduleId : moduleIds)

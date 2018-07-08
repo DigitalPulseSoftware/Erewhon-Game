@@ -76,7 +76,7 @@ namespace ewn
 
 	bool Player::CanShoot() const
 	{
-		return ServerApplication::GetAppTime() - m_lastShootTime >= 500;
+		return m_app->GetAppTime() - m_lastShootTime >= 500;
 	}
 
 	void Player::ClearControlledEntity()
@@ -324,7 +324,7 @@ namespace ewn
 			return;
 		}
 
-		m_lastShootTime = ServerApplication::GetAppTime();
+		m_lastShootTime = m_app->GetAppTime();
 
 		auto& spaceshipNode = m_controlledEntity->GetComponent<Ndk::NodeComponent>();
 

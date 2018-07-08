@@ -16,7 +16,7 @@ namespace ewn
 		impulse.z = Nz::Clamp(impulse.z, -1.f, 1.f);
 
 		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
-		spaceshipNavigation.AddImpulse(impulse, ServerApplication::GetAppTime() + Nz::UInt64(duration * 1'000));
+		spaceshipNavigation.AddImpulse(impulse, GetCore()->GetApp()->GetAppTime() + Nz::UInt64(duration * 1'000));
 	}
 
 	void EngineModule::PushInstance(Nz::LuaState& lua)

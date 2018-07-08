@@ -12,24 +12,17 @@
 
 namespace ewn
 {
-	NavigationSystem::NavigationSystem() :
-	m_timeAccumulator(0.f)
+	NavigationSystem::NavigationSystem(ServerApplication* app) :
+	m_app(app)
 	{
 		Requires<InputComponent, NavigationComponent, Ndk::NodeComponent, Ndk::PhysicsComponent3D>();
 		Excludes<PlayerControlledComponent>();
 		SetFixedUpdateRate(30.f);
-
-		m_appTime = ServerApplication::GetAppTime();
 	}
 
 	void NavigationSystem::OnUpdate(float elapsedTime)
 	{
-		// Handle app time via elapsed time, to handle fixed update rate
-		m_timeAccumulator += elapsedTime;
-		float elapsedMs = std::floor(m_timeAccumulator * 1'000);
-		m_timeAccumulator -= elapsedMs / 1'000;
-
-		m_appTime += static_cast<Nz::UInt64>(elapsedMs);
+		Nz::UInt64 appTime = m_app->GetAppTime();
 
 		for (const Ndk::EntityHandle& entity : GetEntities())
 		{
@@ -38,9 +31,9 @@ namespace ewn
 			InputComponent& entityInput = entity->GetComponent<InputComponent>();
 			NavigationComponent& entityNavigation = entity->GetComponent<NavigationComponent>();
 
-			auto [thrust, rotation, isCloseEnough] = entityNavigation.Run(m_appTime, elapsedTime, entityNode.GetPosition(), entityNode.GetRotation(), entityPhys.GetLinearVelocity(), entityPhys.GetAngularVelocity());
+			auto [thrust, rotation, isCloseEnough] = entityNavigation.Run(appTime, elapsedTime, entityNode.GetPosition(), entityNode.GetRotation(), entityPhys.GetLinearVelocity(), entityPhys.GetAngularVelocity());
 
-			entityInput.PushInput(m_appTime, thrust, rotation);
+			entityInput.PushInput(appTime, thrust, rotation);
 		}
 	}
 

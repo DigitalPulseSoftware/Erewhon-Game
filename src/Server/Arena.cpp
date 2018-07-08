@@ -40,7 +40,7 @@ namespace ewn
 	m_scriptName(std::move(scriptName)),
 	m_app(app)
 	{
-		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>();
+		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>(m_app);
 		broadcastSystem.BroadcastEntityCreation.Connect(this,    &Arena::OnBroadcastEntityCreation);
 		broadcastSystem.BroadcastEntityDestruction.Connect(this, &Arena::OnBroadcastEntityDestruction);
 		broadcastSystem.BroadcastStateUpdate.Connect(this,       &Arena::OnBroadcastStateUpdate);
@@ -50,7 +50,7 @@ namespace ewn
 
 		m_world.AddSystem<InputSystem>();
 		m_world.AddSystem<LifeTimeSystem>();
-		m_world.AddSystem<NavigationSystem>();
+		m_world.AddSystem<NavigationSystem>(m_app);
 		m_world.AddSystem<ScriptSystem>(m_app, this);
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
@@ -353,7 +353,7 @@ namespace ewn
 
 			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
-			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
+			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((m_app->GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
 			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 10'000.0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
 
