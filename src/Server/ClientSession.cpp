@@ -492,8 +492,8 @@ namespace ewn
 				context.outlen = uint32_t(hashLength);
 				context.pwd = reinterpret_cast<uint8_t*>(const_cast<char*>(pass.data()));
 				context.pwdlen = uint32_t(pass.size());
-				context.salt = reinterpret_cast<uint8_t*>(const_cast<char*>(s.data()));
-				context.saltlen = uint32_t(s.size());
+				context.salt = reinterpret_cast<uint8_t*>(const_cast<char*>(salt.data()));
+				context.saltlen = uint32_t(salt.size());
 				context.t_cost = iCost;
 				context.m_cost = mCost;
 				context.lanes = tCost;

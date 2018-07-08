@@ -17,7 +17,7 @@ namespace ewn
 	}
 
 	template<typename T>
-	inline void Database::ExecuteStatement(T statement, StatementCallback<T> callback)
+	inline void Database::ExecuteStatement(T statement, StatementCallback callback)
 	{
 		QueryRequest newRequest;
 		newRequest.callback = std::move(callback);
@@ -28,7 +28,7 @@ namespace ewn
 		m_requestQueue.enqueue(std::move(newRequest));
 	}
 
-	inline void Database::ExecuteStatement(std::string statement, std::vector<DatabaseValue> parameters, QueryCallback callback)
+	inline void Database::ExecuteStatement(std::string statement, std::vector<DatabaseValue> parameters, StatementCallback callback)
 	{
 		QueryRequest newRequest;
 		newRequest.callback = std::move(callback);
