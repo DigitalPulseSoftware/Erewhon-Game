@@ -137,8 +137,8 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName)
 	{
-		if (player->GetPermissionLevel() < 40)
-			return false;
+		//if (player->GetPermissionLevel() < 40)
+		//	return false;
 
 		if (Arena* arena = player->GetArena())
 			arena->SpawnFleet(player, fleetName);
@@ -148,8 +148,8 @@ namespace ewn
 
 	bool ServerChatCommandStore::HandleSpawnBot(ServerApplication* app, Player* player, std::string spaceshipName, std::size_t spaceshipCount)
 	{
-		if (player->GetPermissionLevel() < 40)
-			return false;
+		//if (player->GetPermissionLevel() < 40)
+		//	return false;
 
 		if (spaceshipCount < 1 || spaceshipCount > 10)
 		{
