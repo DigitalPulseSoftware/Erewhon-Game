@@ -262,7 +262,10 @@ namespace ewn
 			}
 
 			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
-				Nz::File::Delete(TokenFile);
+			{
+				if (Nz::File::Exists(TokenFile))
+					Nz::File::Delete(TokenFile);
+			}
 
 			ComputePassword();
 
