@@ -17,7 +17,7 @@ namespace ewn
 {
 	m_snapshotId(0)
 	BroadcastSystem::BroadcastSystem(ServerApplication* app) :
-	m_app(app),
+	m_app(app)
 	{
 		Requires<Ndk::NodeComponent, SynchronizedComponent>();
 		SetMaximumUpdateRate(30.f);
