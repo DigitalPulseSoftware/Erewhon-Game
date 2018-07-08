@@ -15,8 +15,8 @@
 
 namespace ewn
 {
-	m_snapshotId(0)
 	BroadcastSystem::BroadcastSystem(ServerApplication* app) :
+	m_snapshotId(0),
 	m_app(app)
 	{
 		Requires<Ndk::NodeComponent, SynchronizedComponent>();
