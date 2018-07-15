@@ -48,6 +48,8 @@ namespace ewn
 		if (sendServerGhosts)
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
+		m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld().SetThreadCount(0);
+
 		m_world.AddSystem<InputSystem>();
 		m_world.AddSystem<LifeTimeSystem>();
 		m_world.AddSystem<NavigationSystem>(m_app);
