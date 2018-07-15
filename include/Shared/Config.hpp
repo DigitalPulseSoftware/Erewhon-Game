@@ -11,7 +11,7 @@
 
 namespace ewn
 {
-	constexpr std::size_t NetworkChannelCount = 1;
+	constexpr std::size_t NetworkChannelCount = 2;
 }
 
 #endif // EREWHON_SHARED_CONFIG_HPP

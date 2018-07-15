@@ -45,7 +45,7 @@ namespace ewn
 		OutgoingCommand(ArenaPrefabs,              Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ArenaParticleSystems,      Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ArenaSounds,               Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(ArenaState,                0,                           0);
+		OutgoingCommand(ArenaState,                0,                           1);
 		OutgoingCommand(BotMessage,                Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ChatMessage,               Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ControlEntity,             Nz::ENetPacketFlag_Reliable, 0);
