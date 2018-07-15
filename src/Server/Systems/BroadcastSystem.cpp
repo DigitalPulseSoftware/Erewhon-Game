@@ -28,10 +28,11 @@ namespace ewn
 	{
 		m_movingEntities.Remove(entity);
 
-		Packets::DeleteEntity deletePacket;
-		deletePacket.id = entity->GetId();
-
-		BroadcastEntityDestruction(this, deletePacket);
+		Ndk::EntityId entityId = entity->GetId();
+		if (m_createdEntities.UnboundedTest(entityId))
+			m_createdEntities.Reset(entityId);
+		else
+			m_deletedEntities.UnboundedSet(entityId);
 	}
 
 	void BroadcastSystem::OnEntityValidation(Ndk::Entity* entity, bool justAdded)
@@ -45,12 +46,7 @@ namespace ewn
 			m_movingEntities.Remove(entity);
 
 		if (justAdded)
-		{
-			Packets::CreateEntity createPacket;
-			BuildCreateEntity(entity, createPacket);
-
-			BroadcastEntityCreation(this, createPacket);
-		}
+			m_createdEntities.UnboundedSet(entity->GetId());
 	}
 
 	void BroadcastSystem::OnUpdate(float /*elapsedTime*/)
@@ -60,7 +56,35 @@ namespace ewn
 		static constexpr std::size_t EntityMaxSize = 1300;
 		static constexpr std::size_t MaxEntityPerUpdate = EntityMaxSize / EntitySize;
 
-		// Allocate a temporary array on the stack to sort entities by their priority accumulator
+		// Handle entities suppression
+		if (m_deletedEntities.TestAny())
+		{
+			m_deletedEntitiesPacket.entities.clear();
+			for (std::size_t entityId = m_deletedEntities.FindFirst(); entityId != m_deletedEntities.npos; entityId = m_deletedEntities.FindNext(entityId))
+				m_deletedEntitiesPacket.entities.emplace_back(static_cast<Nz::UInt32>(entityId));
+
+			m_deletedEntities.Clear();
+
+			BroadcastEntitiesDestruction(this, m_deletedEntitiesPacket);
+
+			m_destructionPacket++;
+		}
+
+		// Handle entities creation
+		if (m_createdEntities.TestAny())
+		{
+			m_createdEntitiesPacket.entities.clear();
+			for (std::size_t entityId = m_createdEntities.FindFirst(); entityId != m_createdEntities.npos; entityId = m_createdEntities.FindNext(entityId))
+				AppendEntity(GetWorld().GetEntity(entityId), m_createdEntitiesPacket);
+
+			m_createdEntities.Clear();
+
+			BroadcastEntitiesCreation(this, m_createdEntitiesPacket);
+
+			m_creationPacket++;
+		}
+
+		// Handle entities movement
 		m_priorityQueue.clear();
 		m_priorityQueue.reserve(m_movingEntities.size());
 
@@ -113,38 +137,37 @@ namespace ewn
 		BroadcastStateUpdate(this, m_arenaStatePacket);
 	}
 
-	void BroadcastSystem::BuildCreateEntity(Ndk::Entity* entity, Packets::CreateEntity& createPacket)
+	void BroadcastSystem::AppendEntity(Ndk::Entity* entity, Packets::CreateEntities& createPacket)
 	{
 		auto& nodeComponent = entity->GetComponent<Ndk::NodeComponent>();
 		auto& syncComponent = entity->GetComponent<SynchronizedComponent>();
 
-		createPacket.prefabId = Nz::UInt32(syncComponent.GetPrefabId());
-		createPacket.entityId = entity->GetId();
-		createPacket.position = nodeComponent.GetPosition();
-		createPacket.rotation = nodeComponent.GetRotation();
-		createPacket.visualName = syncComponent.GetName();
+		auto& entityData = createPacket.entities.emplace_back();
+
+		entityData.prefabId = Nz::UInt32(syncComponent.GetPrefabId());
+		entityData.entityId = entity->GetId();
+		entityData.position = nodeComponent.GetPosition();
+		entityData.rotation = nodeComponent.GetRotation();
+		entityData.visualName = syncComponent.GetName();
 
 		if (entity->HasComponent<Ndk::PhysicsComponent3D>())
 		{
 			auto& physComponent = entity->GetComponent<Ndk::PhysicsComponent3D>();
 
-			createPacket.angularVelocity = physComponent.GetAngularVelocity();
-			createPacket.linearVelocity = physComponent.GetLinearVelocity();
+			entityData.angularVelocity = physComponent.GetAngularVelocity();
+			entityData.linearVelocity = physComponent.GetLinearVelocity();
 		}
 		else
 		{
-			createPacket.angularVelocity = Nz::Vector3f::Zero();
-			createPacket.linearVelocity = Nz::Vector3f::Zero();
+			entityData.angularVelocity = Nz::Vector3f::Zero();
+			entityData.linearVelocity = Nz::Vector3f::Zero();
 		}
 	}
 
-	void BroadcastSystem::CreateAllEntities(std::vector<Packets::CreateEntity>& packetVector)
+	void BroadcastSystem::CreateAllEntities(Packets::CreateEntities& packetVector)
 	{
 		for (const Ndk::EntityHandle& entity : GetEntities())
-		{
-			packetVector.emplace_back();
-			BuildCreateEntity(entity, packetVector.back());
-		}
+			AppendEntity(entity, packetVector);
 	}
 
 	Ndk::SystemIndex BroadcastSystem::systemIndex;

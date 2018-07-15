@@ -49,12 +49,12 @@ namespace ewn
 		OutgoingCommand(BotMessage,                Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ChatMessage,               Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(ControlEntity,             Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(CreateEntity,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(CreateEntities,            Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateFleetFailure,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateFleetSuccess,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(CreateSpaceshipSuccess,    Nz::ENetPacketFlag_Reliable, 0);
-		OutgoingCommand(DeleteEntity,              Nz::ENetPacketFlag_Reliable, 0);
+		OutgoingCommand(DeleteEntities,            Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteFleetFailure,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteFleetSuccess,        Nz::ENetPacketFlag_Reliable, 0);
 		OutgoingCommand(DeleteSpaceshipFailure,    Nz::ENetPacketFlag_Reliable, 0);

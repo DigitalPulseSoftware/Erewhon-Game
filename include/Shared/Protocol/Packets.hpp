@@ -32,14 +32,14 @@ namespace ewn
 		BotMessage,
 		ChatMessage,
 		ControlEntity,
-		CreateEntity,
+		CreateEntities,
 		CreateFleet,
 		CreateFleetFailure,
 		CreateFleetSuccess,
 		CreateSpaceship,
 		CreateSpaceshipFailure,
 		CreateSpaceshipSuccess,
-		DeleteEntity,
+		DeleteEntities,
 		DeleteFleet,
 		DeleteFleetFailure,
 		DeleteFleetSuccess,
@@ -202,15 +202,20 @@ namespace ewn
 			CompressedUnsigned<Nz::UInt32> id;
 		};
 
-		DeclarePacket(CreateEntity)
+		DeclarePacket(CreateEntities)
 		{
-			CompressedUnsigned<Nz::UInt32> entityId;
-			CompressedUnsigned<Nz::UInt32> prefabId;
-			Nz::Quaternionf rotation;
-			Nz::Vector3f angularVelocity;
-			Nz::Vector3f linearVelocity;
-			Nz::Vector3f position;
-			Nz::String visualName;
+			struct Entity
+			{
+				CompressedUnsigned<Nz::UInt32> entityId;
+				CompressedUnsigned<Nz::UInt32> prefabId;
+				Nz::Quaternionf rotation;
+				Nz::Vector3f angularVelocity;
+				Nz::Vector3f linearVelocity;
+				Nz::Vector3f position;
+				Nz::String visualName;
+			};
+
+			std::vector<Entity> entities;
 		};
 
 		DeclarePacket(CreateFleet)
@@ -258,9 +263,11 @@ namespace ewn
 		{
 		};
 
-		DeclarePacket(DeleteEntity)
+		DeclarePacket(DeleteEntities)
 		{
-			CompressedUnsigned<Nz::UInt32> id;
+			using EntityId = CompressedUnsigned<Nz::UInt32>;
+
+			std::vector<EntityId> entities;
 		};
 
 		DeclarePacket(DeleteFleet)
@@ -584,14 +591,14 @@ namespace ewn
 		void Serialize(PacketSerializer& serializer, BotMessage& data);
 		void Serialize(PacketSerializer& serializer, ChatMessage& data);
 		void Serialize(PacketSerializer& serializer, ControlEntity& data);
-		void Serialize(PacketSerializer& serializer, CreateEntity& data);
+		void Serialize(PacketSerializer& serializer, CreateEntities& data);
 		void Serialize(PacketSerializer& serializer, CreateFleet& data);
 		void Serialize(PacketSerializer& serializer, CreateFleetFailure& data);
 		void Serialize(PacketSerializer& serializer, CreateFleetSuccess& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceship& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceshipFailure& data);
 		void Serialize(PacketSerializer& serializer, CreateSpaceshipSuccess& data);
-		void Serialize(PacketSerializer& serializer, DeleteEntity& data);
+		void Serialize(PacketSerializer& serializer, DeleteEntities& data);
 		void Serialize(PacketSerializer& serializer, DeleteFleet& data);
 		void Serialize(PacketSerializer& serializer, DeleteFleetFailure& data);
 		void Serialize(PacketSerializer& serializer, DeleteFleetSuccess& data);

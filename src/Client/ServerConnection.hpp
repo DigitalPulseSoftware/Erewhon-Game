@@ -66,12 +66,12 @@ namespace ewn
 			NazaraSignal(OnBotMessage,                ServerConnection* /*server*/, const Packets::BotMessage&                /*data*/);
 			NazaraSignal(OnChatMessage,               ServerConnection* /*server*/, const Packets::ChatMessage&               /*data*/);
 			NazaraSignal(OnControlEntity,             ServerConnection* /*server*/, const Packets::ControlEntity&             /*data*/);
-			NazaraSignal(OnCreateEntity,              ServerConnection* /*server*/, const Packets::CreateEntity&              /*data*/);
+			NazaraSignal(OnCreateEntities,            ServerConnection* /*server*/, const Packets::CreateEntities&            /*data*/);
 			NazaraSignal(OnCreateFleetFailure,        ServerConnection* /*server*/, const Packets::CreateFleetFailure&        /*data*/);
 			NazaraSignal(OnCreateFleetSuccess,        ServerConnection* /*server*/, const Packets::CreateFleetSuccess&        /*data*/);
 			NazaraSignal(OnCreateSpaceshipFailure,    ServerConnection* /*server*/, const Packets::CreateSpaceshipFailure&    /*data*/);
 			NazaraSignal(OnCreateSpaceshipSuccess,    ServerConnection* /*server*/, const Packets::CreateSpaceshipSuccess&    /*data*/);
-			NazaraSignal(OnDeleteEntity,              ServerConnection* /*server*/, const Packets::DeleteEntity&              /*data*/);
+			NazaraSignal(OnDeleteEntities,            ServerConnection* /*server*/, const Packets::DeleteEntities&            /*data*/);
 			NazaraSignal(OnDeleteFleetFailure,        ServerConnection* /*server*/, const Packets::DeleteFleetFailure&        /*data*/);
 			NazaraSignal(OnDeleteFleetSuccess,        ServerConnection* /*server*/, const Packets::DeleteFleetSuccess&        /*data*/);
 			NazaraSignal(OnDeleteSpaceshipFailure,    ServerConnection* /*server*/, const Packets::DeleteSpaceshipFailure&    /*data*/);

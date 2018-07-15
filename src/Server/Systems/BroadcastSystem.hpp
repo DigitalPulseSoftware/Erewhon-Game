@@ -22,11 +22,11 @@ namespace ewn
 			BroadcastSystem(ServerApplication* app);
 			~BroadcastSystem() = default;
 
-			void BuildCreateEntity(Ndk::Entity* entity, Packets::CreateEntity& createPacket);
-			void CreateAllEntities(std::vector<Packets::CreateEntity>& packetVector);
+			void AppendEntity(Ndk::Entity* entity, Packets::CreateEntities& createPacket);
+			void CreateAllEntities(Packets::CreateEntities& packetVector);
 
-			NazaraSignal(BroadcastEntityCreation, const BroadcastSystem*, const Packets::CreateEntity& /*packet*/);
-			NazaraSignal(BroadcastEntityDestruction, const BroadcastSystem*, const Packets::DeleteEntity& /*packet*/);
+			NazaraSignal(BroadcastEntitiesCreation, const BroadcastSystem*, const Packets::CreateEntities& /*packet*/);
+			NazaraSignal(BroadcastEntitiesDestruction, const BroadcastSystem*, const Packets::DeleteEntities& /*packet*/);
 			NazaraSignal(BroadcastStateUpdate, const BroadcastSystem*, Packets::ArenaState& /*statePacket*/);
 
 			static Ndk::SystemIndex systemIndex;
@@ -44,8 +44,12 @@ namespace ewn
 
 			std::vector<EntityPriority> m_priorityQueue;
 			Ndk::EntityList m_movingEntities;
+			Nz::Bitset<> m_createdEntities;
+			Nz::Bitset<> m_deletedEntities;
 			Nz::UInt16 m_snapshotId;
 			Packets::ArenaState m_arenaStatePacket;
+			Packets::CreateEntities m_createdEntitiesPacket;
+			Packets::DeleteEntities m_deletedEntitiesPacket;
 			ServerApplication* m_app;
 			float m_stateUpdateAccumulator;
 			float m_stateUpdateFrequency;

@@ -84,8 +84,8 @@ namespace ewn
 			bool HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 			bool HandleTorpedoProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody);
 
-			void OnBroadcastEntityCreation(const BroadcastSystem* system, const Packets::CreateEntity& packet);
-			void OnBroadcastEntityDestruction(const BroadcastSystem* system, const Packets::DeleteEntity& packet);
+			void OnBroadcastEntitiesCreation(const BroadcastSystem* system, const Packets::CreateEntities& packet);
+			void OnBroadcastEntitiesDestruction(const BroadcastSystem* system, const Packets::DeleteEntities& packet);
 			void OnBroadcastStateUpdate(const BroadcastSystem* system, Packets::ArenaState& statePacket);
 
 			void SendArenaData(Player* player);
@@ -97,7 +97,7 @@ namespace ewn
 			std::string m_name;
 			std::string m_scriptName;
 			std::unordered_set<Player*> m_players;
-			std::vector<Packets::CreateEntity> m_createEntityCache;
+			Packets::CreateEntities m_createEntitiesCache;
 			ServerApplication* m_app;
 			int m_plasmaMaterial;
 			int m_torpedoMaterial;

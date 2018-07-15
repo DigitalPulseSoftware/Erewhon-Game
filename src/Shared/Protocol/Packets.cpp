@@ -107,15 +107,19 @@ namespace ewn
 			serializer &= data.id;
 		}
 
-		void Serialize(PacketSerializer& serializer, CreateEntity& data)
+		void Serialize(PacketSerializer& serializer, CreateEntities& data)
 		{
-			serializer &= data.angularVelocity;
-			serializer &= data.entityId;
-			serializer &= data.linearVelocity;
-			serializer &= data.position;
-			serializer &= data.prefabId;
-			serializer &= data.rotation;
-			serializer &= data.visualName;
+			serializer.SerializeArraySize(data.entities);
+			for (auto& entityData : data.entities)
+			{
+				serializer &= entityData.angularVelocity;
+				serializer &= entityData.entityId;
+				serializer &= entityData.linearVelocity;
+				serializer &= entityData.position;
+				serializer &= entityData.prefabId;
+				serializer &= entityData.rotation;
+				serializer &= entityData.visualName;
+			}
 		}
 
 		void Serialize(PacketSerializer& serializer, CreateFleet& data)
@@ -165,9 +169,11 @@ namespace ewn
 		{
 		}
 
-		void Serialize(PacketSerializer& serializer, DeleteEntity& data)
+		void Serialize(PacketSerializer& serializer, DeleteEntities& data)
 		{
-			serializer &= data.id;
+			serializer.SerializeArraySize(data.entities);
+			for (auto& id : data.entities)
+				serializer &= id;
 		}
 
 		void Serialize(PacketSerializer& serializer, DeleteFleet& data)

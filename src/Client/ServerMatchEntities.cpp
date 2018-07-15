@@ -42,8 +42,8 @@ namespace ewn
 		m_onArenaPrefabsSlot.Connect(server->OnArenaPrefabs, this, &ServerMatchEntities::OnArenaPrefabs);
 		m_onArenaSoundsSlot.Connect(server->OnArenaSounds, this,   &ServerMatchEntities::OnArenaSounds);
 		m_onArenaStateSlot.Connect(server->OnArenaState, this,     &ServerMatchEntities::OnArenaState);
-		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
-		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
+		m_onCreateEntitySlot.Connect(server->OnCreateEntities, this, &ServerMatchEntities::OnCreateEntities);
+		m_onDeleteEntitySlot.Connect(server->OnDeleteEntities, this, &ServerMatchEntities::OnDeleteEntities);
 		m_onInstantiateParticleSystemSlot.Connect(server->OnInstantiateParticleSystem, this, &ServerMatchEntities::OnInstantiateParticleSystem);
 		m_onPlaySoundSlot.Connect(server->OnPlaySound, this,       &ServerMatchEntities::OnPlaySound);
 
@@ -726,65 +726,71 @@ namespace ewn
 		m_jitterBuffer.push_back(std::move(snapshot));
 	}
 
-	void ServerMatchEntities::OnCreateEntity(ServerConnection*, const Packets::CreateEntity& createPacket)
+	void ServerMatchEntities::OnCreateEntities(ServerConnection*, const Packets::CreateEntities& createPacket)
 	{
-		ServerEntity& data = CreateServerEntity(createPacket.entityId);
-
-		data.positionError = Nz::Vector3f::Zero();
-		data.rotationError = Nz::Quaternionf::Identity();
-
-		data.entity = m_prefabs[createPacket.prefabId]->Clone();
-
-		data.name = createPacket.visualName.ToStdString();
-
-		auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
-		entityNode.SetPosition(createPacket.position);
-		entityNode.SetRotation(createPacket.rotation);
-
-		auto& entityPhys = data.entity->GetComponent<Ndk::PhysicsComponent3D>();
-		entityPhys.SetAngularVelocity(createPacket.angularVelocity);
-		entityPhys.SetLinearVelocity(createPacket.linearVelocity);
-		entityPhys.SetPosition(createPacket.position);
-		entityPhys.SetRotation(createPacket.rotation);
-
-		if (data.entity->HasComponent<SoundEmitterComponent>())
+		for (const auto& entityData : createPacket.entities)
 		{
-			auto& soundEmitter = data.entity->GetComponent<SoundEmitterComponent>();
-			soundEmitter.Play();
+			ServerEntity& data = CreateServerEntity(entityData.entityId);
+
+			data.positionError = Nz::Vector3f::Zero();
+			data.rotationError = Nz::Quaternionf::Identity();
+
+			data.entity = m_prefabs[entityData.prefabId]->Clone();
+
+			data.name = entityData.visualName.ToStdString();
+
+			auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
+			entityNode.SetPosition(entityData.position);
+			entityNode.SetRotation(entityData.rotation);
+
+			auto& entityPhys = data.entity->GetComponent<Ndk::PhysicsComponent3D>();
+			entityPhys.SetAngularVelocity(entityData.angularVelocity);
+			entityPhys.SetLinearVelocity(entityData.linearVelocity);
+			entityPhys.SetPosition(entityData.position);
+			entityPhys.SetRotation(entityData.rotation);
+
+			if (data.entity->HasComponent<SoundEmitterComponent>())
+			{
+				auto& soundEmitter = data.entity->GetComponent<SoundEmitterComponent>();
+				soundEmitter.Play();
+			}
+
+			Nz::Color textColor = (entityData.visualName == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
+
+			// Create entity name entity
+			if (!entityData.visualName.IsEmpty())
+			{
+				Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
+				textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
+				textSprite->Update(Nz::SimpleTextDrawer::Draw(entityData.visualName, 96, 0U, textColor));
+				textSprite->SetScale(0.01f);
+
+				data.textEntity = m_world->CreateEntity();
+				data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
+				data.textEntity->AddComponent<Ndk::NodeComponent>();
+			}
+
+			OnEntityCreated(this, data);
 		}
-
-		Nz::Color textColor = (createPacket.visualName == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
-
-		// Create entity name entity
-		if (!createPacket.visualName.IsEmpty())
-		{
-			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
-			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.visualName, 96, 0U, textColor));
-			textSprite->SetScale(0.01f);
-
-			data.textEntity = m_world->CreateEntity();
-			data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
-			data.textEntity->AddComponent<Ndk::NodeComponent>();
-		}
-
-		OnEntityCreated(this, data);
 	}
 
-	void ServerMatchEntities::OnDeleteEntity(ServerConnection*, const Packets::DeleteEntity& deletePacket)
+	void ServerMatchEntities::OnDeleteEntities(ServerConnection*, const Packets::DeleteEntities& deletePacket)
 	{
-		ServerEntity& data = GetServerEntity(deletePacket.id);
+		for (std::size_t entityId : deletePacket.entities)
+		{
+			ServerEntity& data = GetServerEntity(entityId);
 
-		if (data.debugGhostEntity)
-			data.debugGhostEntity->Kill();
+			if (data.debugGhostEntity)
+				data.debugGhostEntity->Kill();
 
-		if (data.textEntity)
-			data.textEntity->Kill();
+			if (data.textEntity)
+				data.textEntity->Kill();
 
-		data.entity->Kill();
-		data.isValid = false;
+			data.entity->Kill();
+			data.isValid = false;
 
-		OnEntityDelete(this, data);
+			OnEntityDelete(this, data);
+		}
 	}
 
 	void ServerMatchEntities::OnInstantiateParticleSystem(ServerConnection* server, const Packets::InstantiateParticleSystem& instantiatePacket)

@@ -24,12 +24,12 @@ namespace ewn
 		IncomingCommand(BotMessage);
 		IncomingCommand(ChatMessage);
 		IncomingCommand(ControlEntity);
-		IncomingCommand(CreateEntity);
+		IncomingCommand(CreateEntities);
 		IncomingCommand(CreateFleetFailure);
 		IncomingCommand(CreateFleetSuccess);
 		IncomingCommand(CreateSpaceshipFailure);
 		IncomingCommand(CreateSpaceshipSuccess);
-		IncomingCommand(DeleteEntity);
+		IncomingCommand(DeleteEntities);
 		IncomingCommand(DeleteFleetFailure);
 		IncomingCommand(DeleteFleetSuccess);
 		IncomingCommand(DeleteSpaceshipFailure);

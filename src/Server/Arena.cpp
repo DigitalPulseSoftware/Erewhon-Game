@@ -41,8 +41,8 @@ namespace ewn
 	m_app(app)
 	{
 		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>(m_app);
-		broadcastSystem.BroadcastEntityCreation.Connect(this,    &Arena::OnBroadcastEntityCreation);
-		broadcastSystem.BroadcastEntityDestruction.Connect(this, &Arena::OnBroadcastEntityDestruction);
+		broadcastSystem.BroadcastEntitiesCreation.Connect(this,    &Arena::OnBroadcastEntitiesCreation);
+		broadcastSystem.BroadcastEntitiesDestruction.Connect(this, &Arena::OnBroadcastEntitiesDestruction);
 		broadcastSystem.BroadcastStateUpdate.Connect(this,       &Arena::OnBroadcastStateUpdate);
 
 		if (sendServerGhosts)
@@ -552,11 +552,10 @@ namespace ewn
 
 		SendArenaData(player);
 
-		m_createEntityCache.clear();
-		m_world.GetSystem<BroadcastSystem>().CreateAllEntities(m_createEntityCache);
+		m_createEntitiesCache.entities.clear();
+		m_world.GetSystem<BroadcastSystem>().CreateAllEntities(m_createEntitiesCache);
 
-		for (const auto& packet : m_createEntityCache)
-			player->SendPacket(packet);
+		player->SendPacket(m_createEntitiesCache);
 
 		m_players.insert(player);
 
@@ -882,13 +881,13 @@ namespace ewn
 		return false;
 	}
 
-	void Arena::OnBroadcastEntityCreation(const BroadcastSystem* /*system*/, const Packets::CreateEntity& packet)
+	void Arena::OnBroadcastEntitiesCreation(const BroadcastSystem* /*system*/, const Packets::CreateEntities& packet)
 	{
 		for (Player* player : m_players)
 			player->SendPacket(packet);
 	}
 
-	void Arena::OnBroadcastEntityDestruction(const BroadcastSystem* /*system*/, const Packets::DeleteEntity& packet)
+	void Arena::OnBroadcastEntitiesDestruction(const BroadcastSystem* /*system*/, const Packets::DeleteEntities& packet)
 	{
 		for (Player* player : m_players)
 			player->SendPacket(packet);

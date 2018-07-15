@@ -72,8 +72,8 @@ namespace ewn
 			void OnArenaParticleSystems(ServerConnection* server, const Packets::ArenaParticleSystems& arenaParticleSystems);
 			void OnArenaSounds(ServerConnection* server, const Packets::ArenaSounds& arenaSounds);
 			void OnArenaState(ServerConnection* server, const Packets::ArenaState& arenaState);
-			void OnCreateEntity(ServerConnection* server, const Packets::CreateEntity& createPacket);
-			void OnDeleteEntity(ServerConnection* server, const Packets::DeleteEntity& deletePacket);
+			void OnCreateEntities(ServerConnection* server, const Packets::CreateEntities& createPacket);
+			void OnDeleteEntities(ServerConnection* server, const Packets::DeleteEntities& deletePacket);
 			void OnInstantiateParticleSystem(ServerConnection* server, const Packets::InstantiateParticleSystem& instantiatePacket);
 			void OnPlaySound(ServerConnection* server, const Packets::PlaySound& playSound);
 
@@ -111,8 +111,8 @@ namespace ewn
 			NazaraSlot(ServerConnection, OnArenaPrefabs,              m_onArenaPrefabsSlot);
 			NazaraSlot(ServerConnection, OnArenaSounds,               m_onArenaSoundsSlot);
 			NazaraSlot(ServerConnection, OnArenaState,                m_onArenaStateSlot);
-			NazaraSlot(ServerConnection, OnCreateEntity,              m_onCreateEntitySlot);
-			NazaraSlot(ServerConnection, OnDeleteEntity,              m_onDeleteEntitySlot);
+			NazaraSlot(ServerConnection, OnCreateEntities,            m_onCreateEntitySlot);
+			NazaraSlot(ServerConnection, OnDeleteEntities,            m_onDeleteEntitySlot);
 			NazaraSlot(ServerConnection, OnInstantiateParticleSystem, m_onInstantiateParticleSystemSlot);
 			NazaraSlot(ServerConnection, OnPlaySound,                 m_onPlaySoundSlot);
 
