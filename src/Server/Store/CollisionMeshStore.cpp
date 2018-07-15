@@ -36,17 +36,16 @@ namespace ewn
 		std::size_t meshLoaded = 0;
 		for (std::size_t i = 0; i < meshCount; ++i)
 		{
-			Nz::Int32 id = std::get<Nz::Int32>(result.GetValue(0, i));
+			CollisionMeshes_Load::Result meshData(result, i);
 
 			try
 			{
-				CollisionMeshInfo& collisionInfo = m_collisionInfos[id];
+				CollisionMeshInfo& collisionInfo = m_collisionInfos[meshData.id];
 				collisionInfo.doesExist = true;
 
-				collisionInfo.filePath = std::get<std::string>(result.GetValue(1, i));
+				collisionInfo.filePath = std::move(meshData.filepath);
 
-				float scale = std::get<float>(result.GetValue(2, i));
-				params.matrix = Nz::Matrix4f::Transform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(scale));
+				params.matrix = Nz::Matrix4f::Transform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(meshData.scale));
 
 				Nz::Mesh mesh;
 				if (!mesh.LoadFromFile(assetsFolder + '/' + collisionInfo.filePath, params))
@@ -93,14 +92,14 @@ namespace ewn
 				}
 
 				collisionInfo.dimensions = collisionInfo.collider->ComputeAABB();
-				collisionInfo.scale = scale;
+				collisionInfo.scale = meshData.scale;
 
 				collisionInfo.isLoaded = true;
 				meshLoaded++;
 			}
 			catch (const std::exception& e)
 			{
-				std::cerr << "Failed to load collision mesh #" << id << ": " << e.what() << std::endl;
+				std::cerr << "Failed to load collision mesh #" << meshData.id << ": " << e.what() << std::endl;
 			}
 		}
 

@@ -50,6 +50,31 @@ namespace ewn
 		static constexpr const char* Query = "SELECT id, password, password_salt FROM accounts WHERE login=LOWER($1)";
 		static constexpr std::array<DatabaseType, 1> Parameters = { DatabaseType::Text };
 	};
+
+	struct CollisionMeshes_Load : PreparedStatement<CollisionMeshes_Load>
+	{
+		void FillParameters(std::vector<DatabaseValue>& values)
+		{
+		}
+
+		struct Result
+		{
+			Nz::Int32 id;
+			std::string filepath;
+			float scale;
+
+			Result(DatabaseResult& result, std::size_t rowIndex)
+			{
+				id = std::get<Nz::Int32>(result.GetValue(0, rowIndex));
+				filepath = std::get<std::string>(result.GetValue(1, rowIndex));
+				scale = std::get<float>(result.GetValue(2, rowIndex));
+			}
+		};
+
+		static constexpr const char* StatementName = "LoadCollisionMeshes";
+		static constexpr const char* Query = "SELECT id, file_path, scale FROM collision_meshes ORDER BY id ASC";
+		static constexpr std::array<DatabaseType, 0> Parameters = {};
+	};
 }
 
 #include <Server/GlobalDatabase.inl>

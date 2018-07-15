@@ -7,47 +7,13 @@
 
 namespace ewn
 {
-	/*template<typename T>
-	struct PreparedStatement
-	{
-		void ExecStatement(ewn::DatabaseConnection& conn, std::initializer_list<DatabaseValue> parameters)
-		{
-			conn.ExecPreparedStatement(T::StatementName, parameters);
-		}
-
-		static DatabaseResult Prepare(ewn::DatabaseConnection& conn)
-		{
-			return conn.PrepareStatement(T::StatementName, T::Query, T::Parameters);
-		}
-	};
-
-	struct AddSpaceshipModule : PreparedStatement<AddSpaceshipModule>
-	{
-		Nz::Int32 spaceshipId;
-		Nz::Int32 moduleId;
-
-		void Exec(ewn::DatabaseConnection& conn)
-		{
-			return ExecStatement(conn, { spaceshipId, moduleId });
-		}
-
-		static constexpr const char* StatementName = "AddSpaceshipModule";
-		static constexpr const char* Query = "INSERT INTO spaceship_modules(spaceship_id, module_id) VALUES($1, $2)";
-		static constexpr std::initializer_list<DatabaseType> Parameters = { DatabaseType::Int32, DatabaseType::Int32 };
-	};*/
 
 	void GlobalDatabase::PrepareStatements(DatabaseConnection& conn)
 	{
 		try
 		{
-			/*AddSpaceshipModule request;
-			request.moduleId = 5;
-			request.spaceshipId = 32;
-
-			request.Exec(conn);
-
-			PrepareStatement<AddSpaceshipModule>();*/
 			PrepareStatement<Account_QueryConnectionInfoByLogin>(conn);
+			PrepareStatement<CollisionMeshes_Load>(conn);
 			PrepareStatement(conn, "AddSpaceshipModule", "INSERT INTO spaceship_modules(spaceship_id, module_id) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Int32 });
 			PrepareStatement(conn, "CountFleetByOwnerIdExceptName", "SELECT COUNT(id) FROM spaceships WHERE owner_id = $1 AND name <> LOWER($2)", { DatabaseType::Int32 });
 			PrepareStatement(conn, "CountSpaceshipByOwnerIdExceptName", "SELECT COUNT(id) FROM spaceships WHERE owner_id = $1 AND name <> LOWER($2)", { DatabaseType::Int32 });
@@ -71,7 +37,7 @@ namespace ewn
 			PrepareStatement(conn, "FindSpaceshipIdByOwnerIdAndName", "SELECT id FROM spaceships WHERE owner_id = $1 AND name=LOWER($2)", { DatabaseType::Int32, DatabaseType::Text });
 			PrepareStatement(conn, "FindSpaceshipsByOwnerId", "SELECT id, name FROM spaceships WHERE owner_id = $1", { DatabaseType::Int32 });
 			PrepareStatement(conn, "LoadAccount", "SELECT login, display_name, permission_level FROM accounts WHERE id=$1;", { DatabaseType::Int32 });
-			PrepareStatement(conn, "LoadCollisionMeshes", "SELECT id, file_path, scale FROM collision_meshes ORDER BY id ASC", {});
+			//PrepareStatement(conn, "LoadCollisionMeshes", "SELECT id, file_path, scale FROM collision_meshes ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadModules", "SELECT id, name, description, class_name, class_info, type FROM modules ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadSpaceshipHulls", "SELECT id, name, description, collision_mesh, visual_mesh FROM spaceship_hulls ORDER BY id ASC", {});
 			PrepareStatement(conn, "LoadSpaceshipHullSlots", "SELECT module_type FROM spaceship_hull_slots WHERE spaceship_hull_id = $1", { DatabaseType::Int32 });
