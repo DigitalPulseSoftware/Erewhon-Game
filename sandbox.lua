@@ -24,6 +24,7 @@ function table.Count(t)
 	return count
 end
 
+local nextSpaceshipCheck = 0
 local players = {}
 local timeSinceStart = 0
 local spawnDelay = 5
@@ -65,10 +66,14 @@ end
 function OnUpdate(elapsedTime)
 	timeSinceStart = timeSinceStart + elapsedTime
 
-	for sessionId, playerData in pairs(players) do
-		if (playerData.RespawnTime < timeSinceStart and not playerData.Player:GetControlledEntity():IsValidHandle()) then
-			playerData.Spaceship = Arena:CreateSpaceship(playerData.Player:GetName(), playerData.Player, 1, Vector3(0, 0, 0), Quaternion.Identity)
-			playerData.Player:UpdateControlledEntity(playerData.Spaceship)
+	if (timeSinceStart >= nextSpaceshipCheck) then
+		for sessionId, playerData in pairs(players) do
+			if (playerData.RespawnTime < timeSinceStart and not playerData.Player:GetControlledEntity():IsValidHandle()) then
+				playerData.Spaceship = Arena:CreateSpaceship(playerData.Player:GetName(), playerData.Player, 1, Vector3(0, 0, 0), Quaternion.Identity)
+				playerData.Player:UpdateControlledEntity(playerData.Spaceship)
+			end
 		end
+	
+		nextSpaceshipCheck = timeSinceStart + 1
 	end
 end
