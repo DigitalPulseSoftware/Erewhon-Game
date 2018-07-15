@@ -18,8 +18,8 @@ Projects = {
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Client/**"},
 		Includes = {"../thirdparty/include"},
 		Libs = os.istarget("windows") and {} or {"pthread"},
-		LibsDebug = {"argon2-d", "NazaraAudio-d", "NazaraCore-d", "NazaraLua-d", "NazaraGraphics-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraRenderer-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraPlatform-d", "NazaraSDK-d", "NazaraUtility-d"},
-		LibsRelease = {"argon2", "NazaraAudio", "NazaraCore", "NazaraLua", "NazaraGraphics", "NazaraNetwork", "NazaraNoise", "NazaraRenderer", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraPlatform", "NazaraSDK", "NazaraUtility"},
+		LibsDebug = {"enet", "ws2_32", "Winmm", "argon2-d", "NazaraAudio-d", "NazaraCore-d", "NazaraLua-d", "NazaraGraphics-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraRenderer-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraPlatform-d", "NazaraSDK-d", "NazaraUtility-d"},
+		LibsRelease = {"enet", "ws2_32", "Winmm", "argon2", "NazaraAudio", "NazaraCore", "NazaraLua", "NazaraGraphics", "NazaraNetwork", "NazaraNoise", "NazaraRenderer", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraPlatform", "NazaraSDK", "NazaraUtility"},
 		AdditionalDependencies = {"Newton", "libsndfile-1", "soft_oal"}
 	},
 	{
@@ -29,8 +29,8 @@ Projects = {
 		Files = {"../include/Shared/**", "../src/Shared/**", "../src/Server/**"},
 		Includes = {"../thirdparty/include"},
 		Libs = os.istarget("windows") and {"libpq"} or {"pq", "pthread"},
-		LibsDebug = {"argon2-d", "NazaraCore-d", "NazaraLua-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraSDKServer-d", "NazaraUtility-d"},
-		LibsRelease = {"argon2", "NazaraCore", "NazaraLua", "NazaraNetwork", "NazaraNoise", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraSDKServer", "NazaraUtility"},
+		LibsDebug = {"enet", "ws2_32", "Winmm", "argon2-d", "NazaraCore-d", "NazaraLua-d", "NazaraNetwork-d", "NazaraNoise-d", "NazaraPhysics2D-d", "NazaraPhysics3D-d", "NazaraSDKServer-d", "NazaraUtility-d"},
+		LibsRelease = {"enet", "ws2_32", "Winmm", "argon2", "NazaraCore", "NazaraLua", "NazaraNetwork", "NazaraNoise", "NazaraPhysics2D", "NazaraPhysics3D", "NazaraSDKServer", "NazaraUtility"},
 		AdditionalDependencies = {"libeay32", "libintl-8", "libiconv-2", "Newton", "ssleay32"}
 	}
 }
@@ -54,7 +54,7 @@ if (not configLoaded) then
 	error("config.lua failed to load: " .. err)
 end
 
-local libs = {"NazaraPath", "PostgresClientPath"}
+local libs = {"NazaraPath", "PostgresClientPath", "ENetTest"}
 local libsDirs = {"", "/bin", "/include"}
 if (os.istarget("windows")) then
 	table.insert(libsDirs, "/lib")
