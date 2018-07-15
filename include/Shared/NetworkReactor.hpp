@@ -15,6 +15,14 @@
 #include <variant>
 #include <vector>
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+
+#include <enet/enet.h>
+
+#undef GetObject //< Fuck you Microsoft
+#undef SetPort //< Fuck you Microsoft
+
 namespace ewn
 {
 	enum class DisconnectionType
@@ -117,11 +125,11 @@ namespace ewn
 
 			std::atomic_bool m_running;
 			std::size_t m_firstId;
-			std::vector<Nz::ENetPeer*> m_clients;
+			std::vector<ENetPeer*> m_clients;
 			moodycamel::ConcurrentQueue<ConnectionRequest> m_connectionRequests;
 			moodycamel::ConcurrentQueue<IncomingEvent> m_incomingQueue;
 			moodycamel::ConcurrentQueue<OutgoingEvent> m_outgoingQueue;
-			Nz::ENetHost m_host;
+			ENetHost* m_host;
 			Nz::NetProtocol m_protocol;
 			Nz::Thread m_thread;
 	};

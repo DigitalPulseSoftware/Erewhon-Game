@@ -7,6 +7,7 @@
 #include <Shared/Utils.hpp>
 #include <cassert>
 #include <condition_variable>
+#include <iostream>
 #include <mutex>
 #include <stdexcept>
 
@@ -18,10 +19,18 @@ namespace ewn
 	{
 		if (port > 0)
 		{
-			if (!m_host.Create(protocol, port, maxClient, NetworkChannelCount))
-				throw std::runtime_error("Failed to start reactor");
+			ENetAddress address;
+			address.host = ENET_HOST_ANY;
+			address.port = port;
+
+			m_host = enet_host_create(&address, maxClient, NetworkChannelCount, 0, 0);
 		}
-		else if (!m_host.Create((protocol == Nz::NetProtocol_IPv4) ? Nz::IpAddress::LoopbackIpV4 : Nz::IpAddress::LoopbackIpV6, maxClient, NetworkChannelCount))
+		else
+		{
+			m_host = enet_host_create(nullptr, maxClient, NetworkChannelCount, 0, 0);
+		}
+
+		if (!m_host)
 			throw std::runtime_error("Failed to start reactor");
 
 		m_clients.resize(maxClient, nullptr);
@@ -132,9 +141,16 @@ namespace ewn
 		ConnectionRequest request;
 		while (m_connectionRequests.try_dequeue(request))
 		{
-			if (Nz::ENetPeer* peer = m_host.Connect(request.remoteAddress, NetworkChannelCount, request.data))
+			Nz::IpAddress withoutPort = request.remoteAddress;
+			withoutPort.SetPort(0);
+
+			ENetAddress peerAddress;
+			enet_address_set_host(&peerAddress, withoutPort.ToString().GetConstBuffer());
+			peerAddress.port = request.remoteAddress.GetPort();
+
+			if (ENetPeer* peer = enet_host_connect(m_host, &peerAddress, NetworkChannelCount, request.data))
 			{
-				Nz::UInt16 peerId = peer->GetPeerId();
+				Nz::UInt16 peerId = peer->incomingPeerID;
 				m_clients[peerId] = peer;
 
 				request.callback(peerId);
@@ -146,16 +162,17 @@ namespace ewn
 
 	void NetworkReactor::ReceivePackets(const moodycamel::ProducerToken& producterToken)
 	{
-		Nz::ENetEvent event;
-		if (m_host.Service(&event, 5) > 0)
+		ENetEvent event;
+		if (enet_host_service(m_host, &event, 0) > 0)
 		{
 			do
 			{
+				Nz::UInt16 peerId = event.peer->incomingPeerID;
+
 				switch (event.type)
 				{
-					case Nz::ENetEventType::Disconnect:
+					case ENET_EVENT_TYPE_DISCONNECT:
 					{
-						Nz::UInt16 peerId = event.peer->GetPeerId();
 						m_clients[peerId] = nullptr;
 
 						IncomingEvent::DisconnectEvent disconnectEvent;
@@ -169,15 +186,14 @@ namespace ewn
 						break;
 					}
 
-					case Nz::ENetEventType::IncomingConnect:
-					case Nz::ENetEventType::OutgoingConnect:
+					case ENET_EVENT_TYPE_CONNECT:
 					{
-						Nz::UInt16 peerId = event.peer->GetPeerId();
 						m_clients[peerId] = event.peer;
 
 						IncomingEvent::ConnectEvent connectEvent;
 						connectEvent.data = event.data;
-						connectEvent.outgoingConnection = (event.type == Nz::ENetEventType::OutgoingConnect);
+						//connectEvent.outgoingConnection = (event.type == Nz::ENetEventType::OutgoingConnect);
+						connectEvent.outgoingConnection = false;
 
 						IncomingEvent newEvent;
 						newEvent.peerId = m_firstId + peerId;
@@ -187,12 +203,10 @@ namespace ewn
 						break;
 					}
 
-					case Nz::ENetEventType::Receive:
+					case ENET_EVENT_TYPE_RECEIVE:
 					{
-						Nz::UInt16 peerId = event.peer->GetPeerId();
-
 						IncomingEvent::PacketEvent packetEvent;
-						packetEvent.packet = std::move(event.packet->data);
+						packetEvent.packet.Reset(0, event.packet->data, event.packet->dataLength);
 
 						IncomingEvent newEvent;
 						newEvent.peerId = m_firstId + peerId;
@@ -206,7 +220,7 @@ namespace ewn
 						break;
 				}
 			}
-			while (m_host.CheckEvents(&event));
+			while (enet_host_check_events(m_host, &event));
 		}
 	}
 
@@ -219,13 +233,13 @@ namespace ewn
 				using T = std::decay_t<decltype(arg)>;
 				if constexpr (std::is_same_v<T, OutgoingEvent::DisconnectEvent>)
 				{
-					if (Nz::ENetPeer* peer = m_clients[outEvent.peerId])
+					if (ENetPeer* peer = m_clients[outEvent.peerId])
 					{
 						switch (arg.type)
 						{
 							case DisconnectionType::Kick:
 							{
-								peer->DisconnectNow(arg.data);
+								enet_peer_disconnect_now(peer, arg.data);
 
 								// DisconnectNow does not generate Disconnect event
 								m_clients[outEvent.peerId] = nullptr;
@@ -241,11 +255,11 @@ namespace ewn
 							}
 
 							case DisconnectionType::Later:
-								peer->DisconnectLater(arg.data);
+								enet_peer_disconnect_later(peer, arg.data);
 								break;
 
 							case DisconnectionType::Normal:
-								peer->Disconnect(arg.data);
+								enet_peer_disconnect(peer, arg.data);
 								break;
 
 							default:
@@ -256,19 +270,33 @@ namespace ewn
 				}
 				else if constexpr (std::is_same_v<T, OutgoingEvent::PacketEvent>)
 				{
-					if (Nz::ENetPeer* peer = m_clients[outEvent.peerId])
-						peer->Send(arg.channelId, arg.flags, std::move(arg.packet));
+					if (ENetPeer* peer = m_clients[outEvent.peerId])
+					{
+						Nz::NetPacket& packet = arg.packet;
+
+						enet_uint32 packetflags = 0;
+						if (arg.flags & Nz::ENetPacketFlag_Reliable)
+							packetflags |= ENET_PACKET_FLAG_RELIABLE;
+
+						if (arg.flags & Nz::ENetPacketFlag_UnreliableFragment)
+							packetflags |= ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT;
+
+						if (arg.flags & Nz::ENetPacketFlag_Unsequenced)
+							packetflags |= ENET_PACKET_FLAG_UNSEQUENCED;
+
+						enet_peer_send(peer, arg.channelId, enet_packet_create(packet.GetData() + Nz::NetPacket::HeaderSize, packet.GetDataSize(), packetflags));
+					}
 				}
 				else if constexpr (std::is_same_v<T, OutgoingEvent::QueryPeerInfo>)
 				{
-					if (Nz::ENetPeer* peer = m_clients[outEvent.peerId])
+					if (ENetPeer* peer = m_clients[outEvent.peerId])
 					{
 						IncomingEvent newEvent;
 						newEvent.peerId = m_firstId + outEvent.peerId;
 
 						auto& peerInfo = newEvent.data.emplace<PeerInfo>();
-						peerInfo.lastReceiveTime = m_host.GetServiceTime() - peer->GetLastReceiveTime();
-						peerInfo.ping = peer->GetRoundTripTime();
+						peerInfo.lastReceiveTime = m_host->serviceTime - peer->lastReceiveTime;
+						peerInfo.ping = peer->roundTripTime;
 
 						m_incomingQueue.enqueue(producterToken, std::move(newEvent));
 					}
