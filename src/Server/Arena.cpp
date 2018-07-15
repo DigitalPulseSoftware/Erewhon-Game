@@ -65,6 +65,11 @@ namespace ewn
 			return HandleDefaultDefaultCollision(firstBody, secondBody);
 		});
 
+		world.SetMaterialCollisionCallback(m_plasmaMaterial, m_plasmaMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return false;
+		});
+
 		world.SetMaterialCollisionCallback(defaultMaterial, m_plasmaMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 		{
 			return HandlePlasmaProjectileCollision(firstBody, secondBody);
