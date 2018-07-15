@@ -438,7 +438,7 @@ namespace ewn
 		if (data.login.empty() || data.login.size() > 20)
 			return;
 
-		Account_QueryConnectionInfoByLogin request;
+		Accounts_QueryConnectionInfoByLogin request;
 		request.login = data.login;
 
 		m_app->GetGlobalDatabase().ExecuteStatement(std::move(request),
@@ -473,7 +473,7 @@ namespace ewn
 			ConfigFile& config = app->GetConfig();
 			const std::string& globalSalt = config.GetStringOption("Security.PasswordSalt");
 
-			Account_QueryConnectionInfoByLogin::Result dbResult(result);
+			Accounts_QueryConnectionInfoByLogin::Result dbResult(result);
 
 			int iCost = config.GetIntegerOption<int>("Security.Argon2.IterationCost");
 			int mCost = config.GetIntegerOption<int>("Security.Argon2.MemoryCost");

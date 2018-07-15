@@ -23,7 +23,7 @@ namespace ewn
 			void PrepareStatements(DatabaseConnection& conn) override;
 	};
 
-	struct Account_QueryConnectionInfoByLogin : PreparedStatement<Account_QueryConnectionInfoByLogin>
+	struct Accounts_QueryConnectionInfoByLogin : PreparedStatement<Accounts_QueryConnectionInfoByLogin>
 	{
 		std::string login;
 

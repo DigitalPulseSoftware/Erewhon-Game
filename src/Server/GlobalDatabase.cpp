@@ -12,7 +12,7 @@ namespace ewn
 	{
 		try
 		{
-			PrepareStatement<Account_QueryConnectionInfoByLogin>(conn);
+			PrepareStatement<Accounts_QueryConnectionInfoByLogin>(conn);
 			PrepareStatement<CollisionMeshes_Load>(conn);
 			PrepareStatement(conn, "AddSpaceshipModule", "INSERT INTO spaceship_modules(spaceship_id, module_id) VALUES($1, $2)", { DatabaseType::Int32, DatabaseType::Int32 });
 			PrepareStatement(conn, "CountFleetByOwnerIdExceptName", "SELECT COUNT(id) FROM spaceships WHERE owner_id = $1 AND name <> LOWER($2)", { DatabaseType::Int32 });
