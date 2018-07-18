@@ -8,7 +8,8 @@
 namespace ewn
 {
 	inline NavigationComponent::NavigationComponent() :
-	m_headingController(1.f, 0.f, 0.6382979f)
+	m_headingController(1.f, 0.f, 0.6382979f),
+	m_moveToTarget(false)
 	{
 	}
 
@@ -64,25 +65,27 @@ namespace ewn
 		return { thrustForce, rotationForce, isClose };
 	}
 
-	inline void NavigationComponent::SetTarget(const Ndk::EntityHandle& entity)
+	inline void NavigationComponent::SetTarget(const Ndk::EntityHandle& entity, bool moveTo)
 	{
-		SetTarget(entity, 0.f, nullptr);
+		SetTarget(entity, 0.f, nullptr, moveTo);
 	}
 
-	inline void NavigationComponent::SetTarget(const Ndk::EntityHandle& entity, float triggerDistance, ProximityCallback proximityCallback)
+	inline void NavigationComponent::SetTarget(const Ndk::EntityHandle& entity, float triggerDistance, ProximityCallback proximityCallback, bool moveTo)
 	{
+		m_moveToTarget = moveTo;
 		m_target = entity;
 		m_triggerDistance = triggerDistance;
 		m_proximityCallback = std::move(proximityCallback);
 	}
 
-	inline void NavigationComponent::SetTarget(const Nz::Vector3f& position)
+	inline void NavigationComponent::SetTarget(const Nz::Vector3f& position, bool moveTo)
 	{
-		SetTarget(position, 0.f, nullptr);
+		SetTarget(position, 0.f, nullptr, moveTo);
 	}
 
-	inline void NavigationComponent::SetTarget(const Nz::Vector3f& position, float triggerDistance, ProximityCallback proximityCallback)
+	inline void NavigationComponent::SetTarget(const Nz::Vector3f& position, float triggerDistance, ProximityCallback proximityCallback, bool moveTo)
 	{
+		m_moveToTarget = moveTo;
 		m_target = position;
 		m_triggerDistance = triggerDistance;
 		m_proximityCallback = std::move(proximityCallback);

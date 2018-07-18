@@ -54,7 +54,7 @@ namespace ewn
 		Nz::Vector3f torque = m_headingController.Update(headingError, elapsedTime);
 
 		Nz::Vector3f force = Nz::Vector3f::Zero();
-		if (currentHeading.DotProduct(desiredHeading) > 0.95)
+		if (m_moveToTarget && currentHeading.DotProduct(desiredHeading) > 0.95)
 			force = Nz::Vector3f::Forward();
 
 		return { force, torque, isCloseEnough };

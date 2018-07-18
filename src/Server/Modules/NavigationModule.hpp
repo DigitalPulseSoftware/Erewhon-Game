@@ -34,6 +34,9 @@ namespace ewn
 			void MoveToPosition(const Nz::Vector3f& targetPos);
 			void MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance);
 
+			void OrientToPosition(const Nz::Vector3f& targetPos);
+			void OrientToTarget(Nz::Int64 targetSignature);
+
 			void Stop();
 
 		private:

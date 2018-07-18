@@ -82,6 +82,9 @@ namespace ewn
 				return 0;
 			});
 
+			s_binding->BindMethod("OrientToPosition", &NavigationModule::OrientToPosition);
+			s_binding->BindMethod("OrientToTarget", &NavigationModule::OrientToTarget);
+
 			s_binding->BindMethod("Stop", &NavigationModule::Stop);
 		}
 
@@ -140,6 +143,24 @@ namespace ewn
 
 			moduleHandle->PushCallback("OnNavigationDestinationReached");
 		});
+	}
+
+	void NavigationModule::OrientToPosition(const Nz::Vector3f & targetPos)
+	{
+		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
+		spaceshipNavigation.SetTarget(targetPos, false);
+	}
+
+	void NavigationModule::OrientToTarget(Nz::Int64 targetSignature)
+	{
+		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
+		if (!radarModule)
+			return;
+
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
+		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
+		if (const Ndk::EntityHandle& target = radarModule->FindEntityBySignature(targetSignature))
+			spaceshipNavigation.SetTarget(target, false);
 	}
 
 	void NavigationModule::Stop()
