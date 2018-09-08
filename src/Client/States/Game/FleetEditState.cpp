@@ -518,7 +518,7 @@ namespace ewn
 				const auto& spaceship = m_spaceships[i];
 				auto& entityGfx = spaceship.entity->GetComponent<Ndk::GraphicsComponent>();
 
-				const Nz::Boxf& aabb = entityGfx.GetBoundingVolume().aabb;
+				const Nz::Boxf& aabb = entityGfx.GetAABB();
 
 				float hitDistance;
 				if (ray.Intersect(aabb, &hitDistance))
@@ -541,7 +541,7 @@ namespace ewn
 
 					auto& entityGfx = entity->GetComponent<Ndk::GraphicsComponent>();
 
-					m_hoveredEntitySize = entityGfx.GetBoundingVolume().aabb.GetRadius();
+					m_hoveredEntitySize = entityGfx.GetAABB().GetRadius();
 
 					m_hoveredEntity->Enable();
 

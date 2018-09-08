@@ -79,7 +79,7 @@ namespace ewn
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->GetComponent<Ndk::GraphicsComponent>();
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
 
-		Nz::Boxf textBox = graphicsComponent.GetBoundingVolume().obb.localBox;
+		Nz::Boxf textBox = graphicsComponent.GetAABB();
 		Nz::Vector2ui windowSize = GetStateData().window->GetSize();
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}

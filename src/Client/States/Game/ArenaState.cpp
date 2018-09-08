@@ -105,7 +105,7 @@ namespace ewn
 			{
 				auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
 				auto& textNode = entityData.textEntity->GetComponent<Ndk::NodeComponent>();
-				textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
+				textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetAABB().width / 2.f);
 				textNode.SetRotation(cameraNode.GetRotation());
 			}
 		}
