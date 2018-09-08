@@ -36,7 +36,10 @@ namespace ewn
 	{
 		m_databaseId = dbId;
 
-		m_app->GetGlobalDatabase().ExecuteStatement("LoadAccount", { Nz::Int32(dbId) }, [app = m_app, ply = CreateHandle(), cb = std::move(authenticationCallback)](DatabaseResult& result)
+		Accounts_SelectById request;
+		request.id = dbId;
+
+		m_app->GetGlobalDatabase().ExecuteStatement(request, [app = m_app, ply = CreateHandle(), cb = std::move(authenticationCallback)](DatabaseResult& result)
 		{
 			if (!ply)
 				return;
@@ -55,13 +58,11 @@ namespace ewn
 			}
 			else
 			{
-				std::string login = std::get<std::string>(result.GetValue(0));
-				std::string displayName = std::get<std::string>(result.GetValue(1));
-				Nz::Int16 permissionLevel = std::get<Nz::Int16>(result.GetValue(2));
-				if (permissionLevel < 0)
-					permissionLevel = 0;
+				Accounts_SelectById::Result results(result);
+				if (results.permissionLevel < 0)
+					results.permissionLevel = 0;
 
-				ply->OnAuthenticated(std::move(login), std::move(displayName), static_cast<Nz::UInt16>(permissionLevel));
+				ply->OnAuthenticated(std::move(results.login), std::move(results.displayName), static_cast<Nz::UInt16>(results.permissionLevel));
 
 				cb(ply, true);
 

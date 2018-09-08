@@ -8,7 +8,7 @@
 namespace ewn
 {
 	inline CollisionMeshStore::CollisionMeshStore() :
-	DatabaseStore("LoadCollisionMeshes")
+	DatabaseStore("CollisionMeshes_Load")
 	{
 	}
 

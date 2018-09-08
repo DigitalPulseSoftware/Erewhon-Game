@@ -253,13 +253,17 @@ namespace ewn
 		});
 	}
 
-	void ClientSession::HandleDeleteFleet(const Packets::DeleteFleet & data)
+	void ClientSession::HandleDeleteFleet(const Packets::DeleteFleet& data)
 	{
 		Player* player = GetPlayer();
 		if (!player->IsAuthenticated())
 			return;
 
-		m_app->GetGlobalDatabase().ExecuteStatement("DeleteFleet", { player->GetDatabaseId(), data.fleetName }, [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
+		Fleet_Delete fleetDeletion;
+		fleetDeletion.name = data.fleetName;
+		fleetDeletion.ownerId = player->GetDatabaseId();
+
+		m_app->GetGlobalDatabase().ExecuteStatement(std::move(fleetDeletion), [app = m_app, sessionId = GetSessionId()](DatabaseResult& result)
 		{
 			Player* ply = app->GetPlayerBySession(sessionId);
 			if (!ply)
