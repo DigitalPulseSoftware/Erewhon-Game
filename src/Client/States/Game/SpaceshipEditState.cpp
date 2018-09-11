@@ -26,40 +26,40 @@ namespace ewn
 		m_labelDisappearanceAccumulator = 0.f;
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
-		m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
-		m_backButton->ResizeToContent();
+		//m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnBackPressed();
 		});
 
 		m_deleteButton = CreateWidget<Ndk::ButtonWidget>();
-		m_deleteButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_deleteButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship", 24));
-		m_deleteButton->ResizeToContent();
+		//m_deleteButton->ResizeToContent();
 		m_deleteButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnDeletePressed();
 		});
 
 		m_createUpdateButton = CreateWidget<Ndk::ButtonWidget>();
-		m_createUpdateButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_createUpdateButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 
 		m_nameLabel = CreateWidget<Ndk::LabelWidget>();
 		m_nameLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship name:", 24));
-		m_nameLabel->ResizeToContent();
+		//m_nameLabel->ResizeToContent();
 
 		m_nameTextArea = CreateWidget<Ndk::TextAreaWidget>();
-		m_nameTextArea->SetContentSize({ 160.f, 30.f });
+		m_nameTextArea->Resize({ 160.f, 30.f });
 		m_nameTextArea->EnableBackground(true);
 		m_nameTextArea->SetBackgroundColor(Nz::Color::White);
 		m_nameTextArea->SetTextColor(Nz::Color::Black);
 
 		m_codeLoadButton = CreateWidget<Ndk::ButtonWidget>();
-		m_codeLoadButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_codeLoadButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_codeLoadButton->UpdateText(Nz::SimpleTextDrawer::Draw("Load code", 24));
-		m_codeLoadButton->ResizeToContent();
+		//m_codeLoadButton->ResizeToContent();
 		m_codeLoadButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnLoadCodePressed();
@@ -67,10 +67,10 @@ namespace ewn
 
 		m_codeFilenameLabel = CreateWidget<Ndk::LabelWidget>();
 		m_codeFilenameLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Code input (file name):", 24));
-		m_codeFilenameLabel->ResizeToContent();
+		//m_codeFilenameLabel->ResizeToContent();
 
 		m_codeFilenameTextArea = CreateWidget<Ndk::TextAreaWidget>();
-		m_codeFilenameTextArea->SetContentSize({ 300.f, 30.f });
+		m_codeFilenameTextArea->Resize({ 300.f, 35.f });
 		m_codeFilenameTextArea->SetText(config.GetStringOption("ServerScript.Filename"));
 		m_codeFilenameTextArea->EnableBackground(true);
 		m_codeFilenameTextArea->SetBackgroundColor(Nz::Color::White);
@@ -210,7 +210,7 @@ namespace ewn
 		StateData& stateData = GetStateData();
 
 		m_createUpdateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Create", 24));
-		m_createUpdateButton->ResizeToContent();
+		//m_createUpdateButton->ResizeToContent();
 
 		m_createUpdateButton->OnButtonTrigger.Clear();
 		m_createUpdateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
@@ -230,7 +230,7 @@ namespace ewn
 		StateData& stateData = GetStateData();
 
 		m_createUpdateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Update", 24));
-		m_createUpdateButton->ResizeToContent();
+		//m_createUpdateButton->ResizeToContent();
 
 		m_createUpdateButton->OnButtonTrigger.Clear();
 		m_createUpdateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
@@ -241,7 +241,7 @@ namespace ewn
 		m_deleteConfirmation = false;
 		m_deleteButton->Show(true);
 		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship", 24));
-		m_deleteButton->ResizeToContent();
+		//m_deleteButton->ResizeToContent();
 
 		m_nameTextArea->SetText(m_spaceshipName);
 
@@ -274,7 +274,7 @@ namespace ewn
 	{
 		m_statusLabel->Show(true);
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 
 		m_labelDisappearanceAccumulator = status.GetLength() / 10.f;
 
@@ -329,7 +329,7 @@ namespace ewn
 		if (!m_deleteConfirmation)
 		{
 			m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete spaceship\n(confirm)", 24));
-			m_deleteButton->ResizeToContent();
+			//m_deleteButton->ResizeToContent();
 
 			m_deleteConfirmation = true;
 
@@ -392,7 +392,7 @@ namespace ewn
 			moduleInfo.currentChoice = 0;
 
 		moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleInfo.moduleType)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice].moduleName + ')', 18));
-		moduleInfo.button->ResizeToContent();
+		//moduleInfo.button->ResizeToContent();
 
 		LayoutWidgets();
 	}
@@ -511,9 +511,9 @@ namespace ewn
 			}
 
 			moduleInfo.button = CreateWidget<Ndk::ButtonWidget>();
-			moduleInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
+			//moduleInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
 			moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleData.type)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice].moduleName + ')', 18));
-			moduleInfo.button->ResizeToContent();
+			//moduleInfo.button->ResizeToContent();
 			moduleInfo.button->OnButtonTrigger.Connect([&, moduleId = m_moduleButtons.size() - 1](const Ndk::ButtonWidget* button)
 			{
 				OnModuleSwitch(moduleId);
@@ -539,7 +539,7 @@ namespace ewn
 		//m_titleLabel->Show(true);
 
 		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship " + m_spaceshipName + ":", 24));
-		m_titleLabel->ResizeToContent();
+		//m_titleLabel->ResizeToContent();
 
 		// Module buttons
 		for (const auto& moduleData : infoPacket.modules)
@@ -561,7 +561,7 @@ namespace ewn
 			moduleInfo.originalChoice = moduleInfo.currentChoice;
 
 			moduleInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(std::string(EnumToString(moduleData.type)) + " module\n(" + moduleInfo.availableChoices[moduleInfo.currentChoice].moduleName + ')', 18));
-			moduleInfo.button->ResizeToContent();
+			//moduleInfo.button->ResizeToContent();
 		}
 
 		LayoutWidgets();

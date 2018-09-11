@@ -22,12 +22,12 @@ namespace ewn
 
 		m_titleLabel = CreateWidget<Ndk::LabelWidget>();
 		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Fleets:", 24));
-		m_titleLabel->ResizeToContent();
+		//m_titleLabel->ResizeToContent();
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back to main menu", 24));
-		m_backButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_backButton->ResizeToContent();
+		//m_backButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnBackPressed();
@@ -35,8 +35,8 @@ namespace ewn
 
 		m_createButton = CreateWidget<Ndk::ButtonWidget>();
 		m_createButton->UpdateText(Nz::SimpleTextDrawer::Draw("+", 24));
-		m_createButton->ResizeToContent();
-		m_createButton->SetPadding(20.f, 10.f, 20.f, 10.f);
+		//m_createButton->ResizeToContent();
+		//m_createButton->SetPadding(20.f, 10.f, 20.f, 10.f);
 		m_createButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			StateData& stateData = GetStateData();
@@ -118,8 +118,8 @@ namespace ewn
 		{
 			Ndk::ButtonWidget* button = CreateWidget<Ndk::ButtonWidget>();
 			button->UpdateText(Nz::SimpleTextDrawer::Draw(spaceship.name, 24));
-			button->ResizeToContent();
-			button->SetPadding(10.f, 10.f, 10.f, 10.f);
+			//button->ResizeToContent();
+			//button->SetPadding(10.f, 10.f, 10.f, 10.f);
 			button->OnButtonTrigger.Connect([&, name = spaceship.name](const Ndk::ButtonWidget* /*button*/)
 			{
 				StateData& stateData = GetStateData();
@@ -136,7 +136,7 @@ namespace ewn
 	{
 		m_statusLabel->Show(true);
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 
 		m_statusLabel->Center();
 	}

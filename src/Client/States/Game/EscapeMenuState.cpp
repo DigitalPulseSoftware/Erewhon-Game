@@ -22,8 +22,8 @@ namespace ewn
 
 		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
 		m_disconnectButton->UpdateText(Nz::SimpleTextDrawer::Draw("Disconnect", 24));
-		m_disconnectButton->ResizeToContent();
-		m_disconnectButton->SetPadding(25.f, 25.f, 25.f, 25.f);
+		//m_disconnectButton->ResizeToContent();
+		//m_disconnectButton->SetPadding(25.f, 25.f, 25.f, 25.f);
 		m_disconnectButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			StateData& stateData = GetStateData();
@@ -33,8 +33,8 @@ namespace ewn
 
 		m_leaveButton = CreateWidget<Ndk::ButtonWidget>();
 		m_leaveButton->UpdateText(Nz::SimpleTextDrawer::Draw("Leave", 24));
-		m_leaveButton->ResizeToContent();
-		m_leaveButton->SetPadding(25.f, 25.f, 25.f, 25.f);
+		//m_leaveButton->ResizeToContent();
+		//m_leaveButton->SetPadding(25.f, 25.f, 25.f, 25.f);
 		m_leaveButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			StateData& stateData = GetStateData();
@@ -45,8 +45,8 @@ namespace ewn
 
 		m_optionsButton = CreateWidget<Ndk::ButtonWidget>();
 		m_optionsButton->UpdateText(Nz::SimpleTextDrawer::Draw("Options", 24));
-		m_optionsButton->ResizeToContent();
-		m_optionsButton->SetPadding(25.f, 25.f, 25.f, 25.f);
+		//m_optionsButton->ResizeToContent();
+		//m_optionsButton->SetPadding(25.f, 25.f, 25.f, 25.f);
 		m_optionsButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			StateData& stateData = GetStateData();
@@ -55,8 +55,8 @@ namespace ewn
 
 		m_quitButton = CreateWidget<Ndk::ButtonWidget>();
 		m_quitButton->UpdateText(Nz::SimpleTextDrawer::Draw("Quit", 24));
-		m_quitButton->ResizeToContent();
-		m_quitButton->SetPadding(25.f, 25.f, 25.f, 25.f);
+		//m_quitButton->ResizeToContent();
+		//m_quitButton->SetPadding(25.f, 25.f, 25.f, 25.f);
 		m_quitButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			StateData& stateData = GetStateData();
@@ -66,10 +66,10 @@ namespace ewn
 
 		// Set all buttons to the same width
 		float regConnWidth = std::max({ m_disconnectButton->GetSize().x, m_leaveButton->GetSize().x, m_optionsButton->GetSize().x, m_quitButton->GetSize().x });
-		m_disconnectButton->SetSize({ regConnWidth, m_disconnectButton->GetSize().y });
-		m_leaveButton->SetSize({ regConnWidth, m_leaveButton->GetSize().y });
-		m_optionsButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y });
-		m_quitButton->SetSize({ regConnWidth, m_optionsButton->GetSize().y });
+		m_disconnectButton->Resize({ regConnWidth, m_disconnectButton->GetSize().y });
+		m_leaveButton->Resize({ regConnWidth, m_leaveButton->GetSize().y });
+		m_optionsButton->Resize({ regConnWidth, m_optionsButton->GetSize().y });
+		m_quitButton->Resize({ regConnWidth, m_optionsButton->GetSize().y });
 
 		LayoutWidgets();
 

@@ -67,7 +67,6 @@ namespace ewn
 
 			BroadcastEntitiesDestruction(this, m_deletedEntitiesPacket);
 
-			m_destructionPacket++;
 		}
 
 		// Handle entities creation
@@ -81,7 +80,6 @@ namespace ewn
 
 			BroadcastEntitiesCreation(this, m_createdEntitiesPacket);
 
-			m_creationPacket++;
 		}
 
 		// Handle entities movement

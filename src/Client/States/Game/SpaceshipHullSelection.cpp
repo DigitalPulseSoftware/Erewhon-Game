@@ -31,18 +31,18 @@ namespace ewn
 		m_selectedHullIndex = std::numeric_limits<std::size_t>::max();
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
-		m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
-		m_backButton->ResizeToContent();
+		//m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnBackPressed();
 		});
 
 		m_selectButton = CreateWidget<Ndk::ButtonWidget>();
-		m_selectButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_selectButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_selectButton->UpdateText(Nz::SimpleTextDrawer::Draw("Select hull", 24));
-		m_selectButton->ResizeToContent();
+		//m_selectButton->ResizeToContent();
 		m_selectButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnSelectPressed();
@@ -163,13 +163,13 @@ namespace ewn
 		hullGfx.Attach(m_hullInfo[hullId].hullModel, transformMatrix);
 
 		m_nameLabel->UpdateText(Nz::SimpleTextDrawer::Draw(hullInfo.hullName, 24, Nz::TextStyle_Bold));
-		m_nameLabel->ResizeToContent();
+		//m_nameLabel->ResizeToContent();
 
 		m_descriptionLabel->UpdateText(Nz::SimpleTextDrawer::Draw(hullInfo.hullDescription, 18));
-		m_descriptionLabel->ResizeToContent();
+		//m_descriptionLabel->ResizeToContent();
 
 		m_slotLabel->UpdateText(Nz::SimpleTextDrawer::Draw(hullInfo.hullSlotsDescription, 20));
-		m_slotLabel->ResizeToContent();
+		//m_slotLabel->ResizeToContent();
 
 		LayoutWidgets();
 	}
@@ -223,16 +223,16 @@ namespace ewn
 
 			// Button
 			hullInfo.button = CreateWidget<Ndk::ButtonWidget>();
-			hullInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
+			//hullInfo.button->SetPadding(15.f, 15.f, 15.f, 15.f);
 			hullInfo.button->UpdateText(Nz::SimpleTextDrawer::Draw(hullData.name, 18));
-			hullInfo.button->ResizeToContent();
+			//hullInfo.button->ResizeToContent();
 			hullInfo.button->OnButtonTrigger.Connect([&, hullId = m_hullInfo.size() - 1](const Ndk::ButtonWidget* button)
 			{
 				OnHullSwitch(hullId);
 			});
 
 			if (hullInfo.button->GetSize().x < SpaceshipSize)
-				hullInfo.button->SetSize({ SpaceshipSize, hullInfo.button->GetSize().y });
+				hullInfo.button->Resize({ SpaceshipSize, hullInfo.button->GetSize().y });
 
 			// Entity
 			hullInfo.hullEntity = stateData.world3D->CreateEntity();

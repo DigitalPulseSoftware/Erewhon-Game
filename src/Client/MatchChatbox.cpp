@@ -18,7 +18,7 @@ namespace ewn
 		m_chatBox = canvas->Add<Ndk::TextAreaWidget>();
 		m_chatBox->EnableBackground(false);
 		//m_chatBox->SetBackgroundColor(Nz::Color(70, 8, 15, 20));
-		m_chatBox->SetSize({ 480.f, maxChatLines * 30.f });
+		m_chatBox->Resize({ 480.f, maxChatLines * 30.f });
 		m_chatBox->SetCharacterSize(18);
 		m_chatBox->SetTextColor(Nz::Color::White);
 		m_chatBox->SetReadOnly(true);
@@ -121,7 +121,7 @@ namespace ewn
 		Nz::Vector2f size = Nz::Vector2f(renderTarget->GetSize());
 
 		m_chatBox->SetPosition({ 5.f, size.y - 30.f - m_chatBox->GetSize().y, 0.f });
-		m_chatEnteringBox->SetSize({ size.x, 40.f });
+		m_chatEnteringBox->Resize({ size.x, 40.f });
 		m_chatEnteringBox->SetPosition({ 0.f, size.y - m_chatEnteringBox->GetSize().y - 5.f, 0.f });
 	}
 }

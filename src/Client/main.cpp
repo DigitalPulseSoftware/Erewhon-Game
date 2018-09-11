@@ -85,7 +85,7 @@ int main()
 	camera2D->AddComponent<Ndk::NodeComponent>();
 
 	Ndk::Canvas canvas(world2D.CreateHandle(), window.GetEventHandler(), window.GetCursorController().CreateHandle());
-	canvas.SetSize(Nz::Vector2f(window.GetSize()));
+	canvas.Resize(Nz::Vector2f(window.GetSize()));
 
 	// Resources
 	std::string assetsFolder = config.GetStringOption("AssetsFolder");
@@ -156,7 +156,7 @@ int main()
 	// Handle size change
 	window.GetEventHandler().OnResized.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::SizeEvent& sizeEvent)
 	{
-		canvas.SetSize(Nz::Vector2f(Nz::Vector2ui(sizeEvent.width, sizeEvent.height)));
+		canvas.Resize(Nz::Vector2f(Nz::Vector2ui(sizeEvent.width, sizeEvent.height)));
 	});
 
 	while (app.Run())

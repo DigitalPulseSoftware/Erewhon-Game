@@ -33,8 +33,8 @@ namespace ewn
 			void OnRefreshPressed();
 			void OnSpaceshipFactoryPressed();
 
-			Ndk::ButtonWidget* m_fleetButton;
 			Ndk::ButtonWidget* m_disconnectButton;
+			Ndk::ButtonWidget* m_fleetButton;
 			Ndk::ButtonWidget* m_refreshButton;
 			Ndk::ButtonWidget* m_spaceshipButton;
 			Ndk::LabelWidget* m_welcomeTextLabel;

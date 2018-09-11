@@ -32,54 +32,54 @@ namespace ewn
 
 		m_titleLabel = CreateWidget<Ndk::LabelWidget>();
 		m_titleLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Register form:", 24));
-		m_titleLabel->ResizeToContent();
+		//m_titleLabel->ResizeToContent();
 
 		m_loginLabel = CreateWidget<Ndk::LabelWidget>();
 		m_loginLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login: ", 24));
-		m_loginLabel->ResizeToContent();
+		//m_loginLabel->ResizeToContent();
 
 		m_loginArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_loginArea->EnableBackground(true);
 		m_loginArea->SetBackgroundColor(Nz::Color::White);
-		m_loginArea->SetSize({ 300.f, 36.f });
+		m_loginArea->Resize({ 300.f, 36.f });
 		m_loginArea->SetTextColor(Nz::Color::Black);
 
 		m_emailLabel = CreateWidget<Ndk::LabelWidget>();
 		m_emailLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Email: ", 24));
-		m_emailLabel->ResizeToContent();
+		//m_emailLabel->ResizeToContent();
 
 		m_emailArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_emailArea->EnableBackground(true);
 		m_emailArea->SetBackgroundColor(Nz::Color::White);
-		m_emailArea->SetSize({ 300.f, 36.f });
+		m_emailArea->Resize({ 300.f, 36.f });
 		m_emailArea->SetTextColor(Nz::Color::Black);
 
 		m_passwordLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password: ", 24));
-		m_passwordLabel->ResizeToContent();
+		//m_passwordLabel->ResizeToContent();
 
 		m_passwordArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordArea->EnableBackground(true);
 		m_passwordArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordArea->SetEchoMode(Ndk::EchoMode_Password);
-		m_passwordArea->SetSize({ 300.f, 36.f });
+		m_passwordArea->Resize({ 300.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
 		m_passwordCheckLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordCheckLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password check: ", 24));
-		m_passwordCheckLabel->ResizeToContent();
+		//m_passwordCheckLabel->ResizeToContent();
 
 		m_passwordCheckArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordCheckArea->EnableBackground(true);
 		m_passwordCheckArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordCheckArea->SetEchoMode(Ndk::EchoMode_Password);
-		m_passwordCheckArea->SetSize({ 300.f, 36.f });
+		m_passwordCheckArea->Resize({ 300.f, 36.f });
 		m_passwordCheckArea->SetTextColor(Nz::Color::Black);
 
 		m_registerButton = CreateWidget<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
-		m_registerButton->ResizeToContent();
-		m_registerButton->SetSize(m_registerButton->GetSize() + Nz::Vector2f(10.f));
+		//m_registerButton->ResizeToContent();
+		m_registerButton->Resize(m_registerButton->GetSize() + Nz::Vector2f(10.f));
 		m_registerButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnRegisterPressed();
@@ -87,8 +87,8 @@ namespace ewn
 
 		m_cancelButton = CreateWidget<Ndk::ButtonWidget>();
 		m_cancelButton->UpdateText(Nz::SimpleTextDrawer::Draw("Cancel", 24));
-		m_cancelButton->ResizeToContent();
-		m_cancelButton->SetSize(m_cancelButton->GetSize() + Nz::Vector2f(10.f));
+		//m_cancelButton->ResizeToContent();
+		m_cancelButton->Resize(m_cancelButton->GetSize() + Nz::Vector2f(10.f));
 		m_cancelButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnCancelPressed();
@@ -97,8 +97,8 @@ namespace ewn
 		// Set both connection and register button of the same width
 		constexpr float buttonPadding = 5.f;
 		float regConnWidth = std::max(m_registerButton->GetSize().x, m_cancelButton->GetSize().x) + buttonPadding;
-		m_registerButton->SetSize({ regConnWidth, m_registerButton->GetSize().y + buttonPadding });
-		m_cancelButton->SetSize({ regConnWidth, m_cancelButton->GetSize().y + buttonPadding });
+		m_registerButton->Resize({ regConnWidth, m_registerButton->GetSize().y + buttonPadding });
+		m_cancelButton->Resize({ regConnWidth, m_cancelButton->GetSize().y + buttonPadding });
 
 		LayoutWidgets();
 
@@ -384,7 +384,7 @@ namespace ewn
 	void RegisterState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
 	{
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->Show(true);
 	}

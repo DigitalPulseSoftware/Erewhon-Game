@@ -39,33 +39,33 @@ namespace ewn
 
 		m_loginLabel = CreateWidget<Ndk::LabelWidget>();
 		m_loginLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login: ", 24));
-		m_loginLabel->ResizeToContent();
+		//m_loginLabel->ResizeToContent();
 
 		m_loginArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_loginArea->EnableBackground(true);
 		m_loginArea->SetBackgroundColor(Nz::Color::White);
-		m_loginArea->SetSize({ 200.f, 36.f });
+		m_loginArea->Resize({ 200.f, 36.f });
 		m_loginArea->SetTextColor(Nz::Color::Black);
 
 		m_passwordLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password: ", 24));
-		m_passwordLabel->ResizeToContent();
+		//m_passwordLabel->ResizeToContent();
 
 		m_passwordArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordArea->EnableBackground(true);
 		m_passwordArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordArea->SetEchoMode(Ndk::EchoMode_Password);
-		m_passwordArea->SetSize({ 200.f, 36.f });
+		m_passwordArea->Resize({ 200.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
 		m_rememberCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_rememberCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Remember me", 24));
-		m_rememberCheckbox->ResizeToContent();
+		//m_rememberCheckbox->ResizeToContent();
 
 		m_connectionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
-		m_connectionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_connectionButton->ResizeToContent();
+		//m_connectionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_connectionButton->ResizeToContent();
 		m_connectionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnConnectionPressed();
@@ -73,8 +73,8 @@ namespace ewn
 
 		m_optionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_optionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Options", 24));
-		m_optionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_optionButton->ResizeToContent();
+		//m_optionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_optionButton->ResizeToContent();
 		m_optionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnOptionPressed();
@@ -82,8 +82,8 @@ namespace ewn
 
 		m_quitButton = CreateWidget<Ndk::ButtonWidget>();
 		m_quitButton->UpdateText(Nz::SimpleTextDrawer::Draw("Quit", 24));
-		m_quitButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_quitButton->ResizeToContent();
+		//m_quitButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_quitButton->ResizeToContent();
 		m_quitButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnQuitPressed();
@@ -91,8 +91,8 @@ namespace ewn
 
 		m_registerButton = CreateWidget<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
-		m_registerButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_registerButton->ResizeToContent();
+		//m_registerButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_registerButton->ResizeToContent();
 		m_registerButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnRegisterPressed();
@@ -100,8 +100,8 @@ namespace ewn
 
 		// Set both connection and register button of the same width
 		float maxButtonWidth = std::max({ m_connectionButton->GetSize().x, m_registerButton->GetSize().x });
-		m_connectionButton->SetSize({ maxButtonWidth, m_connectionButton->GetSize().y });
-		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y });
+		m_connectionButton->Resize({ maxButtonWidth, m_connectionButton->GetSize().y });
+		m_registerButton->Resize({ maxButtonWidth, m_registerButton->GetSize().y });
 
 		LayoutWidgets();
 
@@ -440,7 +440,7 @@ namespace ewn
 	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
 	{
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->Show(true);
 	}
@@ -482,6 +482,8 @@ namespace ewn
 
 				if (m_shouldAutoLogin)
 				{
+					m_shouldAutoLogin = false;
+
 					if (!stateData.server->IsConnected())
 					{
 						// Connect to server

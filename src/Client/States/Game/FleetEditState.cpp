@@ -47,52 +47,53 @@ namespace ewn
 		m_hoveredEntity->Disable();
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
-		m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_backButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
-		m_backButton->ResizeToContent();
+		//m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnBackPressed();
 		});
 
 		m_deleteButton = CreateWidget<Ndk::ButtonWidget>();
-		m_deleteButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_deleteButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete fleet", 24));
-		m_deleteButton->ResizeToContent();
+		//m_deleteButton->ResizeToContent();
 		m_deleteButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnDeletePressed();
 		});
 
 		m_createUpdateButton = CreateWidget<Ndk::ButtonWidget>();
-		m_createUpdateButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_createUpdateButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 
 		m_nameLabel = CreateWidget<Ndk::LabelWidget>();
 		m_nameLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Fleet name:", 24));
-		m_nameLabel->ResizeToContent();
+		m_nameLabel->Resize({ 160.f, 30.f });
+		//m_nameLabel->ResizeToContent();
 
 		m_nameTextArea = CreateWidget<Ndk::TextAreaWidget>();
-		m_nameTextArea->SetContentSize({ 160.f, 30.f });
+		//m_nameTextArea->SetContentSize({ 160.f, 30.f });
 		m_nameTextArea->EnableBackground(true);
 		m_nameTextArea->SetBackgroundColor(Nz::Color::White);
 		m_nameTextArea->SetTextColor(Nz::Color::Black);
 
 		m_spaceshipAddLabel = CreateWidget<Ndk::LabelWidget>();
 		m_spaceshipAddLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship name:", 24));
-		m_spaceshipAddLabel->ResizeToContent();
+		//m_spaceshipAddLabel->ResizeToContent();
 
 		m_spaceshipAddNamesLabel = CreateWidget<Ndk::LabelWidget>();
 
 		m_spaceshipAddTextArea = CreateWidget<Ndk::TextAreaWidget>();
-		m_spaceshipAddTextArea->SetContentSize({ 160.f, 30.f });
+		m_spaceshipAddTextArea->Resize({ 160.f, 30.f });
 		m_spaceshipAddTextArea->EnableBackground(true);
 		m_spaceshipAddTextArea->SetBackgroundColor(Nz::Color::White);
 		m_spaceshipAddTextArea->SetTextColor(Nz::Color::Black);
 
 		m_spaceshipAddButton = CreateWidget<Ndk::ButtonWidget>();
-		m_spaceshipAddButton->SetPadding(15.f, 15.f, 15.f, 15.f);
+		//m_spaceshipAddButton->SetPadding(15.f, 15.f, 15.f, 15.f);
 		m_spaceshipAddButton->UpdateText(Nz::SimpleTextDrawer::Draw("Add spaceship", 18));
-		m_spaceshipAddButton->ResizeToContent();
+		//m_spaceshipAddButton->ResizeToContent();
 		m_spaceshipAddButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
 		{
 			OnAddSpaceship();
@@ -372,7 +373,7 @@ namespace ewn
 		StateData& stateData = GetStateData();
 
 		m_createUpdateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Create", 24));
-		m_createUpdateButton->ResizeToContent();
+		//m_createUpdateButton->ResizeToContent();
 
 		m_createUpdateButton->OnButtonTrigger.Clear();
 		m_createUpdateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
@@ -392,7 +393,7 @@ namespace ewn
 		StateData& stateData = GetStateData();
 
 		m_createUpdateButton->UpdateText(Nz::SimpleTextDrawer::Draw("Update", 24));
-		m_createUpdateButton->ResizeToContent();
+		//m_createUpdateButton->ResizeToContent();
 
 		m_createUpdateButton->OnButtonTrigger.Clear();
 		m_createUpdateButton->OnButtonTrigger.Connect([&](const Ndk::ButtonWidget* /*button*/)
@@ -403,7 +404,7 @@ namespace ewn
 		m_deleteConfirmation = false;
 		m_deleteButton->Show(true);
 		m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete Fleet", 24));
-		m_deleteButton->ResizeToContent();
+		//m_deleteButton->ResizeToContent();
 
 		m_nameTextArea->SetText(m_fleetName);
 
@@ -452,7 +453,7 @@ namespace ewn
 	{
 		m_statusLabel->Show(true);
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 
 		m_labelDisappearanceAccumulator = status.GetLength() / 10.f;
 
@@ -700,7 +701,7 @@ namespace ewn
 		if (!m_deleteConfirmation)
 		{
 			m_deleteButton->UpdateText(Nz::SimpleTextDrawer::Draw("Delete fleet\n(confirm)", 24));
-			m_deleteButton->ResizeToContent();
+			//m_deleteButton->ResizeToContent();
 
 			m_deleteConfirmation = true;
 
@@ -903,7 +904,7 @@ namespace ewn
 		}
 
 		m_spaceshipAddNamesLabel->UpdateText(Nz::SimpleTextDrawer::Draw(allNames, 16));
-		m_spaceshipAddNamesLabel->ResizeToContent();
+		//m_spaceshipAddNamesLabel->ResizeToContent();
 
 		LayoutWidgets();
 	}

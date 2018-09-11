@@ -25,8 +25,8 @@ namespace ewn
 
 		m_disconnectButton = CreateWidget<Ndk::ButtonWidget>();
 		m_disconnectButton->UpdateText(Nz::SimpleTextDrawer::Draw("Disconnect", 24));
-		m_disconnectButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_disconnectButton->ResizeToContent();
+		//m_disconnectButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_disconnectButton->ResizeToContent();
 		m_disconnectButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnDisconnectPressed();
@@ -34,8 +34,8 @@ namespace ewn
 
 		m_refreshButton = CreateWidget<Ndk::ButtonWidget>();
 		m_refreshButton->UpdateText(Nz::SimpleTextDrawer::Draw("Refresh arenas", 24));
-		m_refreshButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_refreshButton->ResizeToContent();
+		//m_refreshButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_refreshButton->ResizeToContent();
 		m_refreshButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnRefreshPressed();
@@ -43,8 +43,8 @@ namespace ewn
 
 		m_fleetButton = CreateWidget<Ndk::ButtonWidget>();
 		m_fleetButton->UpdateText(Nz::SimpleTextDrawer::Draw("Fleet factory", 24));
-		m_fleetButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_fleetButton->ResizeToContent();
+		//m_fleetButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_fleetButton->ResizeToContent();
 		m_fleetButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnFleetFactoryPressed();
@@ -52,8 +52,8 @@ namespace ewn
 
 		m_spaceshipButton = CreateWidget<Ndk::ButtonWidget>();
 		m_spaceshipButton->UpdateText(Nz::SimpleTextDrawer::Draw("Spaceship factory", 24));
-		m_spaceshipButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_spaceshipButton->ResizeToContent();
+		//m_spaceshipButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_spaceshipButton->ResizeToContent();
 		m_spaceshipButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnSpaceshipFactoryPressed();
@@ -61,7 +61,7 @@ namespace ewn
 
 		m_welcomeTextLabel = CreateWidget<Ndk::LabelWidget>();
 		m_welcomeTextLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Welcome " + m_playerName, 24));
-		m_welcomeTextLabel->ResizeToContent();
+		//m_welcomeTextLabel->ResizeToContent();
 
 		LayoutWidgets();
 
@@ -127,8 +127,8 @@ namespace ewn
 		{
 			Ndk::ButtonWidget* button = CreateWidget<Ndk::ButtonWidget>();
 			button->UpdateText(Nz::SimpleTextDrawer::Draw("Join arena #" + std::to_string(arenaIndex) + ": " + arenaData.arenaName, 24));
-			button->SetPadding(10.f, 10.f, 10.f, 10.f);
-			button->ResizeToContent();
+			//button->SetPadding(10.f, 10.f, 10.f, 10.f);
+			//button->ResizeToContent();
 			button->OnButtonTrigger.Connect([this, arenaIndex](const Ndk::ButtonWidget*)
 			{
 				OnArenaButtonPressed(arenaIndex);
