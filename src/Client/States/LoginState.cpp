@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/LoginState.hpp>
@@ -12,6 +12,7 @@
 #include <NDK/Widgets/LabelWidget.hpp>
 #include <NDK/Widgets/TextAreaWidget.hpp>
 #include <Shared/Protocol/Packets.hpp>
+#include <Client/States/ConnectedState.hpp>
 #include <Client/States/Game/MainMenuState.hpp>
 #include <Client/States/OptionsState.hpp>
 #include <Client/States/RegisterState.hpp>
@@ -21,50 +22,50 @@
 
 namespace ewn
 {
-	void LoginState::Enter(Ndk::StateMachine& /*fsm*/)
+	static constexpr const char* TokenFile = "connectiontoken.rememberme";
+
+	void LoginState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_isLoggingIn = false;
+		m_isLoggingInByToken = false;
 		m_loginSucceeded = false;
-		m_isRegistering = false;
-		m_isUsingOption = false;
 
 		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
 
 		m_loginLabel = CreateWidget<Ndk::LabelWidget>();
 		m_loginLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Login: ", 24));
-		m_loginLabel->ResizeToContent();
+		//m_loginLabel->ResizeToContent();
 
 		m_loginArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_loginArea->EnableBackground(true);
 		m_loginArea->SetBackgroundColor(Nz::Color::White);
-		m_loginArea->SetSize({ 200.f, 36.f });
+		m_loginArea->Resize({ 200.f, 36.f });
 		m_loginArea->SetTextColor(Nz::Color::Black);
 
 		m_passwordLabel = CreateWidget<Ndk::LabelWidget>();
 		m_passwordLabel->UpdateText(Nz::SimpleTextDrawer::Draw("Password: ", 24));
-		m_passwordLabel->ResizeToContent();
+		//m_passwordLabel->ResizeToContent();
 
 		m_passwordArea = CreateWidget<Ndk::TextAreaWidget>();
 		m_passwordArea->EnableBackground(true);
 		m_passwordArea->SetBackgroundColor(Nz::Color::White);
 		m_passwordArea->SetEchoMode(Ndk::EchoMode_Password);
-		m_passwordArea->SetSize({ 200.f, 36.f });
+		m_passwordArea->Resize({ 200.f, 36.f });
 		m_passwordArea->SetTextColor(Nz::Color::Black);
 
 		m_rememberCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_rememberCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Remember me", 24));
-		m_rememberCheckbox->ResizeToContent();
-
-		m_onConnectedSlot.Connect(stateData.server->OnConnected, this, &LoginState::OnConnected);
-		m_onDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
+		//m_rememberCheckbox->ResizeToContent();
 
 		m_connectionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_connectionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Connection", 24));
-		m_connectionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_connectionButton->ResizeToContent();
+		//m_connectionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_connectionButton->ResizeToContent();
 		m_connectionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnConnectionPressed();
@@ -72,8 +73,8 @@ namespace ewn
 
 		m_optionButton = CreateWidget<Ndk::ButtonWidget>();
 		m_optionButton->UpdateText(Nz::SimpleTextDrawer::Draw("Options", 24));
-		m_optionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_optionButton->ResizeToContent();
+		//m_optionButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_optionButton->ResizeToContent();
 		m_optionButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnOptionPressed();
@@ -81,8 +82,8 @@ namespace ewn
 
 		m_quitButton = CreateWidget<Ndk::ButtonWidget>();
 		m_quitButton->UpdateText(Nz::SimpleTextDrawer::Draw("Quit", 24));
-		m_quitButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_quitButton->ResizeToContent();
+		//m_quitButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_quitButton->ResizeToContent();
 		m_quitButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnQuitPressed();
@@ -90,8 +91,8 @@ namespace ewn
 
 		m_registerButton = CreateWidget<Ndk::ButtonWidget>();
 		m_registerButton->UpdateText(Nz::SimpleTextDrawer::Draw("Register", 24));
-		m_registerButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_registerButton->ResizeToContent();
+		//m_registerButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_registerButton->ResizeToContent();
 		m_registerButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnRegisterPressed();
@@ -99,16 +100,25 @@ namespace ewn
 
 		// Set both connection and register button of the same width
 		float maxButtonWidth = std::max({ m_connectionButton->GetSize().x, m_registerButton->GetSize().x });
-		m_connectionButton->SetSize({ maxButtonWidth, m_connectionButton->GetSize().y });
-		m_registerButton->SetSize({ maxButtonWidth, m_registerButton->GetSize().y });
+		m_connectionButton->Resize({ maxButtonWidth, m_connectionButton->GetSize().y });
+		m_registerButton->Resize({ maxButtonWidth, m_registerButton->GetSize().y });
 
-		m_onLoginFailureSlot.Connect(stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
+		LayoutWidgets();
+
+		ConnectSignal(stateData.server->OnConnected, this, &LoginState::OnConnected);
+		ConnectSignal(stateData.server->OnDisconnected, this, &LoginState::OnDisconnected);
+
+		ConnectSignal(stateData.server->OnLoginFailure, [this](ServerConnection* connection, const Packets::LoginFailure& loginFailure)
 		{
 			std::string reason;
 			switch (loginFailure.reason)
 			{
 				case LoginFailureReason::AccountNotFound:
 					reason = "account not found";
+					break;
+
+				case LoginFailureReason::InvalidToken:
+					reason = "automatic connection token expired";
 					break;
 
 				case LoginFailureReason::PasswordMismatch:
@@ -126,63 +136,54 @@ namespace ewn
 
 			UpdateStatus("Login failed: " + reason, Nz::Color::Red);
 			m_isLoggingIn = false;
+			m_isLoggingInByToken = false;
+
+			m_connectionToken.clear();
 		});
 
-		m_onLoginSuccess.Connect(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess&)
+		ConnectSignal(stateData.server->OnLoginSuccess, [this](ServerConnection* connection, const Packets::LoginSuccess& loginPacket)
 		{
 			UpdateStatus("Login succeeded", Nz::Color::Green);
 
 			m_loginSucceeded = true;
 			m_loginAccumulator = 0.f;
+
+			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked && !loginPacket.connectionToken.empty())
+			{
+				Nz::File loginFile(TokenFile);
+				if (loginFile.Open(Nz::OpenMode_Truncate | Nz::OpenMode_WriteOnly))
+				{
+					Nz::String login = m_loginArea->GetText();
+					Nz::String tokenAsString(loginPacket.connectionToken.size() * 2, '\0');
+					for (std::size_t i = 0; i < loginPacket.connectionToken.size(); ++i)
+						std::sprintf(&tokenAsString[i * 2], "%02x", loginPacket.connectionToken[i]);
+
+					loginFile.Write(login + '\n' + tokenAsString);
+				}
+				else
+					std::cerr << "Failed to open remember me file" << std::endl;
+			}
+
+			m_connectionToken.clear();
 		});
 
-		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-
-		// Fill with data from lastlogin.rememberme if present
-		Nz::File loginFile("lastlogin.rememberme");
-		if (loginFile.Open(Nz::OpenMode_ReadOnly))
-		{
-			Nz::String login = loginFile.ReadLine();
-			Nz::String pass = loginFile.ReadLine();
-
-			m_loginArea->SetText(login);
-			m_passwordArea->SetText(pass);
-			m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
-		}
-	}
-
-	void LoginState::Leave(Ndk::StateMachine& fsm)
-	{
-		AbstractState::Leave(fsm);
-
-		m_onConnectedSlot.Disconnect();
-		m_onDisconnectedSlot.Disconnect();
-		m_onLoginFailureSlot.Disconnect();
-		m_onLoginSuccess.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
+		LoadTokenFile();
 	}
 
 	bool LoginState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
-		/*Nz::Renderer::SetMatrix(Nz::MatrixType_World, Nz::Matrix4f::Identity());
-
-		Nz::Vector2f pos = Nz::Vector2f(m_optionButton->GetPosition());// +m_optionButton->GetContentOrigin();
-		Nz::Vector2f size = m_optionButton->GetSize();
-		Nz::DebugDrawer::Draw(Nz::Boxf(pos.x, pos.y, 0.f, size.x, size.y, 1.f));*/
-
 		StateData& stateData = GetStateData();
 
 		if (m_loginSucceeded)
 		{
 			m_loginAccumulator += elapsedTime;
 			if (m_loginAccumulator > 1.f)
-				fsm.ChangeState(std::make_shared<MainMenuState>(stateData, m_loginArea->GetText().ToStdString()));
+			{
+				fsm.PopState();
+				fsm.PushState(std::make_shared<ConnectedState>(stateData));
+				fsm.PushState(std::make_shared<MainMenuState>(stateData, m_loginArea->GetText().ToStdString()));
+			}
 		}
-		else if (m_isRegistering)
-			fsm.ChangeState(std::make_shared<RegisterState>(stateData));
-		else if (m_isUsingOption)
-			fsm.ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 		else if (m_isLoggingIn)
 		{
 			// Computing password, wait for it
@@ -200,7 +201,7 @@ namespace ewn
 	{
 		StateData& stateData = GetStateData();
 
-		if (m_isLoggingIn)
+		if (m_isLoggingIn || m_isLoggingInByToken)
 			return;
 
 		Nz::String login = m_loginArea->GetText();
@@ -217,54 +218,91 @@ namespace ewn
 		}
 
 		Nz::String password = m_passwordArea->GetText();
-		if (password.GetLength() < 8)
+		if (password.IsEmpty())
 		{
-			UpdateStatus("Error: password is too short (at least 8 characters required)", Nz::Color::Red);
-			return;
-		}
-
-		Nz::File loginFile("lastlogin.rememberme");
-		if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked)
-		{
-			if (loginFile.Open(Nz::OpenMode_Truncate | Nz::OpenMode_WriteOnly))
-				loginFile.Write(m_loginArea->GetText() + '\n' + m_passwordArea->GetText());
-			else
-				std::cerr << "Failed to open remember.me file" << std::endl;
-		}
-		else if (loginFile.Exists())
-			loginFile.Delete();
-
-		ComputePassword();
-
-		if (!stateData.server->IsConnected())
-		{
-			m_isLoggingIn = true;
-
-			// Connect to server
-			if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+			if (!m_connectionToken.empty())
 			{
-				UpdateStatus("Connecting...");
-				m_isLoggingIn = true;
+				// Use login by token if password is empty
+				if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
+				{
+					if (Nz::File::Exists(TokenFile))
+						Nz::File::Delete(TokenFile);
+				}
+
+				if (!stateData.server->IsConnected())
+				{
+					// Connect to server
+					if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+					{
+						UpdateStatus("Connecting...");
+						m_isLoggingInByToken = true;
+					}
+					else
+						UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+				}
+				else
+				{
+					UpdateStatus("Auto-logging in...");
+					m_isLoggingInByToken = true;
+					SendLoginByTokenPacket();
+				}
 			}
 			else
-				UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+			{
+				UpdateStatus("Auto-logging failed: no connection token found", Nz::Color::Red);
+				return;
+			}
 		}
 		else
 		{
-			UpdateStatus("Logging in...");
-			m_isLoggingIn = true;
+			if (password.GetLength() < 8)
+			{
+				UpdateStatus("Error: password is too short (at least 8 characters required)", Nz::Color::Red);
+				return;
+			}
+
+			if (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Unchecked)
+			{
+				if (Nz::File::Exists(TokenFile))
+					Nz::File::Delete(TokenFile);
+			}
+
+			ComputePassword();
+
+			if (!stateData.server->IsConnected())
+			{
+				// Connect to server
+				if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+				{
+					UpdateStatus("Connecting...");
+					m_isLoggingIn = true;
+				}
+				else
+					UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+			}
+			else
+			{
+				UpdateStatus("Logging in...");
+				m_isLoggingIn = true;
+			}
 		}
 	}
 
-	void LoginState::OnConnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
+	void LoginState::OnConnected(ServerConnection* server, Nz::UInt32 /*data*/)
 	{
-		if (m_isLoggingIn)
+		if (m_isLoggingInByToken)
+		{
+			SendLoginByTokenPacket();
+			UpdateStatus("Auto-logging in...");
+		}
+		else if (m_isLoggingIn)
 			UpdateStatus("Logging in...");
 	}
 
 	void LoginState::OnDisconnected(ServerConnection* /*server*/, Nz::UInt32 /*data*/)
 	{
 		m_isLoggingIn = false;
+		m_isLoggingInByToken = false;
 
 		UpdateStatus("Error: failed to connect to server", Nz::Color::Red);
 	}
@@ -276,15 +314,20 @@ namespace ewn
 
 	void LoginState::OnOptionPressed()
 	{
-		m_isUsingOption = true;
+		if (m_isLoggingIn || m_isLoggingInByToken)
+			return;
+
+		StateData& stateData = GetStateData();
+		stateData.fsm->ChangeState(std::make_shared<OptionsState>(stateData, shared_from_this()));
 	}
 
 	void LoginState::OnRegisterPressed()
 	{
-		if (m_isLoggingIn)
+		if (m_isLoggingIn || m_isLoggingInByToken)
 			return;
 
-		m_isRegistering = true;
+		StateData& stateData = GetStateData();
+		stateData.fsm->ChangeState(std::make_shared<RegisterState>(stateData));
 	}
 
 	void LoginState::LayoutWidgets()
@@ -376,17 +419,96 @@ namespace ewn
 		}
 
 		Packets::Login loginPacket;
+		loginPacket.generateConnectionToken = (m_rememberCheckbox->GetState() == Ndk::CheckboxState_Checked);
 		loginPacket.login = m_loginArea->GetText().ToStdString();
 		loginPacket.passwordHash = hashedPassword;
 
 		GetStateData().server->SendPacket(loginPacket);
 	}
 
+	void LoginState::SendLoginByTokenPacket()
+	{
+		Packets::LoginByToken loginPacket;
+		loginPacket.connectionToken = m_connectionToken;
+		loginPacket.generateConnectionToken = true;
+
+		GetStateData().server->SendPacket(loginPacket);
+
+		m_connectionToken.clear(); //< Ensure state of connection token
+	}
+
 	void LoginState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
 	{
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->Show(true);
 	}
+
+	void LoginState::LoadTokenFile()
+	{
+		StateData& stateData = GetStateData();
+
+		Nz::File loginFile(TokenFile);
+		if (loginFile.Open(Nz::OpenMode_ReadOnly))
+		{
+			Nz::String login = loginFile.ReadLine();
+			Nz::String token = loginFile.ReadLine();
+			if (token.GetSize() == 128)
+			{
+				std::vector<Nz::UInt8> binToken;
+				binToken.reserve(64);
+				for (std::size_t i = 0; i < 128; i += 2)
+				{
+					static const char* hexadecimal = "0123456789abcdef";
+
+					char c1 = token[i];
+					char c2 = token[i + 1];
+
+					const char* p1 = std::strchr(hexadecimal, c1);
+					const char* p2 = std::strchr(hexadecimal, c2);
+					if (!p1 || !p2)
+						return;
+
+					std::size_t v1 = p1 - hexadecimal;
+					std::size_t v2 = p2 - hexadecimal;
+
+					binToken.push_back((v1 * 16) + v2);
+				}
+				m_connectionToken = std::move(binToken);
+
+				m_loginArea->SetText(login);
+				m_rememberCheckbox->SetState(Ndk::CheckboxState_Checked);
+
+				if (m_shouldAutoLogin)
+				{
+					m_shouldAutoLogin = false;
+
+					if (!stateData.server->IsConnected())
+					{
+						// Connect to server
+						if (stateData.server->Connect(stateData.app->GetConfig().GetStringOption("Server.Address")))
+						{
+							UpdateStatus("Connecting...");
+							m_isLoggingInByToken = true;
+						}
+						else
+							UpdateStatus("Error: failed to initiate connection to server", Nz::Color::Red);
+					}
+					else
+					{
+						UpdateStatus("Auto-logging in...");
+						m_isLoggingInByToken = true;
+
+						Packets::LoginByToken loginPacket;
+						loginPacket.connectionToken = m_connectionToken;
+						loginPacket.generateConnectionToken = true;
+
+						stateData.server->SendPacket(loginPacket);
+					}
+				}
+			}
+		}
+	}
+
 }

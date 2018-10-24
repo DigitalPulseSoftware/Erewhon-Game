@@ -5,6 +5,7 @@
 #include <Server/Modules/TorpedoWeaponModule.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <Server/Components/ArenaComponent.hpp>
+#include <Server/Components/OwnerComponent.hpp>
 
 namespace ewn
 {
@@ -14,6 +15,10 @@ namespace ewn
 		auto& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
 		Arena& spaceshipArena = spaceship->GetComponent<ewn::ArenaComponent>();
 
-		spaceshipArena.CreateTorpedo(nullptr, spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
+		Player* owner = nullptr;
+		if (spaceship->HasComponent<OwnerComponent>())
+			owner = spaceship->GetComponent<OwnerComponent>().GetOwner();
+
+		spaceshipArena.CreateTorpedo(owner, spaceship, spaceshipNode.GetPosition() + spaceshipNode.GetForward() * 12.f, spaceshipNode.GetRotation());
 	}
 }

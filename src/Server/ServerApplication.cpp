@@ -3,40 +3,38 @@
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/ServerApplication.hpp>
-#include <Nazara/Core/MemoryHelper.hpp>
-#include <Shared/SecureRandomGenerator.hpp>
-#include <Server/Components/ScriptComponent.hpp>
+#include <Nazara/Core/File.hpp>
 #include <Server/DatabaseLoader.hpp>
-#include <Server/Database/Database.hpp>
 #include <Server/Player.hpp>
-#include <argon2/argon2.h>
-#include <cctype>
 #include <iostream>
-#include <regex>
 
 namespace ewn
 {
 	ServerApplication::ServerApplication() :
-	m_playerPool(sizeof(Player)),
+	m_sessionPool(sizeof(ClientSession)),
 	m_chatCommandStore(this),
-	m_commandStore(this)
+	m_nextSessionId(0)
 	{
 		RegisterConfigOptions();
 		RegisterNetworkedStrings();
-
-		m_arenas.emplace_back(std::make_unique<Arena>(this));
 	}
 
 	ServerApplication::~ServerApplication()
 	{
-		for (Player* player : m_players)
+		for (ClientSession* session : m_sessions)
 		{
-			if (player)
+			if (session)
 			{
-				player->Disconnect();
-				m_playerPool.Delete(player);
+				session->Disconnect();
+				m_sessionPool.Delete(session);
 			}
 		}
+	}
+
+	Arena& ServerApplication::CreateArena(std::string name, std::string script)
+	{
+		m_arenas.emplace_back(std::make_unique<Arena>(this, std::move(name), std::move(script)));
+		return *m_arenas.back().get();
 	}
 
 	bool ServerApplication::LoadDatabase()
@@ -65,6 +63,9 @@ namespace ewn
 				m_stringStore.RegisterString(m_visualMeshStore.GetEntryFilePath(i));
 		}
 
+		if (!BakeDefaultSpaceshipData())
+			return false;
+
 		return true;
 	}
 
@@ -83,93 +84,112 @@ namespace ewn
 		return BaseApplication::Run();
 	}
 
-	void ServerApplication::HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data)
+	bool ServerApplication::BakeDefaultSpaceshipData()
 	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
+		// Load informations about default spaceship
+		m_defaultSpaceshipData.name = m_config.GetStringOption("DefaultSpaceship.Name");
 
-		DatabaseTransaction trans;
-		trans.AppendPreparedStatement("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName });
-		trans.AppendPreparedStatement("CreateSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.code, Nz::Int32(1) }, [](DatabaseTransaction& transaction, DatabaseResult result)
+		// Find hull
+		const std::string& hullName = m_config.GetStringOption("DefaultSpaceship.Hull");
+
+		m_defaultSpaceshipData.hullId = m_spaceshipHullStore.GetEntryByName(hullName);
+		if (m_defaultSpaceshipData.hullId == m_spaceshipHullStore.InvalidEntryId)
 		{
-			if (!result)
-				return result;
+			std::cerr << "Failed to find default spaceship hull \"" << hullName << "\"" << std::endl;
+			return false;
+		}
 
-			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+		// Find modules
+		const std::string& moduleList = m_config.GetStringOption("DefaultSpaceship.Modules");
 
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 1 });
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 2 });
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 3 });
-			transaction.AppendPreparedStatement("AddSpaceshipModule", { spaceshipId, 4 });
-
-			return result;
-		});
-
-		m_globalDatabase->ExecuteTransaction(std::move(trans), [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](bool transactionSucceeded, std::vector<DatabaseResult>& queryResults)
+		auto AddModule = [&](const std::string& moduleName)
 		{
-			if (!transactionSucceeded)
-				std::cerr << "Create spaceship transaction failed: " << queryResults.back().GetLastErrorMessage() << std::endl;
+			std::size_t moduleId = m_moduleStore.GetEntryByName(moduleName);
+			if (moduleId == m_moduleStore.InvalidEntryId)
+			{
+				std::cerr << "Failed to find default spaceship module \"" << moduleName << "\"" << std::endl;
+				return false;
+			}
 
-			if (!ply)
-				return;
+			m_defaultSpaceshipData.moduleIds.push_back(moduleId);
+			return true;
+		};
 
-			if (transactionSucceeded)
-				ply->PrintMessage("Spaceship \"" + spaceshipName + "\" successfully saved!");
-			else
-				ply->PrintMessage("Failed to save spaceship \"" + spaceshipName + "\", please contact an admin");
-		});
-	}
-
-	void ServerApplication::HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship & data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		m_globalDatabase->ExecuteQuery("DeleteSpaceship", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
+		std::size_t pos = 0;
+		std::size_t previousPos = 0;
+		while ((pos = moduleList.find('|', previousPos)) != std::string::npos)
 		{
-			if (!result)
-				std::cerr << "Delete spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+			if (!AddModule(moduleList.substr(previousPos, pos - previousPos)))
+				return false;
 
-			if (!ply)
-				return;
+			previousPos = pos + 1;
+		}
 
-			if (result)
-				ply->PrintMessage("Spaceship \"" + spaceshipName + "\" successfully deleted!");
-			else
-				ply->PrintMessage("Failed to delete spaceship \"" + spaceshipName + "\", please contact an admin");
-		});
+		if (!AddModule(moduleList.substr(previousPos)))
+			return false;
+
+		// Load script file
+		const std::string& fileName = m_config.GetStringOption("DefaultSpaceship.ScriptFile");
+
+		// Load file content
+		Nz::File file(fileName, Nz::OpenMode_ReadOnly | Nz::OpenMode_Text);
+		if (!file.IsOpen())
+		{
+			std::cerr << "Failed to open default spaceship script file \"" << fileName << "\"" << std::endl;
+			return false;
+		}
+
+		m_defaultSpaceshipData.code.reserve(file.GetSize());
+
+		while (!file.EndOfFile())
+		{
+			Nz::String fileContent = file.ReadLine();
+			m_defaultSpaceshipData.code.append(fileContent.GetConstBuffer(), fileContent.GetSize());
+			m_defaultSpaceshipData.code += '\n';
+		}
+
+		return true;
 	}
 
 	void ServerApplication::HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data)
 	{
 		const std::unique_ptr<NetworkReactor>& reactor = GetReactor(peerId / GetPeerPerReactor());
 
-		if (peerId >= m_players.size())
-			m_players.resize(peerId + 1);
+		if (peerId >= m_sessions.size())
+			m_sessions.resize(peerId + 1);
 
-		m_players[peerId] = m_playerPool.New<Player>(this, peerId, *reactor, m_commandStore);
-		std::cout << "Client #" << peerId << " connected with data " << data << std::endl;
+		auto player = std::make_shared<Player>(this);
 
-		// Send newtorked strings
-		m_players[peerId]->SendPacket(m_stringStore.BuildPacket(0));
+		std::size_t sessionId = m_nextSessionId;
+		m_sessionIdToPeer.insert_or_assign(sessionId, peerId);
+		m_nextSessionId++;
+
+		m_sessions[peerId] = m_sessionPool.New<ClientSession>(this, sessionId, peerId, player, *reactor, m_commandStore);
+
+		player->UpdateSession(m_sessions[peerId]);
+
+		std::cout << "Client #" << peerId << " (sess. " << sessionId << ") connected with data " << data << std::endl;
+
+		// Send networked strings
+		m_sessions[peerId]->SendPacket(m_stringStore.BuildPacket(0));
 	}
 
 	void ServerApplication::HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data)
 	{
 		std::cout << "Client #" << peerId << " disconnected with data " << data << std::endl;
 
-		m_playerPool.Delete(m_players[peerId]);
-		m_players[peerId] = nullptr;
+		m_sessionIdToPeer.erase(m_sessions[peerId]->GetSessionId());
+
+		m_sessionPool.Delete(m_sessions[peerId]);
+		m_sessions[peerId] = nullptr;
 	}
 
 	void ServerApplication::HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet)
 	{
 		//std::cout << "Client #" << peerId << " sent packet of size " << packet.GetDataSize() << std::endl;
 
-		if (!m_commandStore.UnserializePacket(peerId, std::move(packet)))
-			m_players[peerId]->Disconnect();
+		if (!m_commandStore.UnserializePacket(*m_sessions[peerId], std::move(packet)))
+			m_sessions[peerId]->Disconnect();
 	}
 
 	void ServerApplication::InitGameWorkers(std::size_t workerCount)
@@ -198,537 +218,6 @@ namespace ewn
 
 		InitGameWorkers(gameWorkerCount);
 		InitGlobalDatabase(dbWorkerCount, dbHost, dbPort, dbUser, dbPassword, dbName);
-	}
-
-	void ServerApplication::HandleLogin(std::size_t peerId, const Packets::Login& data)
-	{
-		Player* player = m_players[peerId];
-		if (player->IsAuthenticated())
-			return;
-
-		if (data.login.empty() || data.login.size() > 20)
-			return;
-
-		m_globalDatabase->ExecuteQuery("FindAccountByLogin", { data.login },
-		[this, ply = player->CreateHandle(), login = data.login, pwd = data.passwordHash](DatabaseResult& result)
-		{
-			if (!ply)
-				return;
-
-			if (!result.IsValid())
-			{
-				std::cerr << "FindAccountByLogin failed: " << result.GetLastErrorMessage() << std::endl;
-
-				Packets::LoginFailure loginFailure;
-				loginFailure.reason = LoginFailureReason::ServerError;
-
-				ply->SendPacket(loginFailure);
-				return;
-			}
-
-			if (result.GetRowCount() == 0)
-			{
-				std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: player not found" << std::endl;
-
-				Packets::LoginFailure loginFailure;
-				loginFailure.reason = LoginFailureReason::AccountNotFound;
-
-				ply->SendPacket(loginFailure);
-				return;
-			}
-
-			assert(result.GetRowCount() == 1);
-
-			const std::string& globalSalt = m_config.GetStringOption("Security.PasswordSalt");
-
-			Nz::Int32 dbId = std::get<Nz::Int32>(result.GetValue(0));
-			std::string dbPassword = std::get<std::string>(result.GetValue(1));
-			std::string dbSalt = std::get<std::string>(result.GetValue(2));
-			std::string salt = globalSalt + dbSalt;
-
-			int iCost = m_config.GetIntegerOption<int>("Security.Argon2.IterationCost");
-			int mCost = m_config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
-			int tCost = m_config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
-			int hashLength = m_config.GetIntegerOption<int>("Security.HashLength");
-
-			DispatchWork([this, s = std::move(salt), pass = std::move(pwd), dbPass = dbPassword, id = dbId, ply, login, iCost, mCost, tCost, hashLength]()
-			{
-				Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
-				Nz::StackArray<char> outputHex = NazaraStackAllocationNoInit(char, hashLength * 2 + 1);
-
-				argon2_context context;
-				std::memset(&context, 0, sizeof(argon2_context));
-
-				context.out = output.data();
-				context.outlen = uint32_t(hashLength);
-				context.pwd = reinterpret_cast<uint8_t*>(const_cast<char*>(pass.data()));
-				context.pwdlen = uint32_t(pass.size());
-				context.salt = reinterpret_cast<uint8_t*>(const_cast<char*>(s.data()));
-				context.saltlen = uint32_t(s.size());
-				context.t_cost = iCost;
-				context.m_cost = mCost;
-				context.lanes = tCost;
-				context.threads = tCost;
-				context.flags = ARGON2_DEFAULT_FLAGS;
-				context.version = ARGON2_VERSION_13;
-
-				std::optional<LoginFailureReason> failure;
-				int argon2Ret = argon2_ctx(&context, argon2_type::Argon2_id);
-				if (argon2Ret == ARGON2_OK)
-				{
-					for (std::size_t i = 0; i < output.size(); ++i)
-						std::sprintf(&outputHex[i * 2], "%02x", output[i]);
-
-					// Protect against timing-attack
-					assert(dbPass.size() == outputHex.size() - 1);
-
-					int isDifferent = 0;
-					for (std::size_t i = 0; i < dbPass.size(); ++i)
-						isDifferent |= (outputHex[i] ^ dbPass[i]);
-
-					if (isDifferent)
-						failure = LoginFailureReason::PasswordMismatch;
-				}
-				else
-					failure = LoginFailureReason::ServerError;
-
-				if (!failure)
-				{
-					RegisterCallback([ply, id]()
-					{
-						if (!ply)
-							return;
-
-						ply->Authenticate(id, [](Player* player, bool loginSuccess)
-						{
-							if (loginSuccess)
-							{
-								player->SendPacket(Packets::LoginSuccess());
-
-								std::cout << "Player #" << player->GetPeerId() << " authenticated as " << player->GetName() << std::endl;
-							}
-							else
-							{
-								std::cerr << "Failed to authenticate player #" << player->GetPeerId() << ": Database authentication failed" << std::endl;
-
-								Packets::LoginFailure loginFailure;
-								loginFailure.reason = LoginFailureReason::ServerError;
-
-								player->SendPacket(loginFailure);
-							}
-						});
-					});
-				}
-				else
-				{
-					RegisterCallback([ply, login, reason = failure.value(), argon2Ret]()
-					{
-						if (!ply)
-							return;
-
-						Packets::LoginFailure loginFailure;
-						loginFailure.reason = reason;
-
-						ply->SendPacket(loginFailure);
-
-						switch (reason)
-						{
-							case LoginFailureReason::PasswordMismatch:
-								std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: password mismatch" << std::endl;
-								break;
-
-							case LoginFailureReason::ServerError:
-								std::cout << "Player #" << ply->GetPeerId() << " authentication as " << login << " failed: argon2 failure (err: " << argon2Ret << ")" << std::endl;
-								break;
-
-							case LoginFailureReason::AccountNotFound:
-							default:
-								assert(false);
-								break;
-						}
-					});
-				}
-			});
-		});
-	}
-
-	void ServerApplication::HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		if (data.arenaIndex > m_arenas.size())
-			return;
-
-		Arena* arena = m_arenas[data.arenaIndex].get();
-		if (player->GetArena() != arena)
-			player->MoveToArena(arena);
-	}
-
-	void ServerApplication::HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		if (data.text.empty())
-			return;
-
-		if (data.text[0] == '/')
-		{
-			std::string_view command = data.text;
-			command.remove_prefix(1);
-
-			if (m_chatCommandStore.ExecuteCommand(player, command))
-				return; // Don't show command if it succeeded
-		}
-
-		if (Arena* arena = player->GetArena())
-		{
-			static constexpr std::size_t MaxChatLine = 255;
-
-			Nz::String message = player->GetName() + ": " + data.text;
-			if (message.GetSize() > MaxChatLine)
-			{
-				message.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
-				message += "...";
-			}
-
-			std::cout << message << std::endl;
-
-			arena->DispatchChatMessage(message);
-		}
-	}
-
-	void ServerApplication::HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		player->UpdateInput(data.inputTime, data.direction, data.rotation);
-	}
-
-	void ServerApplication::HandlePlayerShoot(std::size_t peerId, const Packets::PlayerShoot& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		player->Shoot();
-	}
-
-	void ServerApplication::HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo & data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [&, ply = player->CreateHandle()](ewn::DatabaseResult& result)
-		{
-			if (!ply)
-				return; //< Player has disconnected, ignore
-
-			Packets::SpaceshipInfo spaceshipInfo;
-
-			if (result.IsValid())
-			{
-				std::size_t spaceshipHullId = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(2)));
-				std::size_t visualMeshId = m_spaceshipHullStore.GetEntryVisualMeshId(spaceshipHullId);
-
-				spaceshipInfo.hullModelPath = m_visualMeshStore.GetEntryFilePath(visualMeshId);
-			}
-			else
-				std::cerr << "FindSpaceshipByOwnerIdAndName failed:" << result.GetLastErrorMessage() << std::endl;
-
-			ply->SendPacket(spaceshipInfo);
-		});
-	}
-
-	void ServerApplication::HandleQuerySpaceshipList(std::size_t peerId, const Packets::QuerySpaceshipList& /*data*/)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		m_globalDatabase->ExecuteQuery("FindSpaceshipsByOwnerId", { Nz::Int32(player->GetDatabaseId()) }, [ply = player->CreateHandle()](ewn::DatabaseResult& result)
-		{
-			if (!ply)
-				return; //< Player has disconnected, ignore
-
-			Packets::SpaceshipList spaceshipList;
-
-			if (result.IsValid())
-			{
-				std::size_t rowCount = result.GetRowCount();
-
-				spaceshipList.spaceships.resize(rowCount);
-				for (std::size_t i = 0; i < rowCount; ++i)
-				{
-					auto& spaceship = spaceshipList.spaceships[i];
-					spaceship.name = std::get<std::string>(result.GetValue(1, i));
-				}
-			}
-			else
-				std::cerr << "FindSpaceshipsByOwnerId failed:" << result.GetLastErrorMessage() << std::endl;
-
-			ply->SendPacket(spaceshipList);
-		});
-	}
-
-	void ServerApplication::HandleRegister(std::size_t peerId, const Packets::Register& data)
-	{
-		Player* player = m_players[peerId];
-		if (player->IsAuthenticated())
-			return;
-
-		if (data.login.empty() || data.login.size() > 20)
-			return;
-
-		if (data.email.empty() || data.email.size() > 40)
-			return;
-
-		if (data.passwordHash.empty() || data.passwordHash.size() > 128)
-			return;
-
-		const std::regex emailPattern(R"((\w+)(\.|_)?(\w*)@(\w+)(\.(\w+))+)");
-		if (!std::regex_match(data.email, emailPattern))
-			return;
-
-		// Generate salt
-		SecureRandomGenerator gen;
-
-		Nz::ByteArray saltBuff(32, 0);
-		if (!gen(saltBuff.GetBuffer(), saltBuff.GetSize()))
-		{
-			std::cerr << "SecureRandomGenerator failed" << std::endl;
-
-			Packets::RegisterFailure registerFailure;
-			registerFailure.reason = RegisterFailureReason::ServerError;
-
-			player->SendPacket(registerFailure);
-			return;
-		}
-
-		// Salt password and hash it again
-		const std::string& globalSalt = m_config.GetStringOption("Security.PasswordSalt");
-
-		Nz::String userSalt = saltBuff.ToHex();
-		Nz::String salt = globalSalt + userSalt;
-
-		int iCost = m_config.GetIntegerOption<int>("Security.Argon2.IterationCost");
-		int mCost = m_config.GetIntegerOption<int>("Security.Argon2.MemoryCost");
-		int tCost = m_config.GetIntegerOption<int>("Security.Argon2.ThreadCost");
-		int hashLength = m_config.GetIntegerOption<int>("Security.HashLength");
-
-		DispatchWork([this, ply = player->CreateHandle(), s = std::move(salt), uSalt = std::move(userSalt), data, iCost, mCost, tCost, hashLength]()
-		{
-			Nz::StackArray<uint8_t> output = NazaraStackAllocationNoInit(uint8_t, hashLength);
-
-			argon2_context context;
-			std::memset(&context, 0, sizeof(argon2_context));
-
-			context.out = output.data();
-			context.outlen = uint32_t(hashLength);
-			context.pwd = reinterpret_cast<uint8_t*>(const_cast<char*>(data.passwordHash.data()));
-			context.pwdlen = uint32_t(data.passwordHash.size());
-			context.salt = reinterpret_cast<uint8_t*>(const_cast<char*>(s.GetConstBuffer()));
-			context.saltlen = uint32_t(s.GetSize());
-			context.t_cost = iCost;
-			context.m_cost = mCost;
-			context.lanes = tCost;
-			context.threads = tCost;
-			context.flags = ARGON2_DEFAULT_FLAGS;
-			context.version = ARGON2_VERSION_13;
-
-			std::optional<LoginFailureReason> failure;
-			if (argon2_ctx(&context, argon2_type::Argon2_id) == ARGON2_OK)
-			{
-				std::string outputHex(hashLength * 2 + 1, '\0');
-
-				for (std::size_t i = 0; i < output.size(); ++i)
-					std::sprintf(&outputHex[i * 2], "%02x", output[i]);
-
-				outputHex.resize(hashLength * 2);
-
-				m_globalDatabase->ExecuteQuery("RegisterAccount", { data.login, std::move(outputHex), uSalt.ToStdString(), data.email },
-				[ply, login = data.login](DatabaseResult& result)
-				{
-					if (!ply)
-						return;
-
-					if (!result.IsValid())
-					{
-						std::cerr << "RegisterAccount failed: " << result.GetLastErrorMessage() << std::endl;
-
-						Packets::RegisterFailure loginFailure;
-						loginFailure.reason = RegisterFailureReason::LoginAlreadyTaken;
-
-						ply->SendPacket(loginFailure);
-						return;
-					}
-
-					ply->SendPacket(Packets::RegisterSuccess());
-
-					std::cout << "Player #" << ply->GetPeerId() << " registered as " << login << std::endl;
-				});
-			}
-			else
-			{
-				RegisterCallback([ply]()
-				{
-					if (!ply)
-						return;
-
-					Packets::RegisterFailure loginFailure;
-					loginFailure.reason = RegisterFailureReason::ServerError;
-
-					ply->SendPacket(loginFailure);
-				});
-			}
-		});
-	}
-
-	void ServerApplication::HandleSpawnSpaceship(std::size_t peerId, const Packets::SpawnSpaceship& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		m_globalDatabase->ExecuteQuery("FindSpaceshipByOwnerIdAndName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName }, [this, ply = player->CreateHandle(), spaceshipName = data.spaceshipName](DatabaseResult& result)
-		{
-			if (!result)
-				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
-
-			if (!ply)
-				return;
-
-			if (!result)
-			{
-				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
-				return;
-			}
-
-			if (result.GetRowCount() == 0)
-			{
-				ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
-				return;
-			}
-
-			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
-			std::string code = std::get<std::string>(result.GetValue(1));
-			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
-
-			m_globalDatabase->ExecuteQuery("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, ply, spaceshipHullId, spaceshipCode = std::move(code)](DatabaseResult& result)
-			{
-				if (!result)
-					std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
-
-				if (!ply)
-					return;
-
-				if (!result)
-				{
-					ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-					return;
-				}
-
-				std::size_t moduleCount = result.GetRowCount();
-
-				std::vector<std::size_t> moduleIds(moduleCount);
-				try
-				{
-					for (std::size_t i = 0; i < moduleCount; ++i)
-						moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
-				}
-				catch (const std::exception& e)
-				{
-					std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
-
-					ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
-					return;
-				}
-
-				const Ndk::EntityHandle& playerBot = ply->InstantiateBot(spaceshipHullId);
-				ScriptComponent& botScript = playerBot->AddComponent<ScriptComponent>();
-				if (!botScript.Initialize(this, moduleIds))
-				{
-					ply->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
-					return;
-				}
-
-				Nz::String lastError;
-				if (botScript.Execute(spaceshipCode, &lastError))
-					ply->PrintMessage("Server: Script loaded with success");
-				else
-					ply->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
-			});
-		});
-	}
-
-	void ServerApplication::HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		Packets::TimeSyncResponse response;
-		response.requestId = data.requestId;
-		response.serverTime = GetAppTime();
-
-		player->SendPacket(response);
-	}
-
-	void ServerApplication::HandleUpdateSpaceship(std::size_t peerId, const Packets::UpdateSpaceship& data)
-	{
-		Player* player = m_players[peerId];
-		if (!player->IsAuthenticated())
-			return;
-
-		if (data.spaceshipName.empty() || data.spaceshipName.size() > 64)
-			return;
-
-		if (data.newSpaceshipName.size() > 64)
-			return;
-
-		if (data.newSpaceshipName.empty())
-		{
-			player->SendPacket(Packets::UpdateSpaceshipSuccess());
-			return;
-		}
-
-		m_globalDatabase->ExecuteQuery("UpdateSpaceshipName", { Nz::Int32(player->GetDatabaseId()), data.spaceshipName, data.newSpaceshipName }, [ply = player->CreateHandle()](ewn::DatabaseResult& result)
-		{
-			if (!ply)
-				return;
-
-			if (!result.IsValid())
-			{
-				std::cerr << "UpdateSpaceshipName failed: " << result.GetLastErrorMessage() << std::endl;
-
-				Packets::UpdateSpaceshipFailure response;
-				response.reason = UpdateSpaceshipFailureReason::ServerError;
-
-				ply->SendPacket(response);
-				return;
-			}
-
-			if (result.GetAffectedRowCount() > 0)
-			{
-				ply->SendPacket(Packets::UpdateSpaceshipSuccess());
-				return;
-			}
-			else
-			{
-				std::cerr << "Failed to update spaceship name: spaceship not found";
-
-				Packets::UpdateSpaceshipFailure response;
-				response.reason = UpdateSpaceshipFailureReason::NotFound;
-
-				ply->SendPacket(response);
-			}
-		});
 	}
 
 	bool ServerApplication::SetupNetwork(std::size_t clientPerReactor, std::size_t reactorCount, Nz::NetProtocol protocol, Nz::UInt16 firstPort)
@@ -771,6 +260,11 @@ namespace ewn
 		m_config.RegisterIntegerOption("Game.MaxClients", 0, 4096); //< 4096 due to ENet limitation
 		m_config.RegisterIntegerOption("Game.Port", 1, 0xFFFF);
 		m_config.RegisterIntegerOption("Game.WorkerCount", 1, 100);
+
+		m_config.RegisterStringOption("DefaultSpaceship.Hull");
+		m_config.RegisterStringOption("DefaultSpaceship.Modules");
+		m_config.RegisterStringOption("DefaultSpaceship.Name");
+		m_config.RegisterStringOption("DefaultSpaceship.ScriptFile");
 	}
 
 	void ServerApplication::RegisterNetworkedStrings()
@@ -779,5 +273,9 @@ namespace ewn
 		m_stringStore.RegisterString("light");
 		m_stringStore.RegisterString("plasmabeam");
 		m_stringStore.RegisterString("torpedo");
+		m_stringStore.RegisterString("explosion_flare");
+		m_stringStore.RegisterString("explosion_fire");
+		m_stringStore.RegisterString("explosion_smoke");
+		m_stringStore.RegisterString("explosion_wave");
 	}
 }

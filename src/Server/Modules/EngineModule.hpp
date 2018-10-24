@@ -7,8 +7,6 @@
 #ifndef EREWHON_SERVER_ENGINEMODULE_HPP
 #define EREWHON_SERVER_ENGINEMODULE_HPP
 
-#include <Nazara/Core/HandledObject.hpp>
-#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <Server/SpaceshipModule.hpp>
@@ -24,12 +22,14 @@ namespace ewn
 	class EngineModule : public SpaceshipModule, public Nz::HandledObject<EngineModule>
 	{
 		public:
-			using SpaceshipModule::SpaceshipModule;
+			inline EngineModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			~EngineModule() = default;
 
-			void Impulse(Nz::Vector3f impulse, float duration);
+			void PushInstance(Nz::LuaState& lua) override;
+			void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) override;
 
-			void Register(Nz::LuaState& lua) override;
+			// Lua API
+			void Impulse(Nz::Vector3f impulse, float duration);
 
 		private:
 			static std::optional<Nz::LuaClass<EngineModuleHandle>> s_binding;

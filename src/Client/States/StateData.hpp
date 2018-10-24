@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -11,6 +11,7 @@
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <NDK/Canvas.hpp>
 #include <NDK/Entity.hpp>
+#include <NDK/StateMachine.hpp>
 #include <NDK/World.hpp>
 
 namespace ewn
@@ -26,6 +27,7 @@ namespace ewn
 		Ndk::Canvas* canvas;
 		Ndk::EntityHandle camera2D;
 		Ndk::EntityHandle camera3D;
+		Ndk::StateMachine* fsm;
 		Ndk::WorldHandle world2D;
 		Ndk::WorldHandle world3D;
 	};

@@ -24,9 +24,12 @@ namespace ewn
 			inline CollisionMeshStore();
 			~CollisionMeshStore() = default;
 
-			inline Nz::Collider3DRef GetEntryCollider(std::size_t entryId) const;
+			inline const Nz::Collider3DRef& GetEntryCollider(std::size_t entryId) const;
+			inline const Nz::Boxf& GetEntryDimensions(std::size_t entryId) const;
 			inline std::size_t GetEntryCount() const;
 			inline const std::string& GetEntryFilePath(std::size_t entryId) const;
+			inline float GetEntryScale(std::size_t entryId) const;
+
 			inline bool IsEntryLoaded(std::size_t entryId) const;
 
 		private:
@@ -34,10 +37,12 @@ namespace ewn
 
 			struct CollisionMeshInfo 
 			{
+				Nz::Boxf dimensions;
 				Nz::Collider3DRef collider;
 				std::string filePath;
 				bool doesExist = false;
 				bool isLoaded = false;
+				float scale;
 			};
 
 			std::vector<CollisionMeshInfo> m_collisionInfos;

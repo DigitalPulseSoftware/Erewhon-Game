@@ -7,11 +7,20 @@
 namespace ewn
 {
 	inline RadarModule::RadarModule(SpaceshipCore* core, const Ndk::EntityHandle & spaceship, float detectionRadius, std::size_t maxLockableTarget) :
-	SpaceshipModule(core, spaceship, true),
+	SpaceshipModule(ModuleType::Radar, core, spaceship, true),
 	m_maxLockableTargets(maxLockableTarget),
 	m_detectionRadius(detectionRadius),
 	m_isPassiveScanEnabled(true)
 	{
+	}
+
+	inline const Ndk::EntityHandle& RadarModule::FindEntityBySignature(Nz::Int64 signature) const
+	{
+		auto signatureIt = m_signatureToEntity.find(signature);
+		if (signatureIt == m_signatureToEntity.end())
+			return Ndk::EntityHandle::InvalidHandle;
+
+		return signatureIt->second;
 	}
 
 	inline void RadarModule::EnablePassiveScan(bool enable)
@@ -38,14 +47,33 @@ namespace Nz
 		return 1;
 	}
 
-	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::TargetInfo&& result, TypeTag<ewn::RadarModule::TargetInfo>)
+	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::RangeInfo&& value, TypeTag<ewn::RadarModule::RangeInfo>)
 	{
 		state.PushTable(0, 4);
 		{
-			state.PushField("angularVelocity", result.angularVelocity);
-			state.PushField("linearVelocity", result.linearVelocity);
-			state.PushField("position", result.position);
-			state.PushField("rotation", result.rotation);
+			state.PushField("direction", value.direction);
+			state.PushField("distance", value.distance);
+			state.PushField("emSignature", value.emSignature);
+			state.PushField("signature", value.signature);
+			state.PushField("size", value.size);
+		}
+
+		return 1;
+	}
+
+	inline int LuaImplReplyVal(const LuaState& state, ewn::RadarModule::TargetInfo&& value, TypeTag<ewn::RadarModule::TargetInfo>)
+	{
+		state.PushTable(0, 8);
+		{
+			state.PushField("angularVelocity", value.angularVelocity);
+			state.PushField("direction", value.direction);
+			state.PushField("distance", value.distance);
+			state.PushField("emSignature", value.emSignature);
+			state.PushField("linearVelocity", value.linearVelocity);
+			state.PushField("rotation", value.rotation);
+			state.PushField("signature", value.signature);
+			state.PushField("size", value.size);
+			state.PushField("volume", value.volume);
 		}
 
 		return 1;

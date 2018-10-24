@@ -8,14 +8,20 @@
 namespace ewn
 {
 	inline CollisionMeshStore::CollisionMeshStore() :
-	DatabaseStore("LoadCollisionMeshes")
+	DatabaseStore("CollisionMeshes_Load")
 	{
 	}
 
-	inline Nz::Collider3DRef CollisionMeshStore::GetEntryCollider(std::size_t entryId) const
+	inline const Nz::Collider3DRef& CollisionMeshStore::GetEntryCollider(std::size_t entryId) const
 	{
 		assert(IsEntryLoaded(entryId));
 		return m_collisionInfos[entryId].collider;
+	}
+
+	inline const Nz::Boxf& CollisionMeshStore::GetEntryDimensions(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_collisionInfos[entryId].dimensions;
 	}
 
 	inline std::size_t CollisionMeshStore::GetEntryCount() const
@@ -27,6 +33,12 @@ namespace ewn
 	{
 		assert(IsEntryLoaded(entryId));
 		return m_collisionInfos[entryId].filePath;
+	}
+
+	inline float CollisionMeshStore::GetEntryScale(std::size_t entryId) const
+	{
+		assert(IsEntryLoaded(entryId));
+		return m_collisionInfos[entryId].scale;
 	}
 
 	inline bool CollisionMeshStore::IsEntryLoaded(std::size_t entryId) const

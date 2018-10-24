@@ -32,10 +32,10 @@ namespace ewn
 
 			inline NavigationResults Run(Nz::UInt64 currentTime, float elapsedTime, const Nz::Vector3f& position, const Nz::Quaternionf& rotation, const Nz::Vector3f& linearVel, const Nz::Vector3f& angularVel);
 
-			inline void SetTarget(const Ndk::EntityHandle& entity);
-			inline void SetTarget(const Ndk::EntityHandle& entity, float triggerDistance, ProximityCallback proximityCallback);
-			inline void SetTarget(const Nz::Vector3f& position);
-			inline void SetTarget(const Nz::Vector3f& position, float triggerDistance, ProximityCallback proximityCallback);
+			inline void SetTarget(const Ndk::EntityHandle& entity, bool moveTo = true);
+			inline void SetTarget(const Ndk::EntityHandle& entity, float triggerDistance, ProximityCallback proximityCallback, bool moveTo = true);
+			inline void SetTarget(const Nz::Vector3f& position, bool moveTo = true);
+			inline void SetTarget(const Nz::Vector3f& position, float triggerDistance, ProximityCallback proximityCallback, bool moveTo = true);
 
 			static Ndk::ComponentIndex componentIndex;
 
@@ -61,6 +61,7 @@ namespace ewn
 			PidController<Nz::Vector3f> m_headingController;
 			std::variant<NoTarget, Ndk::EntityHandle, Nz::Vector3f> m_target;
 			std::vector<Impulsion> m_impulses;
+			bool m_moveToTarget;
 			float m_triggerDistance;
 	};
 }

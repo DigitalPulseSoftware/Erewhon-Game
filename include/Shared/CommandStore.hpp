@@ -11,20 +11,22 @@
 #include <Nazara/Network/NetPacket.hpp>
 #include <Shared/Protocol/Packets.hpp>
 #include <functional>
+#include <type_traits>
 #include <vector>
 
 namespace ewn
 {
-	class Player;
-
+	template<typename Peer>
 	class CommandStore
 	{
 		public:
+			using PeerRef = std::conditional_t<std::is_pointer_v<Peer>, Peer, Peer&>;
+
 			struct IncomingCommand;
 			struct OutgoingCommand;
 
 			CommandStore() = default;
-			~CommandStore();
+			~CommandStore() = default;
 
 			template<typename T> const IncomingCommand& GetIncomingCommand() const;
 			template<typename T> const OutgoingCommand& GetOutgoingCommand() const;
@@ -32,9 +34,9 @@ namespace ewn
 			template<typename T>
 			void SerializePacket(Nz::NetPacket& packet, const T& data) const;
 
-			bool UnserializePacket(std::size_t peerId, Nz::NetPacket&& packet) const;
+			bool UnserializePacket(PeerRef peer, Nz::NetPacket&& packet) const;
 
-			using UnserializeFunction = std::function<void(std::size_t peerId, Nz::NetPacket&& packet)>;
+			using UnserializeFunction = std::function<void(PeerRef peer, Nz::NetPacket&& packet)>;
 
 			struct IncomingCommand
 			{

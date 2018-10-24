@@ -7,6 +7,7 @@
 #ifndef EREWHON_SERVER_SPACESHIPHULLSTORE_HPP
 #define EREWHON_SERVER_SPACESHIPHULLSTORE_HPP
 
+#include <Shared/Enums.hpp>
 #include <Server/DatabaseStore.hpp>
 #include <NDK/Entity.hpp>
 #include <string>
@@ -23,12 +24,27 @@ namespace ewn
 			inline SpaceshipHullStore();
 			~SpaceshipHullStore() = default;
 
+			inline std::size_t GetEntryByName(const std::string& entryName) const;
+			inline std::size_t GetEntryCount() const;
 			inline std::size_t GetEntryCollisionMeshId(std::size_t entryId) const;
+			inline const std::string& GetEntryDescription(std::size_t entryId) const;
+			inline const std::string& GetEntryName(std::size_t entryId) const;
+			inline std::size_t GetEntrySlotCount(std::size_t entryId) const;
+			inline ModuleType GetEntrySlotModuleType(std::size_t entryId, std::size_t slotId) const;
 			inline std::size_t GetEntryVisualMeshId(std::size_t entryId) const;
+
 			inline bool IsEntryLoaded(std::size_t entryId) const;
 
 		private:
 			bool FillStore(ServerApplication* app, DatabaseResult& result) override;
+		
+			void LoadSlots(std::size_t hullId, DatabaseResult& result);
+
+			struct SlotInfo
+			{
+				ModuleType moduleType;
+				// Nz::Vector3f position;
+			};
 
 			struct HullInfo 
 			{
@@ -36,10 +52,12 @@ namespace ewn
 				std::size_t visualMeshId;
 				std::string name;
 				std::string description;
+				std::vector<SlotInfo> slots;
 				bool doesExist = false;
 				bool isLoaded = false;
 			};
 
+			std::unordered_map<std::string, std::size_t> m_hullIndices;
 			std::vector<HullInfo> m_hullInfos;
 			bool m_isLoaded;
 	};

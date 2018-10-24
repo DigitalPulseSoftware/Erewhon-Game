@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/AbstractState.hpp>
@@ -10,6 +10,12 @@ namespace ewn
 	inline AbstractState::AbstractState(StateData& stateData) :
 	m_stateData(stateData)
 	{
+	}
+
+	template<typename T, typename ...Args>
+	void AbstractState::ConnectSignal(T& signal, Args&&... args)
+	{
+		m_cleanupFunctions.emplace_back([connection = signal.Connect(std::forward<Args>(args)...)]() mutable { connection.Disconnect(); });
 	}
 
 	template<typename T, typename... Args>
@@ -27,6 +33,8 @@ namespace ewn
 		assert(it != m_widgets.end());
 
 		m_widgets.erase(it);
+
+		widget->Destroy();
 	}
 
 	inline StateData& AbstractState::GetStateData()

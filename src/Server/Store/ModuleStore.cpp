@@ -5,6 +5,7 @@
 #include <Server/Store/ModuleStore.hpp>
 #include <Server/Database/Database.hpp>
 #include <Server/Database/DatabaseResult.hpp>
+#include <Server/Modules/CommunicationsModule.hpp>
 #include <Server/Modules/EngineModule.hpp>
 #include <Server/Modules/NavigationModule.hpp>
 #include <Server/Modules/RadarModule.hpp>
@@ -57,6 +58,11 @@ namespace ewn
 		};
 
 		auto NoInfo = [](const nlohmann::json& /*classInfo*/) { return std::any{}; };
+
+		RegisterModule("communications", NoInfo, [](SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& /*classInfo*/)
+		{
+			return std::make_shared<CommunicationsModule>(core, spaceship);
+		});
 
 		RegisterModule("engine", NoInfo, [](SpaceshipCore* core, const Ndk::EntityHandle& spaceship, const std::any& /*classInfo*/)
 		{
@@ -125,9 +131,11 @@ namespace ewn
 					throw std::runtime_error("Class name \"" + moduleInfo.className + "\" does not exist");
 
 				moduleInfo.classInfo = it->second.decodeFunc(jsonClassInfo);
+				moduleInfo.type = static_cast<ModuleType>(std::get<Nz::Int16>(result.GetValue(5, i)));
 
 				moduleInfo.isLoaded = true;
 				moduleLoaded++;
+				m_moduleIndices.emplace(moduleInfo.name, id);
 			}
 			catch (const std::exception& e)
 			{

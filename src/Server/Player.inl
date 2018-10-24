@@ -9,9 +9,19 @@
 
 namespace ewn
 {
+	inline void Player::ClearBots()
+	{
+		m_botEntities.clear();
+	}
+
 	inline void Player::Disconnect(Nz::UInt32 data)
 	{
-		m_networkReactor.DisconnectPeer(m_peerId, data);
+		m_session->Disconnect(data);
+	}
+
+	inline ServerApplication* Player::GetApp() const
+	{
+		return m_app;
 	}
 
 	inline Arena* Player::GetArena() const
@@ -19,17 +29,12 @@ namespace ewn
 		return m_arena;
 	}
 
-	inline const Ndk::EntityHandle& Player::GetBotEntity() const
-	{
-		return m_botEntity;
-	}
-
 	const Ndk::EntityHandle& Player::GetControlledEntity() const
 	{
 		return m_controlledEntity;
 	}
 
-	inline Nz::UInt32 Player::GetDatabaseId() const
+	inline Nz::Int32 Player::GetDatabaseId() const
 	{
 		return m_databaseId;
 	}
@@ -49,9 +54,22 @@ namespace ewn
 		return m_displayName;
 	}
 
-	inline std::size_t Player::GetPeerId() const
+	inline ClientSession* Player::GetSession()
 	{
-		return m_peerId;
+		return m_session;
+	}
+
+	inline const ClientSession* Player::GetSession() const
+	{
+		return m_session;
+	}
+
+	inline std::size_t Player::GetSessionId() const
+	{
+		if (m_session)
+			return m_session->GetSessionId();
+		else
+			return InvalidSessionId;
 	}
 
 	inline bool Player::IsAuthenticated() const
@@ -62,11 +80,9 @@ namespace ewn
 	template<typename T>
 	void Player::SendPacket(const T& packet)
 	{
-		const auto& command = m_commandStore.GetOutgoingCommand<T>();
-		
-		Nz::NetPacket data;
-		m_commandStore.SerializePacket(data, packet);
+		if (!m_session)
+			return;
 
-		m_networkReactor.SendData(m_peerId, command.channelId, command.flags, std::move(data));
+		m_session->SendPacket(packet);
 	}
 }

@@ -22,10 +22,6 @@ namespace ewn
 
 		private:
 			void BuildStore(ClientApplication* app);
-
-			static bool HandleCreateBot(ClientApplication* app, ServerConnection* server, std::string botName, const std::string& scriptName);
-			static bool HandleDeleteBot(ClientApplication* app, ServerConnection* server, std::string botName);
-			static bool HandleSpawnBot(ClientApplication* app, ServerConnection* server, std::string botName);
 	};
 }
 

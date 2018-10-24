@@ -29,6 +29,8 @@ namespace ewn
 
 			void QueryDatabase(Database& database, std::function<void(DatabaseResult&& result)> callback = nullptr);
 
+			static constexpr std::size_t InvalidEntryId = std::numeric_limits<std::size_t>::max();
+
 		protected:
 			inline DatabaseStore(std::string query);
 

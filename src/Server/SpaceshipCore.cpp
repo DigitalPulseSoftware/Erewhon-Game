@@ -6,6 +6,8 @@
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/SpaceshipModule.hpp>
 #include <Server/Components/HealthComponent.hpp>
+#include <Server/Components/SignatureComponent.hpp>
+#include <cassert>
 #include <iostream>
 
 namespace ewn
@@ -14,7 +16,14 @@ namespace ewn
 
 	void SpaceshipCore::AddModule(std::shared_ptr<SpaceshipModule> newModule)
 	{
-		const auto& modulePtr = m_modules.emplace_back(std::move(newModule));
+		std::size_t typeIndex = static_cast<std::size_t>(newModule->GetType());
+		if (m_modules.size() <= typeIndex)
+			m_modules.resize(typeIndex + 1);
+
+		auto& modulePtr = m_modules[typeIndex];
+		assert(!modulePtr);
+
+		modulePtr = std::move(newModule);
 
 		if (modulePtr->IsRunnable())
 			m_runnableModules.emplace_back(modulePtr);
@@ -52,6 +61,12 @@ namespace ewn
 		return LuaQuaternion(nodeComponent.GetRotation());
 	}
 
+	Nz::Int64 SpaceshipCore::GetSignature() const
+	{
+		auto& signatureComponent = m_spaceship->GetComponent<SignatureComponent>();
+		return signatureComponent.GetSignature();
+	}
+
 	void SpaceshipCore::Register(Nz::LuaState& lua)
 	{
 		if (!s_binding)
@@ -63,20 +78,46 @@ namespace ewn
 			s_binding->BindMethod("GetLinearVelocity",  &SpaceshipCore::GetLinearVelocity);
 			s_binding->BindMethod("GetPosition",        &SpaceshipCore::GetPosition);
 			s_binding->BindMethod("GetRotation",        &SpaceshipCore::GetRotation);
+			s_binding->BindMethod("GetSignature",       &SpaceshipCore::GetSignature);
+
+			s_binding->BindMethod("GetModules", [](Nz::LuaState& state, SpaceshipCore* core, std::size_t /*argCount*/) -> int
+			{
+				constexpr std::size_t moduleCount = static_cast<std::size_t>(ModuleType::Max) + 1;
+
+				state.PushTable(0, moduleCount);
+
+				std::size_t index = 1;
+				for (std::size_t i = 0; i < moduleCount; ++i)
+				{
+					if (SpaceshipModule* modulePtr = core->GetModule<SpaceshipModule>(static_cast<ModuleType>(i)))
+					{
+						state.Push(index++);
+						modulePtr->PushInstance(state);
+						state.SetTable();
+					}
+				}
+
+				return 1;
+			});
 		}
 
 		s_binding->Register(lua);
 
+		SpaceshipModule::RegisterParent(lua);
+
 		for (auto& modulePtr : m_modules)
-			modulePtr->Register(lua);
+		{
+			if (modulePtr)
+				modulePtr->Register(lua);
+		}
 
 		lua.PushField("Core", this);
 	}
 
-	void SpaceshipCore::Run()
+	void SpaceshipCore::Run(float elapsedTime)
 	{
 		for (const auto& modulePtr : m_runnableModules)
-			modulePtr->Run();
+			modulePtr->Run(elapsedTime);
 	}
 
 	std::optional<Nz::LuaClass<SpaceshipCoreHandle>> SpaceshipCore::s_binding;

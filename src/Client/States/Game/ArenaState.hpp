@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -7,6 +7,7 @@
 #ifndef EREWHON_CLIENT_STATES_ARENASTATE_HPP
 #define EREWHON_CLIENT_STATES_ARENASTATE_HPP
 
+#include <Client/SpaceshipOverviewController.hpp>
 #include <Client/MatchChatbox.hpp>
 #include <Client/ServerMatchEntities.hpp>
 #include <Client/SpaceshipController.hpp>
@@ -26,7 +27,7 @@ namespace ewn
 	class ArenaState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline ArenaState(StateData& stateData, Nz::UInt8 arenaIndex);
 			~ArenaState() = default;
 
 		private:
@@ -41,17 +42,12 @@ namespace ewn
 			void OnEntityDelete(ServerMatchEntities* entities, ServerMatchEntities::ServerEntity& entityData);
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
 
-			NazaraSlot(ServerConnection,    OnControlEntity, m_onControlEntitySlot);
-			NazaraSlot(ServerMatchEntities, OnEntityCreated, m_onEntityCreatedSlot);
-			NazaraSlot(ServerMatchEntities, OnEntityDelete, m_onEntityDeletionSlot);
-			NazaraSlot(Nz::EventHandler,    OnKeyPressed, m_onKeyPressedSlot);
-
 			std::optional<MatchChatbox> m_chatbox;
 			std::optional<ServerMatchEntities> m_matchEntities;
 			std::optional<SpaceshipController> m_spaceshipController;
+			std::optional<SpaceshipOverviewController> m_spaceshipOverviewController;
 			std::size_t m_controlledEntity;
-			bool m_isDisconnected;
-			bool m_isEnteringMenu;
+			Nz::UInt8 m_arenaIndex;
 	};
 }
 

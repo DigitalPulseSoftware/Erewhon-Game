@@ -1,8 +1,8 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Server" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Server/Systems/SpaceshipSystem.hpp>
+#include <Client/SpaceshipOverviewController.hpp>
 
 namespace ewn
 {

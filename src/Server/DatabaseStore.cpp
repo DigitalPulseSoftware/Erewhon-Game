@@ -13,7 +13,7 @@ namespace ewn
 
 	void DatabaseStore::LoadFromDatabase(ServerApplication* app, Database& database, std::function<void(bool success)> callback)
 	{
-		database.ExecuteQuery(m_query, {}, [this, app, cb = std::move(callback)](DatabaseResult& result)
+		database.ExecuteStatement(m_query, {}, [this, app, cb = std::move(callback)](DatabaseResult& result)
 		{
 			if (result)
 				cb(FillStore(app, result));
@@ -28,7 +28,7 @@ namespace ewn
 
 	void DatabaseStore::QueryDatabase(Database& database, std::function<void(DatabaseResult&& result)> callback)
 	{
-		database.ExecuteQuery(m_query, {}, [cb = std::move(callback)](DatabaseResult& result)
+		database.ExecuteStatement(m_query, {}, [cb = std::move(callback)](DatabaseResult& result)
 		{
 			cb(std::move(result));
 		});

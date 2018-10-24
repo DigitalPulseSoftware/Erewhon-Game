@@ -10,10 +10,31 @@ namespace ewn
 	template<typename T>
 	void Arena::BroadcastPacket(const T& packet, Player* exceptPlayer)
 	{
-		for (const auto& pair : m_players)
+		for (Player* player : m_players)
 		{
-			if (pair.first != exceptPlayer)
-				pair.first->SendPacket(packet);
+			if (player != exceptPlayer)
+				player->SendPacket(packet);
 		}
+	}
+
+	inline const Ndk::EntityHandle& Arena::GetEntity(Ndk::EntityId entityId)
+	{
+		assert(IsEntityIdValid(entityId));
+		return m_world.GetEntity(entityId);
+	}
+
+	inline Nz::LuaInstance& Arena::GetLuaInstance()
+	{
+		return m_script;
+	}
+
+	inline const std::string& Arena::GetName() const
+	{
+		return m_name;
+	}
+
+	inline bool Arena::IsEntityIdValid(Ndk::EntityId entityId) const
+	{
+		return m_world.IsEntityIdValid(entityId);
 	}
 }

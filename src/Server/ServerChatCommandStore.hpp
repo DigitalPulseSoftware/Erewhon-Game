@@ -23,11 +23,15 @@ namespace ewn
 		private:
 			void BuildStore(ServerApplication* app);
 
+			static bool HandleClearBots(ServerApplication* app, Player* player);
 			static bool HandleCrashServer(ServerApplication* app, Player* player);
+			static bool HandleDebugParticles(ServerApplication* app, Player* player, unsigned int particleSystemId);
 			static bool HandleKickPlayer(ServerApplication* app, Player* player, Player* target);
-			static bool HandleKillBot(ServerApplication* app, Player* player);
+			static bool HandleReloadArena(ServerApplication* app, Player* player);
 			static bool HandleReloadModules(ServerApplication* app, Player* player);
 			static bool HandleResetArena(ServerApplication* app, Player* player);
+			static bool HandleSpawnBot(ServerApplication* app, Player* player, std::string spaceshipName, std::size_t spaceshipCount);
+			static bool HandleSpawnFleet(ServerApplication* app, Player* player, std::string fleetName);
 			static bool HandleSuicide(ServerApplication* app, Player* player);
 			static bool HandleStopServer(ServerApplication* app, Player* player);
 			static bool HandleUpdatePermission(ServerApplication* app, Player* player, Player* target, Nz::UInt16 permissionLevel);

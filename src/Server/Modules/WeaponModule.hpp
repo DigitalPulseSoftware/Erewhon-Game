@@ -7,8 +7,6 @@
 #ifndef EREWHON_SERVER_WEAPONMODULE_HPP
 #define EREWHON_SERVER_WEAPONMODULE_HPP
 
-#include <Nazara/Core/HandledObject.hpp>
-#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <Server/SpaceshipModule.hpp>
 #include <optional>
@@ -25,9 +23,11 @@ namespace ewn
 			inline WeaponModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			~WeaponModule() = default;
 
-			void Shoot();
+			void PushInstance(Nz::LuaState& lua) override;
+			void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) override;
 
-			void Register(Nz::LuaState& lua) override;
+			// Lua API
+			void Shoot();
 
 		protected:
 			virtual void DoShoot() = 0;

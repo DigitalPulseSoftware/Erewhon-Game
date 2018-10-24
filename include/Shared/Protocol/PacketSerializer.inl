@@ -57,6 +57,19 @@ namespace ewn
 		m_buffer << static_cast<PacketType>(data);
 	}
 
+	template<typename T>
+	void PacketSerializer::SerializeArraySize(T& array)
+	{
+		CompressedUnsigned<Nz::UInt32> arraySize;
+		if (IsWriting())
+			arraySize = Nz::UInt32(array.size());
+
+		Serialize(arraySize);
+
+		if (!IsWriting())
+			array.resize(arraySize);
+	}
+
 	template<typename DataType>
 	void PacketSerializer::operator&=(DataType& data)
 	{

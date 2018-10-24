@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/ServerMatchEntities.hpp>
@@ -7,6 +7,11 @@
 #include <Nazara/Core/Primitive.hpp>
 #include <Nazara/Graphics/Billboard.hpp>
 #include <Nazara/Graphics/Model.hpp>
+#include <Nazara/Graphics/ParticleFunctionController.hpp>
+#include <Nazara/Graphics/ParticleFunctionGenerator.hpp>
+#include <Nazara/Graphics/ParticleFunctionRenderer.hpp>
+#include <Nazara/Graphics/ParticleMapper.hpp>
+#include <Nazara/Graphics/ParticleStruct.hpp>
 #include <Nazara/Graphics/TextSprite.hpp>
 #include <Nazara/Renderer/DebugDrawer.hpp>
 #include <Nazara/Renderer/Renderer.hpp>
@@ -33,11 +38,13 @@ namespace ewn
 	{
 		m_snapshotDelay = m_jitterBuffer.size() * 1000 / 30 /* + ping? */;
 
+		m_onArenaParticleSystemsSlot.Connect(server->OnArenaParticleSystems, this, &ServerMatchEntities::OnArenaParticleSystems);
 		m_onArenaPrefabsSlot.Connect(server->OnArenaPrefabs, this, &ServerMatchEntities::OnArenaPrefabs);
 		m_onArenaSoundsSlot.Connect(server->OnArenaSounds, this,   &ServerMatchEntities::OnArenaSounds);
 		m_onArenaStateSlot.Connect(server->OnArenaState, this,     &ServerMatchEntities::OnArenaState);
-		m_onCreateEntitySlot.Connect(server->OnCreateEntity, this, &ServerMatchEntities::OnCreateEntity);
-		m_onDeleteEntitySlot.Connect(server->OnDeleteEntity, this, &ServerMatchEntities::OnDeleteEntity);
+		m_onCreateEntitySlot.Connect(server->OnCreateEntities, this, &ServerMatchEntities::OnCreateEntities);
+		m_onDeleteEntitySlot.Connect(server->OnDeleteEntities, this, &ServerMatchEntities::OnDeleteEntities);
+		m_onInstantiateParticleSystemSlot.Connect(server->OnInstantiateParticleSystem, this, &ServerMatchEntities::OnInstantiateParticleSystem);
 		m_onPlaySoundSlot.Connect(server->OnPlaySound, this,       &ServerMatchEntities::OnPlaySound);
 
 		FillVisualEffectFactory();
@@ -50,6 +57,9 @@ namespace ewn
 
 			m_debugStateSocket.EnableBlocking(false);
 		}
+
+		std::random_device rd;
+		m_randomGenerator.seed(rd());
 	}
 
 	ServerMatchEntities::~ServerMatchEntities()
@@ -246,10 +256,6 @@ namespace ewn
 
 	void ServerMatchEntities::OnArenaPrefabs(ServerConnection* server, const Packets::ArenaPrefabs& arenaPrefabs)
 	{
-		Nz::ModelParameters params;
-		params.mesh.center = true;
-		params.mesh.texCoordScale.Set(1.f, -1.f);
-
 		m_prefabs.erase(m_prefabs.begin() + arenaPrefabs.startId, m_prefabs.end());
 
 		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
@@ -262,12 +268,6 @@ namespace ewn
 
 			entity->AddComponent<Ndk::NodeComponent>();
 
-			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
-			physComponent.EnableNodeSynchronization(false);
-			physComponent.SetMass(10.f);
-			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
-			physComponent.SetLinearDamping(0.f);
-
 			auto& graphicsComponent = entity->AddComponent<Ndk::GraphicsComponent>();
 			for (const auto& modelPiece : prefab.models)
 			{
@@ -276,12 +276,44 @@ namespace ewn
 				// TODO: Load it once for every path
 				std::string filePath = assetsFolder + '/' + networkStringStore.GetString(modelPiece.modelId);
 
-				Nz::ModelRef model = Nz::Model::New();
-				if (model->LoadFromFile(filePath, params))
+				/*Nz::MeshParams collisionParams;
+				collisionParams.animated = false;
+				collisionParams.center = true;
+				collisionParams.optimizeIndexBuffers = false;
+				collisionParams.storage = Nz::DataStorage_Software;
+				collisionParams.matrix = Nz::Matrix4f::Transform(modelPiece.position, modelPiece.rotation, Nz::Vector3f(modelPiece.scale));
+
+				Nz::Mesh collisionMesh;
+				if (collisionMesh.LoadFromFile(filePath, collisionParams))
+				{
+					std::vector<Nz::Vector3f> vertices;
+					for (std::size_t i = 0; i < collisionMesh.GetSubMeshCount(); ++i)
+					{
+						Nz::VertexMapper vertexMapper(collisionMesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
+						Nz::SparsePtr<Nz::Vector3f> subMeshVertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
+
+						Nz::UInt32 vertexCount = vertexMapper.GetVertexCount();
+						vertices.reserve(vertices.size() + vertexCount);
+						for (Nz::UInt32 i = 0; i < vertexCount; ++i)
+							vertices.push_back(subMeshVertices[i]);
+					}
+
+					auto collider = Nz::ConvexCollider3D::New(vertices.data(), vertices.size(), 0.01f);
+					entity->AddComponent<Ndk::CollisionComponent3D>(collider);
+					entity->AddComponent<Ndk::DebugComponent>(Ndk::DebugDraw::Collider3D | Ndk::DebugDraw::GraphicsAABB);
+				}*/
+
+				if (Nz::ModelRef model = Nz::ModelManager::Get(filePath))
 					graphicsComponent.Attach(model, transformMatrix);
 				else
 					std::cerr << "Failed to load " << filePath << std::endl;
 			}
+
+			auto& physComponent = entity->AddComponent<Ndk::PhysicsComponent3D>();
+			physComponent.EnableNodeSynchronization(false);
+			physComponent.SetMass(10.f);
+			physComponent.SetAngularDamping(Nz::Vector3f(0.f));
+			physComponent.SetLinearDamping(0.f);
 
 			for (const auto& sound : prefab.sounds)
 			{
@@ -307,6 +339,347 @@ namespace ewn
 			}
 
 			m_prefabs.emplace_back(entity);
+		}
+	}
+
+	void ServerMatchEntities::OnArenaParticleSystems(ServerConnection* server, const Packets::ArenaParticleSystems& arenaParticleSystems)
+	{
+		const std::string& assetsFolder = server->GetApp().GetConfig().GetStringOption("AssetsFolder");
+
+		const NetworkStringStore& networkStringStore = server->GetNetworkStringStore();
+
+		m_particleSystems.erase(m_particleSystems.begin() + arenaParticleSystems.startId, m_particleSystems.end());
+		for (const auto& packetParticleSystem : arenaParticleSystems.particleSystems)
+		{
+			ParticleSystem& particleSystem = m_particleSystems.emplace_back();
+
+			for (const auto& packetParticleGroup : packetParticleSystem.particleGroups)
+			{
+				ParticleSystem::ParticleGroup& particleGroup = particleSystem.particleGroups.emplace_back();
+
+				const std::string& particleGroupName = networkStringStore.GetString(packetParticleGroup.particleGroupNameId);
+
+				particleGroup.particleGroup = m_world->CreateEntity();
+
+				// Warning: you are entering the ugly zone
+				class AlphaController : public Nz::ParticleController
+				{
+					public:
+						AlphaController(float alphaLostPerSeconds) :
+						m_alphaLoss(alphaLostPerSeconds),
+						m_alphaCounter(0.f)
+						{
+						}
+
+						void Apply(Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime) override
+						{
+							auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color);
+
+							m_alphaCounter += m_alphaLoss * elapsedTime;
+
+							Nz::UInt8 alphaLoss = static_cast<Nz::UInt8>(m_alphaCounter);
+							if (alphaLoss == 0)
+								return;
+
+							m_alphaCounter -= alphaLoss;
+
+							for (unsigned int i = startId; i <= endId; ++i)
+							{
+								if (particleColor[i].a > alphaLoss)
+									particleColor[i].a -= alphaLoss;
+								else
+									group.KillParticle(i);
+							}
+						}
+
+					private:
+						float m_alphaLoss;
+						float m_alphaCounter;
+				};
+
+				class LifeController : public Nz::ParticleController
+				{
+					public:
+						void Apply(Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime) override
+						{
+							auto particleLife = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Life);
+
+							for (unsigned int i = startId; i <= endId; ++i)
+							{
+								particleLife[i] -= elapsedTime;
+								if (particleLife[i] <= 0.f)
+									group.KillParticle(i);
+							}
+						}
+				};
+
+				class GrowthController : public Nz::ParticleController
+				{
+					public:
+						GrowthController(float growthFactor) :
+						m_growthFactor(growthFactor)
+						{
+						}
+
+						void Apply(Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime) override
+						{
+							auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size);
+
+							for (unsigned int i = startId; i <= endId; ++i)
+								particleSize[i] += Nz::Vector2f(elapsedTime) * m_growthFactor;
+						}
+
+					private:
+						float m_growthFactor;
+				};
+
+				class VelocityController : public Nz::ParticleController
+				{
+					public:
+						void Apply(Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime) override
+						{
+							auto particlePos = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Position);
+							auto particleVel = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Velocity);
+
+							for (unsigned int i = startId; i <= endId; ++i)
+								particlePos[i] += particleVel[i] * elapsedTime;
+						}
+				};
+
+				if (particleGroupName == "explosion_flare")
+				{
+					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(10'000, Nz::ParticleLayout_Billboard);
+
+					entityGroup.AddController(std::make_unique<AlphaController>(1000.f).release());
+					entityGroup.AddController(std::make_unique<LifeController>().release());
+					entityGroup.AddController(std::make_unique<VelocityController>().release());
+
+					// Temporary fix for flare orientation depending on camera
+					/*entityGroup.AddController(Nz::ParticleFunctionController::New([this](Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime)
+					{
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation);
+						auto particleVel = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Velocity);
+
+						for (unsigned int i = startId; i <= endId; ++i)
+						{
+							Nz::Vector3f velocity = particleVel[i];
+							velocity.Normalize();
+
+							particleRotation[i] = Nz::Vector3f::DotProduct(Nz::Vector3f::Up(), velocity) * 180.f;
+						}
+					}));*/
+
+					entityGroup.AddGenerator(Nz::ParticleFunctionGenerator::New([this](Nz::ParticleGroup& /*group*/, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId)
+					{
+						auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color);
+						auto particleLife = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Life);
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation);
+						auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size);
+						auto particleVel = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Velocity);
+
+						std::uniform_real_distribution<float> lifeDis(2.f, 5.f);
+						std::uniform_real_distribution<float> normalDis(-1.f, 1.f);
+						std::uniform_real_distribution<float> velocityDis(20.f, 50.f);
+						for (unsigned int i = startId; i <= endId; ++i)
+						{
+							Nz::Vector3f normal(normalDis(m_randomGenerator), normalDis(m_randomGenerator), normalDis(m_randomGenerator));
+							normal.Normalize();
+
+							particleColor[i] = Nz::Color::White;
+							particleLife[i] = lifeDis(m_randomGenerator);
+							particleRotation[i] = Nz::Vector3f::DotProduct(Nz::Vector3f::Up(), normal) * 180.f;
+							particleSize[i] = Nz::Vector2f(64.f, 64.f) / 50.f;
+							particleVel[i] = normal * velocityDis(m_randomGenerator);
+						}
+					}));
+
+					Nz::MaterialRef flareMaterial = Nz::Material::New("Translucent3D");
+					flareMaterial->SetDiffuseMap(assetsFolder + "particles/spark.png");
+
+					entityGroup.SetRenderer(Nz::ParticleFunctionRenderer::New([flareMaterial](const Nz::ParticleGroup& /*group*/, const Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, Nz::AbstractRenderQueue* renderQueue)
+					{
+						auto particlePos = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Position) + startId;
+						auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color) + startId;
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation) + startId;
+						auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size) + startId;
+
+						renderQueue->AddBillboards(0, flareMaterial, endId - startId + 1, Nz::Recti(-1, -1), particlePos, particleSize, particleRotation, particleColor);
+					}));
+
+					particleGroup.instantiate = [this](const Ndk::EntityHandle& group, const Nz::Vector3f& position, const Nz::Quaternionf& /*rotation*/)
+					{
+						/*std::uniform_int_distribution<unsigned int> particleCountDis(20, 50);
+						unsigned int particleCount = particleCountDis(m_randomGenerator);
+
+						auto& entityGroup = group->GetComponent<Ndk::ParticleGroupComponent>();
+						Nz::ParticleStruct_Billboard* particles = static_cast<Nz::ParticleStruct_Billboard*>(entityGroup.GenerateParticles(particleCount));
+						if (!particles)
+							return;
+
+						for (unsigned int i = 0; i < particleCount; ++i)
+							particles[i].position = position;*/
+					};
+				}
+				else if (particleGroupName == "explosion_fire")
+				{
+					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(10'000, Nz::ParticleLayout_Billboard);
+
+					//entityGroup.AddController(std::make_unique<AlphaController>(150.f).release());
+					entityGroup.AddController(std::make_unique<LifeController>().release());
+					entityGroup.AddController(std::make_unique<GrowthController>(2.f).release());
+					entityGroup.AddController(std::make_unique<VelocityController>().release());
+
+					entityGroup.AddController(Nz::ParticleFunctionController::New([this](Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime)
+					{
+						auto colorPtr = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color);
+						auto lifePtr = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Life);
+
+						for (unsigned int i = startId; i <= endId; ++i)
+							colorPtr[i].a = static_cast<Nz::UInt8>(Nz::Clamp(lifePtr[i] * 255.f, 0.f, 255.f));
+					}));
+
+					entityGroup.AddGenerator(Nz::ParticleFunctionGenerator::New([this](Nz::ParticleGroup& /*group*/, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId)
+					{
+						auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color);
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation);
+						auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size);
+						auto particleVel = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Velocity);
+						auto particleLife = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Life);
+
+						std::uniform_real_distribution<float> normalDis(-1.f, 1.f);
+						std::uniform_real_distribution<float> lifeDis(0.5f, 1.f);
+						std::uniform_real_distribution<float> rotDis(-180.f, 180.f);
+						std::uniform_real_distribution<float> sizeDis(0.5f, 1.f);
+						std::uniform_real_distribution<float> velocityDis(3.f, 5.f);
+						for (unsigned int i = startId; i <= endId; ++i)
+						{
+							Nz::Vector3f normal(normalDis(m_randomGenerator), normalDis(m_randomGenerator), normalDis(m_randomGenerator));
+							normal.Normalize();
+
+							particleColor[i] = Nz::Color::White;
+							particleLife[i] = lifeDis(m_randomGenerator);
+							particleRotation[i] = rotDis(m_randomGenerator);
+							particleSize[i] = Nz::Vector2f(sizeDis(m_randomGenerator));
+							particleVel[i] = normal * velocityDis(m_randomGenerator);
+						}
+					}));
+
+					Nz::MaterialRef fireMaterial = Nz::Material::New("Translucent3D");
+					fireMaterial->SetDiffuseMap(assetsFolder + "particles/fire_particle.png");
+
+					entityGroup.SetRenderer(Nz::ParticleFunctionRenderer::New([fireMaterial](const Nz::ParticleGroup& /*group*/, const Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, Nz::AbstractRenderQueue* renderQueue)
+					{
+						auto particlePos = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Position) + startId;
+						auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color) + startId;
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation) + startId;
+						auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size) + startId;
+
+						renderQueue->AddBillboards(0, fireMaterial, endId - startId + 1, Nz::Recti(-1, -1), particlePos, particleSize, particleRotation, particleColor);
+					}));
+
+					particleGroup.instantiate = [this](const Ndk::EntityHandle& group, const Nz::Vector3f& position, const Nz::Quaternionf& /*rotation*/)
+					{
+						std::uniform_int_distribution<unsigned int> particleCountDis(200, 300);
+						std::uniform_real_distribution<float> posDis(-0.5f, 0.5f);
+
+						unsigned int particleCount = particleCountDis(m_randomGenerator);
+
+						auto& entityGroup = group->GetComponent<Ndk::ParticleGroupComponent>();
+						Nz::ParticleStruct_Billboard* particles = static_cast<Nz::ParticleStruct_Billboard*>(entityGroup.GenerateParticles(particleCount));
+						if (!particles)
+							return;
+
+						for (unsigned int i = 0; i < particleCount; ++i)
+							particles[i].position = position + Nz::Vector3f(posDis(m_randomGenerator), posDis(m_randomGenerator), posDis(m_randomGenerator));
+					};
+				}
+				else if (particleGroupName == "explosion_smoke")
+				{
+					auto& entityGroup = particleGroup.particleGroup->AddComponent<Ndk::ParticleGroupComponent>(10'000, Nz::ParticleLayout_Billboard);
+
+					//entityGroup.AddController(std::make_unique<AlphaController>(50.f).release());
+					entityGroup.AddController(std::make_unique<LifeController>().release());
+					entityGroup.AddController(std::make_unique<GrowthController>(2.f).release());
+					entityGroup.AddController(std::make_unique<VelocityController>().release());
+
+					static constexpr float maxSmokeLife = 7.f;
+					entityGroup.AddController(Nz::ParticleFunctionController::New([this](Nz::ParticleGroup& group, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, float elapsedTime)
+					{
+						auto colorPtr = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color);
+						auto lifePtr = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Life);
+
+						for (unsigned int i = startId; i <= endId; ++i)
+						{
+							float alpha = std::min((maxSmokeLife - lifePtr[i]) * 255.f / 5.f, 255.f);
+							alpha -= std::max((maxSmokeLife - lifePtr[i]) / maxSmokeLife * 255.f, 0.f);
+
+							colorPtr[i].a = static_cast<Nz::UInt8>(Nz::Clamp(alpha, 0.f, 255.f));
+						}
+					}));
+
+					entityGroup.AddGenerator(Nz::ParticleFunctionGenerator::New([this](Nz::ParticleGroup& /*group*/, Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId)
+					{
+						auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color);
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation);
+						auto particleLife = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Life);
+						auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size);
+						auto particleVel = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Velocity);
+
+						std::uniform_real_distribution<float> normalDis(-1.f, 1.f);
+						std::uniform_real_distribution<float> rotDis(-180.f, 180.f);
+						std::uniform_real_distribution<float> lifeDis(5.f, maxSmokeLife);
+						std::uniform_real_distribution<float> sizeDis(3.f, 5.f);
+						std::uniform_real_distribution<float> velocityDis(0.5f, 1.f);
+						for (unsigned int i = startId; i <= endId; ++i)
+						{
+							Nz::Vector3f normal(normalDis(m_randomGenerator), normalDis(m_randomGenerator), normalDis(m_randomGenerator));
+							normal.Normalize();
+
+							particleColor[i] = Nz::Color::White;
+							particleColor[i].a = 0;
+							particleLife[i] = lifeDis(m_randomGenerator);
+							particleRotation[i] = rotDis(m_randomGenerator);
+							particleSize[i] = Nz::Vector2f(sizeDis(m_randomGenerator));
+							particleVel[i] = normal * velocityDis(m_randomGenerator);
+						}
+					}));
+
+					Nz::MaterialRef smokeMaterial = Nz::Material::New("Translucent3D");
+					smokeMaterial->SetDiffuseMap(assetsFolder + "particles/smoke.png");
+
+					entityGroup.SetRenderer(Nz::ParticleFunctionRenderer::New([smokeMaterial](const Nz::ParticleGroup& /*group*/, const Nz::ParticleMapper& mapper, unsigned int startId, unsigned int endId, Nz::AbstractRenderQueue* renderQueue)
+					{
+						auto particlePos = mapper.GetComponentPtr<Nz::Vector3f>(Nz::ParticleComponent_Position) + startId;
+						auto particleColor = mapper.GetComponentPtr<Nz::Color>(Nz::ParticleComponent_Color) + startId;
+						auto particleRotation = mapper.GetComponentPtr<float>(Nz::ParticleComponent_Rotation) + startId;
+						auto particleSize = mapper.GetComponentPtr<Nz::Vector2f>(Nz::ParticleComponent_Size) + startId;
+
+						renderQueue->AddBillboards(0, smokeMaterial, endId - startId + 1, Nz::Recti(-1, -1), particlePos, particleSize, particleRotation, particleColor);
+					}));
+
+					particleGroup.instantiate = [this](const Ndk::EntityHandle& group, const Nz::Vector3f& position, const Nz::Quaternionf& /*rotation*/)
+					{
+						std::uniform_int_distribution<unsigned int> particleCountDis(10, 20);
+						std::uniform_real_distribution<float> posDis(-0.2f, 0.2f);
+
+						unsigned int particleCount = particleCountDis(m_randomGenerator);
+
+						auto& entityGroup = group->GetComponent<Ndk::ParticleGroupComponent>();
+						Nz::ParticleStruct_Billboard* particles = static_cast<Nz::ParticleStruct_Billboard*>(entityGroup.GenerateParticles(particleCount));
+						if (!particles)
+							return;
+
+						for (unsigned int i = 0; i < particleCount; ++i)
+							particles[i].position = position + Nz::Vector3f(posDis(m_randomGenerator), posDis(m_randomGenerator), posDis(m_randomGenerator));
+					};
+				}
+				else if (particleGroupName == "explosion_wave")
+				{
+					particleGroup.instantiate = [this](const Ndk::EntityHandle& group, const Nz::Vector3f& position, const Nz::Quaternionf& /*rotation*/)
+					{
+					};
+				}
+			}
 		}
 	}
 
@@ -353,65 +726,80 @@ namespace ewn
 		m_jitterBuffer.push_back(std::move(snapshot));
 	}
 
-	void ServerMatchEntities::OnCreateEntity(ServerConnection*, const Packets::CreateEntity& createPacket)
+	void ServerMatchEntities::OnCreateEntities(ServerConnection*, const Packets::CreateEntities& createPacket)
 	{
-		ServerEntity& data = CreateServerEntity(createPacket.entityId);
-
-		data.positionError = Nz::Vector3f::Zero();
-		data.rotationError = Nz::Quaternionf::Identity();
-
-		data.entity = m_prefabs[createPacket.prefabId]->Clone();
-
-		data.name = createPacket.visualName.ToStdString();
-
-		auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
-		entityNode.SetPosition(createPacket.position);
-		entityNode.SetRotation(createPacket.rotation);
-
-		auto& entityPhys = data.entity->GetComponent<Ndk::PhysicsComponent3D>();
-		entityPhys.SetAngularVelocity(createPacket.angularVelocity);
-		entityPhys.SetLinearVelocity(createPacket.linearVelocity);
-		entityPhys.SetPosition(createPacket.position);
-		entityPhys.SetRotation(createPacket.rotation);
-
-		if (data.entity->HasComponent<SoundEmitterComponent>())
+		for (const auto& entityData : createPacket.entities)
 		{
-			auto& soundEmitter = data.entity->GetComponent<SoundEmitterComponent>();
-			soundEmitter.Play();
+			ServerEntity& data = CreateServerEntity(entityData.entityId);
+
+			data.positionError = Nz::Vector3f::Zero();
+			data.rotationError = Nz::Quaternionf::Identity();
+
+			data.entity = m_prefabs[entityData.prefabId]->Clone();
+
+			data.name = entityData.visualName.ToStdString();
+
+			auto& entityNode = data.entity->GetComponent<Ndk::NodeComponent>();
+			entityNode.SetPosition(entityData.position);
+			entityNode.SetRotation(entityData.rotation);
+
+			auto& entityPhys = data.entity->GetComponent<Ndk::PhysicsComponent3D>();
+			entityPhys.SetAngularVelocity(entityData.angularVelocity);
+			entityPhys.SetLinearVelocity(entityData.linearVelocity);
+			entityPhys.SetPosition(entityData.position);
+			entityPhys.SetRotation(entityData.rotation);
+
+			if (data.entity->HasComponent<SoundEmitterComponent>())
+			{
+				auto& soundEmitter = data.entity->GetComponent<SoundEmitterComponent>();
+				soundEmitter.Play();
+			}
+
+			Nz::Color textColor = (entityData.visualName == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
+
+			// Create entity name entity
+			if (!entityData.visualName.IsEmpty())
+			{
+				Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
+				textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
+				textSprite->Update(Nz::SimpleTextDrawer::Draw(entityData.visualName, 96, 0U, textColor));
+				textSprite->SetScale(0.01f);
+
+				data.textEntity = m_world->CreateEntity();
+				data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
+				data.textEntity->AddComponent<Ndk::NodeComponent>();
+			}
+
+			OnEntityCreated(this, data);
 		}
-
-		Nz::Color textColor = (createPacket.visualName == "Lynix") ? Nz::Color::Cyan : Nz::Color::White;
-
-		// Create entity name entity
-		if (!createPacket.visualName.IsEmpty())
-		{
-			Nz::TextSpriteRef textSprite = Nz::TextSprite::New();
-			textSprite->SetMaterial(Nz::MaterialLibrary::Get("SpaceshipText"));
-			textSprite->Update(Nz::SimpleTextDrawer::Draw(createPacket.visualName, 96, 0U, textColor));
-			textSprite->SetScale(0.01f);
-
-			data.textEntity = m_world->CreateEntity();
-			data.textEntity->AddComponent<Ndk::GraphicsComponent>().Attach(textSprite);
-			data.textEntity->AddComponent<Ndk::NodeComponent>();
-		}
-
-		OnEntityCreated(this, data);
 	}
 
-	void ServerMatchEntities::OnDeleteEntity(ServerConnection*, const Packets::DeleteEntity& deletePacket)
+	void ServerMatchEntities::OnDeleteEntities(ServerConnection*, const Packets::DeleteEntities& deletePacket)
 	{
-		ServerEntity& data = GetServerEntity(deletePacket.id);
+		for (std::size_t entityId : deletePacket.entities)
+		{
+			ServerEntity& data = GetServerEntity(entityId);
 
-		if (data.debugGhostEntity)
-			data.debugGhostEntity->Kill();
+			if (data.debugGhostEntity)
+				data.debugGhostEntity->Kill();
 
-		if (data.textEntity)
-			data.textEntity->Kill();
+			if (data.textEntity)
+				data.textEntity->Kill();
 
-		data.entity->Kill();
-		data.isValid = false;
+			data.entity->Kill();
+			data.isValid = false;
 
-		OnEntityDelete(this, data);
+			OnEntityDelete(this, data);
+		}
+	}
+
+	void ServerMatchEntities::OnInstantiateParticleSystem(ServerConnection* server, const Packets::InstantiateParticleSystem& instantiatePacket)
+	{
+		ParticleSystem& particleSystem = m_particleSystems[instantiatePacket.particleSystemId];
+		for (const auto& particleGroup : particleSystem.particleGroups)
+		{
+			particleGroup.instantiate(particleGroup.particleGroup, instantiatePacket.position, instantiatePacket.rotation);
+		}
 	}
 
 	void ServerMatchEntities::OnPlaySound(ServerConnection* server, const Packets::PlaySound& playSound)

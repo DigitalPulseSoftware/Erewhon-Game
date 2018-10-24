@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -34,6 +34,7 @@ namespace ewn
 
 			void HandlePeerConnection(bool outgoing, std::size_t peerId, Nz::UInt32 data) override;
 			void HandlePeerDisconnection(std::size_t peerId, Nz::UInt32 data) override;
+			void HandlePeerInfo(std::size_t peerId, const NetworkReactor::PeerInfo& peerInfo) override;
 			void HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet) override;
 
 			void RegisterConfig();

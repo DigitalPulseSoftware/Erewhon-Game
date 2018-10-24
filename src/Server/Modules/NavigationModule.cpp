@@ -5,79 +5,30 @@
 #include <Server/Modules/NavigationModule.hpp>
 #include <NDK/LuaAPI.hpp>
 #include <Server/Components/NavigationComponent.hpp>
-#include <Server/Components/RadarComponent.hpp>
+#include <Server/Modules/RadarModule.hpp>
 #include <iostream>
 
 namespace ewn
 {
-	void NavigationModule::FollowTarget(Ndk::EntityId targetId)
+	void NavigationModule::Initialize(Ndk::Entity* spaceship)
 	{
-		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		Ndk::World* world = spaceship->GetWorld();
-
-		// FIXME: This should use the radar module instead of the radar component (to keep gameplay stuff inside gameplay classes)
-		RadarComponent& spaceshipRadar = spaceship->GetComponent<RadarComponent>();
-		if (!spaceshipRadar.IsEntityLocked(targetId))
-			return;
-
-		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
-
-		if (world->IsEntityIdValid(targetId))
-			spaceshipNavigation.SetTarget(world->GetEntity(targetId));
-		else
-			spaceshipNavigation.ClearTarget();
+		spaceship->AddComponent<NavigationComponent>();
 	}
 
-	void NavigationModule::FollowTarget(Ndk::EntityId targetId, float triggerDistance)
+	void NavigationModule::PushInstance(Nz::LuaState& lua)
 	{
-		const Ndk::EntityHandle& spaceship = GetSpaceship();
-		Ndk::World* world = spaceship->GetWorld();
-
-		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
-
-		if (world->IsEntityIdValid(targetId))
-		{
-			spaceshipNavigation.SetTarget(world->GetEntity(targetId), triggerDistance, [moduleHandle = CreateHandle()]()
-			{
-				if (!moduleHandle)
-					return;
-
-				moduleHandle->PushCallback("OnNavigationDestinationReached");
-			});
-		}
-		else
-			spaceshipNavigation.ClearTarget();
+		lua.Push(this);
 	}
-
-	void NavigationModule::MoveToPosition(const Nz::Vector3f& targetPos)
-	{
-		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
-		spaceshipNavigation.SetTarget(targetPos);
-	}
-
-	void NavigationModule::MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance)
-	{
-		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
-		spaceshipNavigation.SetTarget(targetPos, triggerDistance, [moduleHandle = CreateHandle()]()
-		{
-			if (!moduleHandle)
-				return;
-
-			moduleHandle->PushCallback("OnNavigationDestinationReached");
-		});
-	}
-
-	void NavigationModule::Stop()
-	{
-		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
-		spaceshipNavigation.ClearTarget();
-	}
-
-	void NavigationModule::Register(Nz::LuaState& lua)
+	
+	void NavigationModule::RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua)
 	{
 		if (!s_binding)
 		{
 			s_binding.emplace("Navigation");
+			s_binding->Inherit<SpaceshipModule>(parentBinding, [](NavigationModuleHandle* moduleRef) -> SpaceshipModule*
+			{
+				return moduleRef->GetObject();
+			});
 
 			s_binding->BindMethod("FollowTarget", [](Nz::LuaState& state, NavigationModule* navigation, std::size_t argCount)
 			{
@@ -87,17 +38,17 @@ namespace ewn
 					case 0:
 					case 1:
 					{
-						Ndk::EntityId entityId = state.Check<Ndk::EntityId>(&argIndex);
-						navigation->FollowTarget(entityId);
+						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
+						navigation->FollowTarget(signature);
 						break;
 					}
 
 					case 2:
 					default:
 					{
-						Ndk::EntityId entityId = state.Check<Ndk::EntityId>(&argIndex);
+						Nz::Int64 signature = state.Check<Nz::Int64>(&argIndex);
 						float triggerDistance = state.Check<float>(&argIndex);
-						navigation->FollowTarget(entityId, triggerDistance);
+						navigation->FollowTarget(signature, triggerDistance);
 						break;
 					}
 				}
@@ -131,17 +82,91 @@ namespace ewn
 				return 0;
 			});
 
+			s_binding->BindMethod("OrientToPosition", &NavigationModule::OrientToPosition);
+			s_binding->BindMethod("OrientToTarget", &NavigationModule::OrientToTarget);
+
 			s_binding->BindMethod("Stop", &NavigationModule::Stop);
 		}
 
 		s_binding->Register(lua);
-
-		lua.PushField("Navigation", this);
 	}
 
-	void NavigationModule::Initialize(Ndk::Entity* spaceship)
+	void NavigationModule::FollowTarget(Nz::Int64 targetSignature)
 	{
-		spaceship->AddComponent<NavigationComponent>();
+		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
+		if (!radarModule)
+			return;
+
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
+		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
+		if (const Ndk::EntityHandle& target = radarModule->FindEntityBySignature(targetSignature))
+			spaceshipNavigation.SetTarget(target);
+		else
+			spaceshipNavigation.ClearTarget();
+	}
+
+	void NavigationModule::FollowTarget(Nz::Int64 targetSignature, float triggerDistance)
+	{
+		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
+		if (!radarModule)
+			return;
+
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
+		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
+		if (const Ndk::EntityHandle& target = radarModule->FindEntityBySignature(targetSignature))
+		{
+			spaceshipNavigation.SetTarget(target, triggerDistance, [moduleHandle = CreateHandle()]()
+			{
+				if (!moduleHandle)
+					return;
+
+				moduleHandle->PushCallback("OnNavigationDestinationReached");
+			});
+		}
+		else
+			spaceshipNavigation.ClearTarget();
+	}
+
+	void NavigationModule::MoveToPosition(const Nz::Vector3f& targetPos)
+	{
+		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
+		spaceshipNavigation.SetTarget(targetPos);
+	}
+
+	void NavigationModule::MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance)
+	{
+		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
+		spaceshipNavigation.SetTarget(targetPos, triggerDistance, [moduleHandle = CreateHandle()]()
+		{
+			if (!moduleHandle)
+				return;
+
+			moduleHandle->PushCallback("OnNavigationDestinationReached");
+		});
+	}
+
+	void NavigationModule::OrientToPosition(const Nz::Vector3f & targetPos)
+	{
+		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
+		spaceshipNavigation.SetTarget(targetPos, false);
+	}
+
+	void NavigationModule::OrientToTarget(Nz::Int64 targetSignature)
+	{
+		RadarModule* radarModule = GetCore()->GetModule<RadarModule>(ModuleType::Radar);
+		if (!radarModule)
+			return;
+
+		const Ndk::EntityHandle& spaceship = GetSpaceship();
+		NavigationComponent& spaceshipNavigation = spaceship->GetComponent<NavigationComponent>();
+		if (const Ndk::EntityHandle& target = radarModule->FindEntityBySignature(targetSignature))
+			spaceshipNavigation.SetTarget(target, false);
+	}
+
+	void NavigationModule::Stop()
+	{
+		NavigationComponent& spaceshipNavigation = GetSpaceship()->GetComponent<NavigationComponent>();
+		spaceshipNavigation.ClearTarget();
 	}
 
 	std::optional<Nz::LuaClass<NavigationModuleHandle>> NavigationModule::s_binding;

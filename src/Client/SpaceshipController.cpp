@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/SpaceshipController.hpp>
@@ -734,7 +734,7 @@ namespace ewn
 
 	void SpaceshipController::Shoot()
 	{
-		Nz::UInt64 currentTime = ClientApplication::GetAppTime();
+		Nz::UInt64 currentTime = m_app->GetAppTime();
 		if (currentTime - m_lastShootTime < 500)
 			return;
 

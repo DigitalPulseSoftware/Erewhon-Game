@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/ConnectionLostState.hpp>
@@ -12,8 +12,10 @@
 
 namespace ewn
 {
-	void ConnectionLostState::Enter(Ndk::StateMachine& /*fsm*/)
+	void ConnectionLostState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_accumulator = 0.f;
@@ -26,15 +28,12 @@ namespace ewn
 		graphicsComponent.Attach(m_statusSprite);
 
 		UpdateStatus("Connection lost.");
-
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
 	}
 
 	void ConnectionLostState::Leave(Ndk::StateMachine& fsm)
 	{
 		AbstractState::Leave(fsm);
 
-		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
 		m_statusText.Reset();
 	}
@@ -50,12 +49,12 @@ namespace ewn
 		return true;
 	}
 
-	void ConnectionLostState::CenterStatus()
+	void ConnectionLostState::LayoutWidgets()
 	{
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->GetComponent<Ndk::GraphicsComponent>();
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
 
-		Nz::Boxf textBox = graphicsComponent.GetBoundingVolume().obb.localBox;
+		Nz::Boxf textBox = graphicsComponent.GetAABB();
 		Nz::Vector2ui windowSize = GetStateData().window->GetSize();
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
 	}
@@ -66,6 +65,6 @@ namespace ewn
 		m_statusSprite->Update(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
 
 		if (center)
-			CenterStatus();
+			LayoutWidgets();
 	}
 }

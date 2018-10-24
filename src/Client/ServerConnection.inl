@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/ServerConnection.hpp>
@@ -34,14 +34,32 @@ namespace ewn
 		return m_application;
 	}
 
+	inline const ServerConnection::ConnectionInfo& ServerConnection::GetConnectionInfo() const
+	{
+		return m_connectionInfo;
+	}
+
 	inline const NetworkStringStore& ServerConnection::GetNetworkStringStore() const
 	{
 		return m_stringStore;
 	}
 
+	inline std::size_t ServerConnection::GetPeerId() const
+	{
+		return m_peerId;
+	}
+
 	inline bool ServerConnection::IsConnected() const
 	{
 		return m_connected;
+	}
+
+	inline void ServerConnection::RefreshInfos()
+	{
+		if (!IsConnected())
+			return;
+
+		m_networkReactor->QueryInfo(m_peerId);
 	}
 
 	inline void ServerConnection::UpdateServerTimeDelta(Nz::UInt64 deltaTime)
@@ -65,7 +83,7 @@ namespace ewn
 
 	inline void ServerConnection::DispatchIncomingPacket(Nz::NetPacket&& packet)
 	{
-		m_commandStore.UnserializePacket(m_peerId, std::move(packet));
+		m_commandStore.UnserializePacket(this, std::move(packet));
 	}
 
 	inline void ServerConnection::NotifyConnected(Nz::UInt32 data)
@@ -82,5 +100,11 @@ namespace ewn
 		m_stringStore.Clear();
 
 		OnDisconnected(this, data);
+	}
+
+	inline void ServerConnection::UpdateInfo(const ConnectionInfo& connectionInfo)
+	{
+		OnConnectionInfoUpdate(this, connectionInfo);
+		m_connectionInfo = connectionInfo;
 	}
 }

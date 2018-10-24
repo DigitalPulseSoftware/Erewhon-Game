@@ -8,6 +8,7 @@
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <NDK/Systems/PhysicsSystem3D.hpp>
+#include <NDK/LuaAPI.hpp>
 #include <Server/Player.hpp>
 #include <Server/ServerApplication.hpp>
 #include <Server/Components/ArenaComponent.hpp>
@@ -18,41 +19,56 @@
 #include <Server/Components/OwnerComponent.hpp>
 #include <Server/Components/PlayerControlledComponent.hpp>
 #include <Server/Components/ProjectileComponent.hpp>
-#include <Server/Components/RadarComponent.hpp>
+#include <Server/Components/SignatureComponent.hpp>
 #include <Server/Components/ScriptComponent.hpp>
 #include <Server/Components/SynchronizedComponent.hpp>
+#include <Server/Scripting/ArenaInterface.hpp>
 #include <Server/Systems/BroadcastSystem.hpp>
 #include <Server/Systems/LifeTimeSystem.hpp>
 #include <Server/Systems/NavigationSystem.hpp>
 #include <Server/Systems/ScriptSystem.hpp>
-#include <Server/Systems/SpaceshipSystem.hpp>
+#include <Server/Systems/InputSystem.hpp>
 #include <cassert>
+#include <stdexcept>
 
 namespace ewn
 {
 	static constexpr bool sendServerGhosts = false;
 
-	Arena::Arena(ServerApplication* app) :
-	m_app(app),
-	m_stateBroadcastAccumulator(0.f)
+	Arena::Arena(ServerApplication* app, std::string name, std::string scriptName) :
+	m_name(std::move(name)),
+	m_scriptName(std::move(scriptName)),
+	m_app(app)
 	{
-		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>();
-		broadcastSystem.BroadcastEntityCreation.Connect(this,    &Arena::OnBroadcastEntityCreation);
-		broadcastSystem.BroadcastEntityDestruction.Connect(this, &Arena::OnBroadcastEntityDestruction);
+		auto& broadcastSystem = m_world.AddSystem<BroadcastSystem>(m_app);
+		broadcastSystem.BroadcastEntitiesCreation.Connect(this,    &Arena::OnBroadcastEntitiesCreation);
+		broadcastSystem.BroadcastEntitiesDestruction.Connect(this, &Arena::OnBroadcastEntitiesDestruction);
 		broadcastSystem.BroadcastStateUpdate.Connect(this,       &Arena::OnBroadcastStateUpdate);
 
 		if (sendServerGhosts)
 			broadcastSystem.SetMaximumUpdateRate(60.f);
 
+		m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld().SetThreadCount(0);
+
+		m_world.AddSystem<InputSystem>();
 		m_world.AddSystem<LifeTimeSystem>();
-		m_world.AddSystem<NavigationSystem>();
+		m_world.AddSystem<NavigationSystem>(m_app);
 		m_world.AddSystem<ScriptSystem>(m_app, this);
-		m_world.AddSystem<SpaceshipSystem>();
 
 		Nz::PhysWorld3D& world = m_world.GetSystem<Ndk::PhysicsSystem3D>().GetWorld();
 		int defaultMaterial = world.GetMaterial("default");
 		m_plasmaMaterial = world.CreateMaterial("plasma");
 		m_torpedoMaterial = world.CreateMaterial("torpedo");
+
+		world.SetMaterialCollisionCallback(defaultMaterial, defaultMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return HandleDefaultDefaultCollision(firstBody, secondBody);
+		});
+
+		world.SetMaterialCollisionCallback(m_plasmaMaterial, m_plasmaMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+		{
+			return false;
+		});
 
 		world.SetMaterialCollisionCallback(defaultMaterial, m_plasmaMaterial, nullptr, [this](const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
 		{
@@ -64,6 +80,7 @@ namespace ewn
 			return HandleTorpedoProjectileCollision(firstBody, secondBody);
 		});
 
+		LoadScript(m_scriptName);
 
 		Reset();
 
@@ -79,16 +96,6 @@ namespace ewn
 		m_world.Clear();
 	}
 
-	const Ndk::EntityHandle& Arena::CreatePlayerSpaceship(Player* player)
-	{
-		assert(m_players.find(player) != m_players.end());
-
-		const Ndk::EntityHandle& spaceship = CreateSpaceship(player->GetName(), player, 1, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
-		spaceship->AddComponent<PlayerControlledComponent>(player);
-
-		return spaceship;
-	}
-
 	const Ndk::EntityHandle& Arena::CreatePlasmaProjectile(Player* owner, const Ndk::EntityHandle& emitter, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
 	{
 		const Ndk::EntityHandle& projectile = CreateEntity("plasmabeam", {}, owner, position, rotation);
@@ -100,7 +107,7 @@ namespace ewn
 		return projectile;
 	}
 
-	const Ndk::EntityHandle& Arena::CreateTorpedo(Player * owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
+	const Ndk::EntityHandle& Arena::CreateTorpedo(Player* owner, const Ndk::EntityHandle & emitter, const Nz::Vector3f & position, const Nz::Quaternionf & rotation)
 	{
 		const Ndk::EntityHandle& projectile = CreateEntity("torpedo", {}, owner, position, rotation);
 		projectile->GetComponent<ProjectileComponent>().MarkAsHit(emitter);
@@ -111,21 +118,10 @@ namespace ewn
 		return projectile;
 	}
 
-	void Arena::DispatchChatMessage(const Nz::String& message)
-	{
-		Packets::ChatMessage chatPacket;
-		chatPacket.message = message.ToStdString();
-
-		for (auto& pair : m_players)
-			pair.first->SendPacket(chatPacket);
-	}
-
 	Player* Arena::FindPlayerByName(const std::string& name) const
 	{
-		for (auto&& [player, data] : m_players)
+		for (Player* player : m_players)
 		{
-			NazaraUnused(data);
-
 			if (player->GetName() == name)
 				return player;
 		}
@@ -133,55 +129,186 @@ namespace ewn
 		return nullptr;
 	}
 
+	void Arena::HandleChatMessage(Player* sender, const std::string& message)
+	{
+		bool shouldPrintMessage = true;
+		if (m_script.GetGlobal("OnPlayerChat") == Nz::LuaType_Function)
+		{
+			m_script.Push(sender);
+			m_script.Push(message);
+
+			if (!m_script.Call(2, 1))
+				std::cerr << "An error occurred during OnPlayerChat call: " << m_script.GetLastError() << std::endl;
+
+			shouldPrintMessage = m_script.ToBoolean(-1);
+		}
+		else
+			m_script.Pop();
+
+		if (!shouldPrintMessage)
+			return;
+
+		static constexpr std::size_t MaxChatLine = 255;
+
+		Nz::String completeMessage = sender->GetName() + ": " + message;
+		if (completeMessage.GetSize() > MaxChatLine)
+		{
+			completeMessage.Resize(MaxChatLine - 3, Nz::String::HandleUtf8);
+			completeMessage += "...";
+		}
+
+		PrintChatMessage(completeMessage.ToStdString());
+	}
+
+	void Arena::PrintChatMessage(const std::string& message)
+	{
+		std::cout << "(" << m_name << ") " << message << std::endl;
+
+		Packets::ChatMessage chatPacket;
+		chatPacket.message = message;
+
+		for (Player* player : m_players)
+			player->SendPacket(chatPacket);
+	}
+
+	void Arena::Reload()
+	{
+		LoadScript(m_scriptName);
+		Reset();
+	}
+
 	void Arena::Reset()
 	{
-		// Earth entity
-		m_attractionPoint = CreateEntity("earth", "The (small) Earth", nullptr, Nz::Vector3f::Forward() * 60.f, Nz::Quaternionf::Identity());
+		for (Player* player : m_players)
+			player->ClearBots();
 
-		// Light entity
-		m_light = CreateEntity("light", "", nullptr, Nz::Vector3f::Zero(), Nz::Quaternionf::Identity());
+		m_world.Clear();
 
-		// Space ball entity
-		m_spaceball = CreateEntity("ball", "The (big) ball", nullptr, Nz::Vector3f::Up() * 50.f, Nz::Quaternionf::Identity());
+		m_world.CreateEntity(); //< Reserve entity #0
+
+		if (m_script.GetGlobal("OnReset") == Nz::LuaType_Function)
+		{
+			if (!m_script.Call(0))
+				std::cerr << "An error occurred during OnReset call: " << m_script.GetLastError() << std::endl;
+		}
+		else
+			m_script.Pop();
+	}
+
+	void Arena::SpawnFleet(Player* owner, const std::string& fleetName)
+	{
+		Nz::Vector3f spawnPos;
+		Nz::Quaternionf spawnRot;
+		if (const Ndk::EntityHandle& spaceship = owner->GetControlledEntity(); spaceship != Ndk::EntityHandle::InvalidHandle)
+		{
+			Ndk::NodeComponent& spaceshipNode = spaceship->GetComponent<Ndk::NodeComponent>();
+
+			spawnRot = spaceshipNode.GetRotation();
+			spawnPos = spaceshipNode.GetPosition() + spawnRot * Nz::Vector3f::Down() * 15.f;
+		}
+		else
+		{
+			spawnPos = Nz::Vector3f::Zero();
+			spawnRot = Nz::Quaternionf::Identity();
+		}
+
+		SpawnFleet(owner, fleetName, spawnPos, spawnRot);
+	}
+
+	void Arena::SpawnFleet(Player* owner, const std::string& fleetName, const Nz::Vector3f& spawnPos, const Nz::Quaternionf& spawnRot)
+	{
+		owner->GetFleetData(fleetName, [this, fleetName, spawnPos, spawnRot, sessionId = owner->GetSessionId()](bool found, const Player::FleetData& fleet)
+		{
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!found)
+			{
+				ply->PrintMessage("Fleet " + fleetName + " not found");
+				return;
+			}
+
+			for (const auto& spaceship : fleet.spaceships)
+			{
+				const auto& spaceshipTypeData = fleet.spaceshipTypes[spaceship.spaceshipType];
+
+				Nz::Vector3f position = spawnPos + spawnRot * spaceship.position;
+				SpawnSpaceship(ply, spaceshipTypeData.script, spaceshipTypeData.hullId, spaceshipTypeData.modules, position, spawnRot);
+			}
+		});
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, const std::string& spaceshipName, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipByOwnerIdAndName", { owner->GetDatabaseId(), spaceshipName }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result)
+			{
+				ply->PrintMessage("Failed to spawn spaceship \"" + spaceshipName + "\", please contact an admin");
+				return;
+			}
+
+			if (result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("You have no spaceship named \"" + spaceshipName + "\"");
+				return;
+			}
+
+			Nz::Int32 spaceshipId = std::get<Nz::Int32>(result.GetValue(0));
+			std::string code = std::get<std::string>(result.GetValue(1));
+			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
+
+			SpawnSpaceship(ply, spaceshipId, std::move(code), spaceshipHullId, position, rotation);
+		});
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipByIdAndOwnerId", { spaceshipId, owner->GetDatabaseId() }, [=, sessionId = owner->GetSessionId()](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship query failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result || result.GetRowCount() == 0)
+			{
+				ply->PrintMessage("Failed to spawn spaceship id " + std::to_string(spaceshipId) + ", please contact an admin");
+				return;
+			}
+
+			std::string code = std::get<std::string>(result.GetValue(1));
+			Nz::Int32 spaceshipHullId = std::get<Nz::Int32>(result.GetValue(2));
+
+			SpawnSpaceship(ply, spaceshipId, std::move(code), spaceshipHullId, position, rotation);
+		});
 	}
 
 	void Arena::Update(float elapsedTime)
 	{
 		m_world.Update(elapsedTime);
+		for (Player* player : m_players)
+			player->Update(elapsedTime);
 
-		// Attraction
-		/*if (m_attractionPoint)
+		if (m_script.GetGlobal("OnUpdate") == Nz::LuaType_Function)
 		{
-			constexpr float G = 6.6740831f / 10'000.f;
+			m_script.Push(elapsedTime);
 
-			Nz::Vector3f attractorPos = m_attractionPoint->GetComponent<Ndk::NodeComponent>().GetPosition();
-			float attractorMass = 5'000.f;
-
-			for (const Ndk::EntityHandle& entity : m_world.GetEntities())
-			{
-				if (entity->HasComponent<Ndk::PhysicsComponent3D>())
-				{
-					Nz::Vector3f entityPos = entity->GetComponent<Ndk::NodeComponent>().GetPosition();
-					auto& phys = entity->GetComponent<Ndk::PhysicsComponent3D>();
-
-					Nz::Vector3f dir = attractorPos - entityPos;
-					float d2 = attractorPos.SquaredDistance(entityPos);
-
-					phys.AddForce(dir * G * attractorMass * phys.GetMass() / d2);
-				}
-			}
-		}*/
-
-		static Nz::UInt64 respawnTime = 5'000;
-
-		Nz::UInt64 now = ServerApplication::GetAppTime();
-		for (auto& [player, playerData] : m_players)
-		{
-			if (!player->GetControlledEntity() && now - playerData.deathTime > respawnTime)
-				player->UpdateControlledEntity(CreatePlayerSpaceship(player));
+			if (!m_script.Call(1, 0))
+				std::cerr << "An error occurred during OnUpdate call: " << m_script.GetLastError() << std::endl;
 		}
-
-		m_stateBroadcastAccumulator += elapsedTime;
+		else
+			m_script.Pop();
 	}
 
 	const Ndk::EntityHandle& Arena::CreateEntity(std::string type, std::string name, Player* owner, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
@@ -190,8 +317,13 @@ namespace ewn
 
 		if (type == "earth")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(50.f));
+			constexpr float radius = 50.f;
+
+			auto collider = Nz::SphereCollider3D::New(radius);
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
 			newEntity->AddComponent<Ndk::NodeComponent>().SetPosition(position);
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 0.000035, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(0, type, name, false, 0);
 		}
 		else if (type == "light")
@@ -206,7 +338,10 @@ namespace ewn
 		{
 			constexpr float radius = 18.251904f / 2.f;
 
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(radius));
+			auto collider = Nz::SphereCollider3D::New(radius);
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 0.0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(4, type, name, true, 3);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -221,9 +356,12 @@ namespace ewn
 		}
 		else if (type == "plasmabeam")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f)));
+			auto collider = Nz::CapsuleCollider3D::New(4.f, 0.5f, Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f));
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(10.f);
-			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((ServerApplication::GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
+			newEntity->AddComponent<ProjectileComponent>(Nz::UInt16(50 + ((m_app->GetAppTime() % 21) - 10))); //< Aléatoire du pauvre
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 10'000.0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(2, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -240,9 +378,12 @@ namespace ewn
 		}
 		else if (type == "torpedo")
 		{
-			newEntity->AddComponent<Ndk::CollisionComponent3D>(Nz::SphereCollider3D::New(3.f));
+			auto collider = Nz::SphereCollider3D::New(3.f);
+
+			newEntity->AddComponent<Ndk::CollisionComponent3D>(collider);
 			newEntity->AddComponent<LifeTimeComponent>(30.f);
 			newEntity->AddComponent<ProjectileComponent>(200);
+			newEntity->AddComponent<SignatureComponent>(newEntity->GetId(), 1'000.0, collider->GetRadius(), collider->ComputeVolume());
 			newEntity->AddComponent<SynchronizedComponent>(3, type, name, true, 0);
 
 			auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
@@ -288,25 +429,48 @@ namespace ewn
 		{
 			const Ndk::EntityHandle& entity = health->GetEntity();
 
-			if (entity->HasComponent<PlayerControlledComponent>() && attacker->HasComponent<OwnerComponent>())
+			if (entity->HasComponent<PlayerControlledComponent>())
 			{
 				auto& shipOwner = entity->GetComponent<PlayerControlledComponent>();
-				auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
 
 				Player* shipOwnerPlayer = shipOwner.GetOwner();
 				if (!shipOwnerPlayer)
 					return;
 
-				auto it = m_players.find(shipOwnerPlayer);
-				assert(it != m_players.end());
+				if (m_script.GetGlobal("OnPlayerDeath") == Nz::LuaType_Function)
+				{
+					m_script.Push(shipOwnerPlayer);
 
-				it->second.deathTime = ServerApplication::GetAppTime();
+					if (!m_script.Call(1))
+						std::cerr << "An error occurred during OnPlayerDeath call: " << m_script.GetLastError() << std::endl;
+				}
+				else
+					m_script.Pop();
 
-				Player* attackerPlayer = attackerOwner.GetOwner();
-				Nz::String attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
+				if (attacker->HasComponent<OwnerComponent>())
+				{
+					auto& attackerOwner = attacker->GetComponent<OwnerComponent>();
 
-				DispatchChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
+					Player* attackerPlayer = attackerOwner.GetOwner();
+					std::string attackerName = (attackerPlayer) ? attackerPlayer->GetName() : "<Disconnected>";
+
+					PrintChatMessage(attackerName + " has destroyed " + shipOwnerPlayer->GetName());
+				}
 			}
+
+			Ndk::NodeComponent& entityNode = entity->GetComponent<Ndk::NodeComponent>();
+
+			Packets::InstantiateParticleSystem particlePacket;
+			particlePacket.particleSystemId = 0; //< Explosion
+			particlePacket.position = entityNode.GetPosition();
+			particlePacket.rotation = entityNode.GetRotation();
+			particlePacket.scale = Nz::Vector3f(1.f);
+			BroadcastPacket(particlePacket);
+
+			Packets::PlaySound soundPacket;
+			soundPacket.position = entityNode.GetPosition();
+			soundPacket.soundId = 2;
+			BroadcastPacket(soundPacket);
 
 			entity->Kill();
 		});
@@ -329,8 +493,15 @@ namespace ewn
 			owner->SendPacket(integrityPacket);
 		});
 
+		Nz::Int64 signature;
+		if (owner)
+			signature = std::hash<std::string>()(owner->GetName() + std::to_string(newEntity->GetId()));
+		else
+			signature = std::hash<std::string>()("rogue" + std::to_string(newEntity->GetId()));
+
 		newEntity->AddComponent<InputComponent>();
-		newEntity->AddComponent<SynchronizedComponent>(5, "spaceship", name, true, 5);
+		newEntity->AddComponent<SignatureComponent>(signature, 42.0, collider->ComputeAABB().GetRadius(), collider->ComputeVolume());
+		newEntity->AddComponent<SynchronizedComponent>((spaceshipHullId == 1) ? 5 : 6, "spaceship", name, true, 5);
 
 		auto& node = newEntity->AddComponent<Ndk::NodeComponent>();
 		node.SetPosition(position);
@@ -344,12 +515,41 @@ namespace ewn
 		return newEntity;
 	}
 
+	bool Arena::LoadScript(std::string fileName)
+	{
+		m_script = Nz::LuaInstance();
+		m_script.LoadLibraries();
+
+		Ndk::LuaAPI::RegisterClasses(m_script);
+		ArenaInterface::Register(m_script);
+
+		m_script.Push(this);
+		m_script.SetGlobal("Arena");
+
+		if (!m_script.ExecuteFromFile(fileName))
+		{
+			std::cerr << "Failed to execute arena script: " + m_script.GetLastError() << std::endl;
+			return false;
+		}
+
+		return true;
+	}
+
 	void Arena::HandlePlayerLeave(Player* player)
 	{
 		assert(m_players.find(player) != m_players.end());
 
-		DispatchChatMessage(player->GetName() + " has left");
+		if (m_script.GetGlobal("OnPlayerLeave") == Nz::LuaType_Function)
+		{
+			m_script.Push(player);
 
+			if (!m_script.Call(1))
+				std::cerr << "An error occurred during OnPlayerLeave call: " << m_script.GetLastError() << std::endl;
+		}
+		else
+			m_script.Pop();
+
+		player->ClearControlledEntity();
 		m_players.erase(player);
 	}
 
@@ -359,19 +559,41 @@ namespace ewn
 
 		SendArenaData(player);
 
-		m_createEntityCache.clear();
-		m_world.GetSystem<BroadcastSystem>().CreateAllEntities(m_createEntityCache);
+		m_createEntitiesCache.entities.clear();
+		m_world.GetSystem<BroadcastSystem>().CreateAllEntities(m_createEntitiesCache);
 
-		for (const auto& packet : m_createEntityCache)
-			player->SendPacket(packet);
+		player->SendPacket(m_createEntitiesCache);
 
-		DispatchChatMessage(player->GetName() + " has joined");
+		m_players.insert(player);
 
-		m_players.emplace(player, PlayerData{});
+		if (m_script.GetGlobal("OnPlayerJoined") == Nz::LuaType_Function)
+		{
+			m_script.Push(player);
+
+			if (!m_script.Call(1))
+				std::cerr << "An error occurred during OnPlayerJoined call: " << m_script.GetLastError() << std::endl;
+		}
+		else
+			m_script.Pop();
 	}
 
 	void Arena::SendArenaData(Player* player)
 	{
+		Packets::ArenaParticleSystems arenaParticleSystems;
+		arenaParticleSystems.startId = 0;
+
+		arenaParticleSystems.particleSystems.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_flare");
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_fire");
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_smoke");
+		arenaParticleSystems.particleSystems.back().particleGroups.emplace_back();
+		arenaParticleSystems.particleSystems.back().particleGroups.back().particleGroupNameId = m_app->GetNetworkStringStore().GetStringIndex("explosion_wave");
+
+		player->SendPacket(arenaParticleSystems);
+
 		Packets::ArenaSounds arenaSoundsPacket;
 		arenaSoundsPacket.startId = 0;
 
@@ -379,7 +601,13 @@ namespace ewn
 		arenaSoundsPacket.sounds.back().filePath = "sounds/laserTurretlow.ogg";
 
 		arenaSoundsPacket.sounds.emplace_back();
-		arenaSoundsPacket.sounds.back().filePath = "sounds/106733__crunchynut__sci-fi-loop-2.wav";
+		arenaSoundsPacket.sounds.back().filePath = "sounds/torpedo_loop.wav";
+
+		arenaSoundsPacket.sounds.emplace_back();
+		arenaSoundsPacket.sounds.back().filePath = "sounds/spaceship_explosion.wav";
+
+		arenaSoundsPacket.sounds.emplace_back();
+		arenaSoundsPacket.sounds.back().filePath = "sounds/plasmabeam_loop.wav";
 
 		player->SendPacket(arenaSoundsPacket);
 
@@ -404,6 +632,11 @@ namespace ewn
 
 		// Plasma beam
 		arenaPrefabsPacket.prefabs.emplace_back();
+
+		arenaPrefabsPacket.prefabs.back().sounds.emplace_back();
+		arenaPrefabsPacket.prefabs.back().sounds.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().sounds.back().soundId = 3;
+
 		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("plasmabeam");
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
@@ -412,6 +645,11 @@ namespace ewn
 
 		// Torpedo
 		arenaPrefabsPacket.prefabs.emplace_back();
+
+		arenaPrefabsPacket.prefabs.back().sounds.emplace_back();
+		arenaPrefabsPacket.prefabs.back().sounds.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().sounds.back().soundId = 1;
+
 		arenaPrefabsPacket.prefabs.back().visualEffects.emplace_back();
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().effectNameId = m_app->GetNetworkStringStore().GetStringIndex("torpedo");
 		arenaPrefabsPacket.prefabs.back().visualEffects.back().position = Nz::Vector3f::Zero();
@@ -438,7 +676,103 @@ namespace ewn
 		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
 		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(0.01f);
 
+		// Space Frigate
+		arenaPrefabsPacket.prefabs.emplace_back();
+		arenaPrefabsPacket.prefabs.back().models.emplace_back();
+		arenaPrefabsPacket.prefabs.back().models.back().modelId = m_app->GetNetworkStringStore().GetStringIndex("space_frigate_6/space_frigate_6.obj");
+		arenaPrefabsPacket.prefabs.back().models.back().position = Nz::Vector3f::Zero();
+		arenaPrefabsPacket.prefabs.back().models.back().rotation = Nz::EulerAnglesf(0.f, 90.f, 0.f);
+		arenaPrefabsPacket.prefabs.back().models.back().scale = Nz::Vector3f(0.1f);
+
 		player->SendPacket(arenaPrefabsPacket);
+	}
+
+	void Arena::SpawnSpaceship(Player* owner, Nz::Int32 spaceshipId, std::string code, std::size_t spaceshipHullId, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		m_app->GetGlobalDatabase().ExecuteStatement("FindSpaceshipModulesBySpaceshipId", { spaceshipId }, [this, position, rotation, sessionId = owner->GetSessionId(), spaceshipHullId, spaceshipCode = std::move(code)](DatabaseResult& result)
+		{
+			if (!result)
+				std::cerr << "Find spaceship modules failed: " << result.GetLastErrorMessage() << std::endl;
+
+			Player* ply = m_app->GetPlayerBySession(sessionId);
+			if (!ply)
+				return;
+
+			if (!result)
+			{
+				ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+				return;
+			}
+
+			std::size_t moduleCount = result.GetRowCount();
+
+			std::vector<std::size_t> moduleIds(moduleCount);
+			try
+			{
+				for (std::size_t i = 0; i < moduleCount; ++i)
+					moduleIds[i] = static_cast<std::size_t>(std::get<Nz::Int32>(result.GetValue(0, i)));
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "Failed to retrieve spaceship modules: " << e.what() << std::endl;
+
+				ply->PrintMessage("Server: Failed to retrieve spaceship modules, please contact an administrator");
+				return;
+			}
+
+			SpawnSpaceship(ply, std::move(spaceshipCode), spaceshipHullId, moduleIds, position, rotation);
+		});
+	}
+
+	const Ndk::EntityHandle& Arena::SpawnSpaceship(Player* owner, std::string code, std::size_t spaceshipHullId, const std::vector<std::size_t>& modules, const Nz::Vector3f& position, const Nz::Quaternionf& rotation)
+	{
+		assert(owner);
+
+		const Ndk::EntityHandle& spaceship = CreateSpaceship("Bot (" + owner->GetName() + ')', owner, spaceshipHullId, position, rotation);
+		ScriptComponent& botScript = spaceship->AddComponent<ScriptComponent>();
+		if (!botScript.Initialize(m_app, modules))
+		{
+			owner->PrintMessage("Server: Failed to initialize bot, please contact an administrator");
+			return spaceship;
+		}
+
+		Nz::String lastError;
+		if (botScript.Execute(std::move(code), &lastError))
+			owner->PrintMessage("Server: Script loaded with success");
+		else
+			owner->PrintMessage("Server: Failed to execute script: " + lastError.ToStdString());
+
+		return spaceship;
+	}
+
+	bool Arena::HandleDefaultDefaultCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
+	{
+		Ndk::EntityId firstEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(firstBody.GetUserdata()));
+		Ndk::EntityId secondEntityId = static_cast<Ndk::EntityId>(reinterpret_cast<std::ptrdiff_t>(secondBody.GetUserdata()));
+
+		const Ndk::EntityHandle& firstEntity = m_world.GetEntity(firstEntityId);
+		const Ndk::EntityHandle& secondEntity = m_world.GetEntity(secondEntityId);
+
+		Nz::Vector3f firstVel = firstBody.GetLinearVelocity();
+		Nz::Vector3f secondVel = secondBody.GetLinearVelocity();
+
+		float relativeForce = (firstVel - secondVel).GetLength();
+
+		Nz::UInt16 damage = static_cast<Nz::UInt16>(relativeForce);
+
+		if (firstEntity->HasComponent<HealthComponent>())
+		{
+			auto& health = firstEntity->GetComponent<HealthComponent>();
+			health.Damage(damage, secondEntity);
+		}
+
+		if (secondEntity->HasComponent<HealthComponent>())
+		{
+			auto& health = secondEntity->GetComponent<HealthComponent>();
+			health.Damage(damage, firstEntity);
+		}
+
+		return true;
 	}
 
 	bool Arena::HandlePlasmaProjectileCollision(const Nz::RigidBody3D& firstBody, const Nz::RigidBody3D& secondBody)
@@ -554,34 +888,28 @@ namespace ewn
 		return false;
 	}
 
-	void Arena::OnBroadcastEntityCreation(const BroadcastSystem* /*system*/, const Packets::CreateEntity& packet)
+	void Arena::OnBroadcastEntitiesCreation(const BroadcastSystem* /*system*/, const Packets::CreateEntities& packet)
 	{
-		for (auto& pair : m_players)
-			pair.first->SendPacket(packet);
+		for (Player* player : m_players)
+			player->SendPacket(packet);
 	}
 
-	void Arena::OnBroadcastEntityDestruction(const BroadcastSystem* /*system*/, const Packets::DeleteEntity& packet)
+	void Arena::OnBroadcastEntitiesDestruction(const BroadcastSystem* /*system*/, const Packets::DeleteEntities& packet)
 	{
-		for (auto& pair : m_players)
-			pair.first->SendPacket(packet);
+		for (Player* player : m_players)
+			player->SendPacket(packet);
 	}
 
 	void Arena::OnBroadcastStateUpdate(const BroadcastSystem* /*system*/, Packets::ArenaState& statePacket)
 	{
-		constexpr float stateBroadcastInterval = 1.f / 30.f;
-		if (m_stateBroadcastAccumulator >= stateBroadcastInterval)
+		static Nz::UInt16 snapshotId = 0;
+		statePacket.stateId = snapshotId++;
+
+		for (Player* player : m_players)
 		{
-			m_stateBroadcastAccumulator -= stateBroadcastInterval;
+			statePacket.lastProcessedInputTime = player->GetLastInputProcessedTime();
 
-			static Nz::UInt16 snapshotId = 0;
-			statePacket.stateId = snapshotId++;
-
-			for (auto& pair : m_players)
-			{
-				statePacket.lastProcessedInputTime = pair.first->GetLastInputProcessedTime();
-
-				pair.first->SendPacket(statePacket);
-			}
+			player->SendPacket(statePacket);
 		}
 
 		if constexpr (sendServerGhosts)

@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/Game/TimeSyncState.hpp>
@@ -7,19 +7,23 @@
 #include <NDK/StateMachine.hpp>
 #include <NDK/Components/GraphicsComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
-#include <Client/States/LoginState.hpp>
+#include <Client/States/ConnectedState.hpp>
 #include <Client/States/Game/ArenaState.hpp>
 #include <cassert>
 #include <numeric>
 
 namespace ewn
 {
-	void TimeSyncState::Enter(Ndk::StateMachine& /*fsm*/)
+	void TimeSyncState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_accumulator = 0.f;
-		m_connected = stateData.server->IsConnected();
+		m_expectedRequestId = 0;
+		m_finished = false;
+		m_nextStepTime = 0.2f;
 		m_pingAccumulator = 0;
 		m_results.clear();
 		m_statusSprite = Nz::TextSprite::New();
@@ -30,21 +34,15 @@ namespace ewn
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->AddComponent<Ndk::GraphicsComponent>();
 		graphicsComponent.Attach(m_statusSprite);
 
-		m_onServerDisconnectedSlot.Connect(stateData.server->OnDisconnected, this, &TimeSyncState::OnServerDisconnected);
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { CenterStatus(); });
-		m_onTimeSyncResponseSlot.Connect(stateData.server->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
+		LayoutWidgets();
 
-		m_expectedRequestId = 0;
-		m_finished = false;
-		m_nextStepTime = 0.2f;
+		ConnectSignal(stateData.server->OnTimeSyncResponse, this, &TimeSyncState::OnTimeSyncResponse);
 	}
 
 	void TimeSyncState::Leave(Ndk::StateMachine& fsm)
 	{
 		AbstractState::Leave(fsm);
 
-		m_onServerDisconnectedSlot.Disconnect();
-		m_onTargetChangeSizeSlot.Disconnect();
 		m_statusSprite.Reset();
 		m_statusText->Kill();
 	}
@@ -52,14 +50,6 @@ namespace ewn
 	bool TimeSyncState::Update(Ndk::StateMachine& fsm, float elapsedTime)
 	{
 		StateData& stateData = GetStateData();
-
-		if (!m_connected)
-		{
-			if (m_accumulator > 2.f)
-				fsm.ChangeState(std::make_shared<LoginState>(stateData)); //< TODO: Put background state in a generic way
-
-			return true;
-		}
 
 		m_accumulator += elapsedTime;
 		if (m_accumulator >= m_nextStepTime)
@@ -69,34 +59,29 @@ namespace ewn
 				Packets::TimeSyncRequest timeSyncRequest;
 				timeSyncRequest.requestId = m_expectedRequestId;
 
-				m_requestTime = ClientApplication::GetAppTime();
+				m_requestTime = stateData.app->GetAppTime();
 				stateData.server->SendPacket(timeSyncRequest);
 
 				m_nextStepTime += 1.f;
 			}
 			else
-				fsm.ResetState(std::make_shared<ArenaState>(stateData));
+			{
+				fsm.ResetState(std::make_shared<ConnectedState>(stateData));
+				fsm.PushState(std::make_shared<ArenaState>(stateData, m_arenaIndex));
+			}
 		}
 
 		return true;
 	}
 
-	void TimeSyncState::CenterStatus()
+	void TimeSyncState::LayoutWidgets()
 	{
 		Ndk::GraphicsComponent& graphicsComponent = m_statusText->GetComponent<Ndk::GraphicsComponent>();
 		Ndk::NodeComponent& nodeComponent = m_statusText->GetComponent<Ndk::NodeComponent>();
 
-		Nz::Boxf textBox = graphicsComponent.GetBoundingVolume().obb.localBox;
+		Nz::Boxf textBox = graphicsComponent.GetAABB();
 		Nz::Vector2ui windowSize = GetStateData().window->GetSize();
 		nodeComponent.SetPosition(windowSize.x / 2 - textBox.width / 2, windowSize.y / 2 - textBox.height / 2);
-	}
-
-	void TimeSyncState::OnServerDisconnected(ServerConnection*, Nz::UInt32 /*data*/)
-	{
-		UpdateStatus("Connection lost", Nz::Color::Red);
-
-		m_accumulator = 0.f;
-		m_connected = false;
 	}
 
 	void TimeSyncState::OnTimeSyncResponse(ServerConnection*, const Packets::TimeSyncResponse& response)
@@ -108,7 +93,7 @@ namespace ewn
 
 		StateData& stateData = GetStateData();
 
-		Nz::UInt64 appTime = ClientApplication::GetAppTime();
+		Nz::UInt64 appTime = stateData.app->GetAppTime();
 		Nz::UInt64 pingTime = appTime - m_requestTime;
 
 		bool youngerThanServer = (response.serverTime >= appTime);
@@ -174,6 +159,6 @@ namespace ewn
 		assert(m_statusSprite);
 		m_statusSprite->Update(Nz::SimpleTextDrawer::Draw(status, 24, 0U, color));
 
-		CenterStatus();
+		LayoutWidgets();
 	}
 }

@@ -11,6 +11,7 @@
 #include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <NDK/Entity.hpp>
+#include <Shared/Enums.hpp>
 #include <Server/Scripting/LuaMathTypes.hpp>
 #include <functional>
 #include <optional>
@@ -19,6 +20,7 @@
 
 namespace ewn
 {
+	class ServerApplication;
 	class SpaceshipCore;
 	class SpaceshipModule;
 
@@ -29,24 +31,29 @@ namespace ewn
 		public:
 			using CallbackArgFunction = std::function<int(Nz::LuaState& state)>;
 
-			inline SpaceshipCore(const Ndk::EntityHandle& spaceship);
+			inline SpaceshipCore(ServerApplication* app, const Ndk::EntityHandle& spaceship);
 			SpaceshipCore(const SpaceshipCore&) = delete;
 			~SpaceshipCore();
 
 			void AddModule(std::shared_ptr<SpaceshipModule> newModule);
+			template<typename T> T* GetModule(ModuleType type);
 
+			inline ServerApplication* GetApp();
+
+			void Register(Nz::LuaState& lua);
+			void Run(float elapsedTime);
+
+			inline void PushCallback(std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
+			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
+			inline std::optional<std::pair<std::string, CallbackArgFunction>> PopCallback();
+
+			// Lua API
 			LuaVec3 GetAngularVelocity() const;
 			float GetIntegrity() const;
 			LuaVec3 GetLinearVelocity() const;
 			LuaVec3 GetPosition() const;
 			LuaQuaternion GetRotation() const;
-
-			void Register(Nz::LuaState& lua);
-			void Run();
-
-			inline void PushCallback(std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
-			inline void PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc = nullptr, bool unique = true);
-			inline std::optional<std::pair<std::string, CallbackArgFunction>> PopCallback();
+			Nz::Int64 GetSignature() const;
 
 			SpaceshipCore& operator=(const SpaceshipCore&) = delete;
 
@@ -63,6 +70,7 @@ namespace ewn
 			std::vector<std::shared_ptr<SpaceshipModule>> m_runnableModules;
 			std::vector<Callback> m_callbacks;
 			Ndk::EntityHandle m_spaceship;
+			ServerApplication* m_app;
 
 			static std::optional<Nz::LuaClass<SpaceshipCoreHandle>> s_binding;
 	};

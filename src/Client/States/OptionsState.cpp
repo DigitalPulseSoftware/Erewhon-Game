@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/OptionsState.hpp>
@@ -11,31 +11,33 @@
 
 namespace ewn
 {
-	void OptionsState::Enter(Ndk::StateMachine& /*fsm*/)
+	void OptionsState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		m_isReturningBack = false;
 
 		m_forceIPv4Checkbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_forceIPv4Checkbox->UpdateText(Nz::SimpleTextDrawer::Draw("Force IPv4 for new connections", 24));
-		m_forceIPv4Checkbox->ResizeToContent();
+		//m_forceIPv4Checkbox->ResizeToContent();
 
 		m_fullscreenCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_fullscreenCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Fullscreen mode (need restart)", 24));
-		m_fullscreenCheckbox->ResizeToContent();
+		//m_fullscreenCheckbox->ResizeToContent();
 
 		m_statusLabel = CreateWidget<Ndk::LabelWidget>();
 		m_statusLabel->Show(false);
 
 		m_vsyncCheckbox = CreateWidget<Ndk::CheckboxWidget>();
 		m_vsyncCheckbox->UpdateText(Nz::SimpleTextDrawer::Draw("Vertical sync", 24));
-		m_vsyncCheckbox->ResizeToContent();
+		//m_vsyncCheckbox->ResizeToContent();
 
 		m_applyButton = CreateWidget<Ndk::ButtonWidget>();
 		m_applyButton->UpdateText(Nz::SimpleTextDrawer::Draw("Apply", 24));
-		m_applyButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_applyButton->ResizeToContent();
+		//m_applyButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_applyButton->ResizeToContent();
 		m_applyButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnApplyPressed();
@@ -43,16 +45,14 @@ namespace ewn
 
 		m_backButton = CreateWidget<Ndk::ButtonWidget>();
 		m_backButton->UpdateText(Nz::SimpleTextDrawer::Draw("Back", 24));
-		m_backButton->SetPadding(10.f, 10.f, 10.f, 10.f);
-		m_backButton->ResizeToContent();
+		//m_backButton->SetPadding(10.f, 10.f, 10.f, 10.f);
+		//m_backButton->ResizeToContent();
 		m_backButton->OnButtonTrigger.Connect([this](const Ndk::ButtonWidget*)
 		{
 			OnBackPressed();
 		});
 
 		LayoutWidgets();
-		m_onTargetChangeSizeSlot.Connect(stateData.window->OnRenderTargetSizeChange, [this](const Nz::RenderTarget*) { LayoutWidgets(); });
-
 		LoadOptions();
 	}
 
@@ -177,7 +177,7 @@ namespace ewn
 	void OptionsState::UpdateStatus(const Nz::String& status, const Nz::Color& color)
 	{
 		m_statusLabel->UpdateText(Nz::SimpleTextDrawer::Draw(status, 24, 0L, color));
-		m_statusLabel->ResizeToContent();
+		//m_statusLabel->ResizeToContent();
 		m_statusLabel->CenterHorizontal();
 		m_statusLabel->Show(true);
 	}

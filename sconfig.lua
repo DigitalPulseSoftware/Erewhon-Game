@@ -15,6 +15,13 @@ Game = {
 	WorkerCount = 2
 }
 
+DefaultSpaceship = {
+	Name = "default",
+	Hull = "Default hull",
+	Modules = "Basic radar module|Basic navigation module|Plasma beam weapon module|Basic engine module|Basic communication array",
+	ScriptFile = "defaultscript.lua"
+}
+
 -- Warning: changing these parameters will break login to already registered accounts
 Security = {
 	Argon2 = {

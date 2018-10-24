@@ -8,8 +8,9 @@
 
 namespace ewn
 {
+	template<typename Peer>
 	template<typename T>
-	const CommandStore::IncomingCommand& CommandStore::GetIncomingCommand() const
+	const typename CommandStore<Peer>::IncomingCommand& CommandStore<Peer>::GetIncomingCommand() const
 	{
 		const std::size_t packetId = static_cast<std::size_t>(T::Type);
 		assert(m_incomingCommands.size() > packetId);
@@ -20,8 +21,9 @@ namespace ewn
 		return command;
 	}
 
+	template<typename Peer>
 	template<typename T>
-	const CommandStore::OutgoingCommand& CommandStore::GetOutgoingCommand() const
+	const typename CommandStore<Peer>::OutgoingCommand& CommandStore<Peer>::GetOutgoingCommand() const
 	{
 		const std::size_t packetId = static_cast<std::size_t>(T::Type);
 		assert(m_outgoingCommands.size() > packetId);
@@ -32,14 +34,15 @@ namespace ewn
 		return command;
 	}
 
+	template<typename Peer>
 	template<typename T, typename CB>
-	void CommandStore::RegisterIncomingCommand(const char* name, CB&& callback)
+	void CommandStore<Peer>::RegisterIncomingCommand(const char* name, CB&& callback)
 	{
 		std::size_t packetId = static_cast<std::size_t>(T::Type);
 
 		IncomingCommand newCommand;
 		newCommand.enabled = true;
-		newCommand.unserialize = [cb = std::forward<CB>(callback)](std::size_t peerId, Nz::NetPacket&& packet)
+		newCommand.unserialize = [cb = std::forward<CB>(callback)](PeerRef peer, Nz::NetPacket&& packet)
 		{
 			T data;
 			try
@@ -54,7 +57,7 @@ namespace ewn
 				return false;
 			}
 
-			cb(peerId, data);
+			cb(peer, data);
 			return true;
 		};
 		newCommand.name = name;
@@ -65,8 +68,9 @@ namespace ewn
 		m_incomingCommands[packetId] = std::move(newCommand);
 	}
 
+	template<typename Peer>
 	template<typename T>
-	void CommandStore::RegisterOutgoingCommand(const char* name, Nz::ENetPacketFlags flags, Nz::UInt8 channelId)
+	void CommandStore<Peer>::RegisterOutgoingCommand(const char* name, Nz::ENetPacketFlags flags, Nz::UInt8 channelId)
 	{
 		std::size_t packetId = static_cast<std::size_t>(T::Type);
 
@@ -82,8 +86,9 @@ namespace ewn
 		m_outgoingCommands[packetId] = std::move(newCommand);
 	}
 
+	template<typename Peer>
 	template<typename T>
-	void CommandStore::SerializePacket(Nz::NetPacket& packet, const T& data) const
+	void CommandStore<Peer>::SerializePacket(Nz::NetPacket& packet, const T& data) const
 	{
 		packet << static_cast<Nz::UInt8>(T::Type);
 
@@ -93,5 +98,35 @@ namespace ewn
 
 		PacketSerializer serializer(packet, true);
 		Packets::Serialize(serializer, dataRef);
+	}
+
+	template<typename Peer>
+	bool CommandStore<Peer>::UnserializePacket(PeerRef peer, Nz::NetPacket&& packet) const
+	{
+		Nz::UInt8 opcode;
+		try
+		{
+			packet >> opcode;
+		}
+		catch (const std::exception&)
+		{
+			std::cerr << "Failed to unserialize opcode" << std::endl;
+			return false;
+		}
+
+		if (m_incomingCommands.size() <= opcode || !m_incomingCommands[opcode].enabled)
+		{
+			std::size_t peerId;
+			if constexpr (std::is_pointer_v<Peer>)
+				peerId = peer->GetPeerId();
+			else
+				peerId = peer.GetPeerId();
+
+			std::cerr << "Client #" << peerId << " sent invalid opcode" << std::endl;
+			return false;
+		}
+
+		m_incomingCommands[opcode].unserialize(peer, std::move(packet));
+		return true;
 	}
 }

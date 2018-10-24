@@ -7,7 +7,7 @@
 namespace ewn
 {
 	inline WeaponModule::WeaponModule(SpaceshipCore* core, const Ndk::EntityHandle & spaceship) :
-	SpaceshipModule(core, spaceship),
+	SpaceshipModule(ModuleType::Weapon, core, spaceship),
 	m_lastShootTime(0)
 	{
 	}

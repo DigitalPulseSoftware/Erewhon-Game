@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -30,10 +30,9 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void CenterStatus();
-			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White, bool center = true);
+			void LayoutWidgets() override;
 
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
+			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White, bool center = true);
 
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;

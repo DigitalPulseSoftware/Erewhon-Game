@@ -4,17 +4,37 @@
 
 #include <Server/SpaceshipCore.hpp>
 #include <Server/ServerApplication.hpp>
+#include <cassert>
 
 namespace ewn
 {
-	inline SpaceshipCore::SpaceshipCore(const Ndk::EntityHandle& spaceship) :
-	m_spaceship(spaceship)
+	inline SpaceshipCore::SpaceshipCore(ServerApplication* app, const Ndk::EntityHandle& spaceship) :
+	m_spaceship(spaceship),
+	m_app(app)
 	{
+	}
+
+	template<typename T>
+	T* SpaceshipCore::GetModule(ModuleType type)
+	{
+		std::size_t typeIndex = static_cast<std::size_t>(type);
+		if (typeIndex >= m_modules.size())
+			return nullptr;
+
+		SpaceshipModule* spaceshipModule = m_modules[typeIndex].get();
+		assert(dynamic_cast<T*>(spaceshipModule) != nullptr && "Incompatible types");
+
+		return static_cast<T*>(spaceshipModule);
+	}
+
+	ServerApplication* SpaceshipCore::GetApp()
+	{
+		return m_app;
 	}
 
 	inline void SpaceshipCore::PushCallback(std::string callbackName, CallbackArgFunction argFunc, bool unique)
 	{
-		PushCallback(ServerApplication::GetAppTime(), std::move(callbackName), std::move(argFunc), unique);
+		PushCallback(m_app->GetAppTime(), std::move(callbackName), std::move(argFunc), unique);
 	}
 
 	inline void SpaceshipCore::PushCallback(Nz::UInt64 triggerTime, std::string callbackName, CallbackArgFunction argFunc, bool unique)
@@ -64,7 +84,7 @@ namespace ewn
 		if (m_callbacks.empty())
 			return {};
 
-		Nz::UInt64 now = ServerApplication::GetAppTime();
+		Nz::UInt64 now = m_app->GetAppTime();
 		if (m_callbacks.back().triggerTime >= now)
 			return {};
 
@@ -78,7 +98,7 @@ namespace ewn
 			it->second = false;
 		}
 
-		std::cout << "Executing " << callback.callbackName << " (late by " << (now - callback.triggerTime) << "ms)" << std::endl;
+		//std::cout << "Executing " << callback.callbackName << " (late by " << (now - callback.triggerTime) << "ms)" << std::endl;
 
 		return std::make_pair(callback.callbackName, std::move(callback.argFunc));
 	}

@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -21,24 +21,17 @@ namespace ewn
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
-			void OnDisconnectionPressed();
 			void OnKeyPressed(const Nz::EventHandler* eventHandler, const Nz::WindowEvent::KeyEvent& event);
-			void OnOptionsPressed();
 
-			NazaraSlot(Nz::EventHandler, OnKeyPressed, m_onKeyPressedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
-
-			Ndk::ButtonWidget* m_optionsButton;
 			Ndk::ButtonWidget* m_disconnectButton;
+			Ndk::ButtonWidget* m_leaveButton;
+			Ndk::ButtonWidget* m_optionsButton;
+			Ndk::ButtonWidget* m_quitButton;
 			Ndk::CheckboxWidget* m_fullscreenCheckbox;
 			Ndk::CheckboxWidget* m_vsyncCheckbox;
-			bool m_isDisconnecting;
-			bool m_isLeavingMenu;
-			bool m_isUsingOption;
 	};
 }
 

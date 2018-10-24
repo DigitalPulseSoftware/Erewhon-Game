@@ -7,8 +7,6 @@
 #ifndef EREWHON_SERVER_NAVIGATIONMODULE_HPP
 #define EREWHON_SERVER_NAVIGATIONMODULE_HPP
 
-#include <Nazara/Core/HandledObject.hpp>
-#include <Nazara/Core/ObjectHandle.hpp>
 #include <Nazara/Lua/LuaClass.hpp>
 #include <Nazara/Math/Vector3.hpp>
 #include <Server/SpaceshipModule.hpp>
@@ -23,18 +21,23 @@ namespace ewn
 	class NavigationModule : public SpaceshipModule, public Nz::HandledObject<NavigationModule>
 	{
 		public:
-			using SpaceshipModule::SpaceshipModule;
+			inline NavigationModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship);
 			~NavigationModule() = default;
 
-			void FollowTarget(Ndk::EntityId targetId);
-			void FollowTarget(Ndk::EntityId targetId, float triggerDistance);
+			void PushInstance(Nz::LuaState& lua) override;
+			void RegisterModule(Nz::LuaClass<SpaceshipModule>& parentBinding, Nz::LuaState& lua) override;
+
+			// Lua API
+			void FollowTarget(Nz::Int64 targetSignature);
+			void FollowTarget(Nz::Int64 targetSignature, float triggerDistance);
 
 			void MoveToPosition(const Nz::Vector3f& targetPos);
 			void MoveToPosition(const Nz::Vector3f& targetPos, float triggerDistance);
 
-			void Stop();
+			void OrientToPosition(const Nz::Vector3f& targetPos);
+			void OrientToTarget(Nz::Int64 targetSignature);
 
-			void Register(Nz::LuaState& lua) override;
+			void Stop();
 
 		private:
 			void Initialize(Ndk::Entity* spaceship) override;

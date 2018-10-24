@@ -1,8 +1,8 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
-#include <Server/Systems/SpaceshipSystem.hpp>
+#include <Server/Systems/InputSystem.hpp>
 #include <Nazara/Utility/Node.hpp>
 #include <NDK/Components/PhysicsComponent3D.hpp>
 #include <Server/Components/InputComponent.hpp>
@@ -10,13 +10,13 @@
 
 namespace ewn
 {
-	SpaceshipSystem::SpaceshipSystem()
+	InputSystem::InputSystem()
 	{
 		Requires<Ndk::PhysicsComponent3D, InputComponent>();
 		SetMaximumUpdateRate(60.f);
 	}
 
-	void SpaceshipSystem::OnUpdate(float /*elapsedTime*/)
+	void InputSystem::OnUpdate(float /*elapsedTime*/)
 	{
 		for (const Ndk::EntityHandle& spaceship : GetEntities())
 		{
@@ -37,13 +37,13 @@ namespace ewn
 				spaceshipPhysics.AddForce(ForceMultiplier * totalMovement, Nz::CoordSys_Local);
 				spaceshipPhysics.AddTorque(AngularMultiplier * totalRotation, Nz::CoordSys_Global);
 
-				/*std::cout << "At " << time << ": Move by " << totalMovement << " (final pos: " << spaceshipNode.GetPosition() << ")\n";
-				std::cout << "   " << time << ": Rotate by " << totalRotation << " (final pos: " << spaceshipNode.GetRotation().ToEulerAngles() << ')' << std::endl;*/
+				/*std::cout << "At " << time << ": Move by " << totalMovement << " (final pos: " << spaceshipPhysics.GetPosition() << ")\n";
+				std::cout << "   " << time << ": Rotate by " << totalRotation << " (final pos: " << spaceshipPhysics.GetRotation().ToEulerAngles() << ')' << std::endl;*/
 
 				lastInput = time;
 			});
 		}
 	}
 
-	Ndk::SystemIndex SpaceshipSystem::systemIndex;
+	Ndk::SystemIndex InputSystem::systemIndex;
 }

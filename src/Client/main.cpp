@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Nazara/Audio/Audio.hpp>
@@ -7,6 +7,7 @@
 #include <Nazara/Core/Directory.hpp>
 #include <Nazara/Core/Initializer.hpp>
 #include <Nazara/Graphics/DeferredRenderTechnique.hpp>
+#include <Nazara/Graphics/Model.hpp>
 #include <Nazara/Renderer/RenderWindow.hpp>
 #include <Nazara/Network/Network.hpp>
 #include <NDK/Algorithm.hpp>
@@ -15,6 +16,7 @@
 #include <NDK/Components/ListenerComponent.hpp>
 #include <NDK/Components/NodeComponent.hpp>
 #include <NDK/Systems/RenderSystem.hpp>
+#include <NDK/Systems/ParticleSystem.hpp>
 #include <NDK/StateMachine.hpp>
 #include <Client/ClientApplication.hpp>
 #include <Client/ServerConnection.hpp>
@@ -45,14 +47,18 @@ int main()
 
 	ewn::ServerConnection serverConnection(app);
 
+	Nz::RenderTargetParameters windowParameters;
+	windowParameters.antialiasingLevel = 4;
+
 	bool fullscreen = config.GetBoolOption("Options.Fullscreen");
-	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>((fullscreen) ? Nz::VideoMode::GetFullscreenModes()[0] : Nz::VideoMode(1280, 720), "Utopia", (fullscreen) ? Nz::WindowStyle_Fullscreen : Nz::WindowStyle_Default);
+	Nz::RenderWindow& window = app.AddWindow<Nz::RenderWindow>((fullscreen) ? Nz::VideoMode::GetFullscreenModes()[0] : Nz::VideoMode(1280, 720), "Utopia", (fullscreen) ? Nz::WindowStyle_Fullscreen : Nz::WindowStyle_Default, windowParameters);
 	window.EnableCloseOnQuit(false);
 	window.EnableVerticalSync(config.GetBoolOption("Options.VerticalSync"));
 
 	// 3D Scene
 	Ndk::World& world3D = app.AddWorld();
 	world3D.AddSystem<ewn::SoundEmitterSystem>();
+	world3D.GetSystem<Ndk::ParticleSystem>().SetMaximumUpdateRate(0.f);
 	//world3D.GetSystem<Ndk::RenderSystem>().ChangeRenderTechnique(std::make_unique<Nz::DeferredRenderTechnique>());
 
 	const Ndk::EntityHandle& camera3D = world3D.CreateEntity();
@@ -79,7 +85,7 @@ int main()
 	camera2D->AddComponent<Ndk::NodeComponent>();
 
 	Ndk::Canvas canvas(world2D.CreateHandle(), window.GetEventHandler(), window.GetCursorController().CreateHandle());
-	canvas.SetSize(Nz::Vector2f(window.GetSize()));
+	canvas.Resize(Nz::Vector2f(window.GetSize()));
 
 	// Resources
 	std::string assetsFolder = config.GetStringOption("AssetsFolder");
@@ -101,6 +107,13 @@ int main()
 		Nz::TextureLibrary::Register("Background", std::move(background));
 	}
 
+	Nz::ModelParameters params;
+	params.mesh.center = true;
+	params.mesh.texCoordScale.Set(1.f, -1.f);
+
+	Nz::ModelManager::SetDefaultParameters(params);
+
+
 	// Shoot sound
 	Nz::SoundBufferParams soundParams;
 	soundParams.forceMono = true;
@@ -117,30 +130,33 @@ int main()
 
 	Nz::MaterialLibrary::Register("SpaceshipText", std::move(textMaterial));
 
+	Ndk::StateMachine fsm(nullptr);
+
 	ewn::StateData stateData;
 	stateData.app = &app;
 	stateData.camera2D = camera2D;
 	stateData.camera3D = camera3D;
 	stateData.canvas = &canvas;
+	stateData.fsm = &fsm;
 	stateData.server = &serverConnection;
 	stateData.window = &window;
 	stateData.world2D = world2D.CreateHandle();
 	stateData.world3D = world3D.CreateHandle();
 
-	Ndk::StateMachine fsm(std::make_shared<ewn::BackgroundState>(stateData));
-	fsm.PushState(std::make_shared<ewn::LoginState>(stateData));
+	fsm.PushState(std::make_shared<ewn::BackgroundState>(stateData));
+	fsm.PushState(std::make_shared<ewn::LoginState>(stateData, true));
 
 	// Handle exit
 	window.GetEventHandler().OnQuit.Connect([&](const Nz::EventHandler*)
 	{
 		fsm.ResetState(std::make_shared<ewn::BackgroundState>(stateData));
-		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData));
+		fsm.PushState(std::make_shared<ewn::DisconnectionState>(stateData, true));
 	});
 
 	// Handle size change
 	window.GetEventHandler().OnResized.Connect([&](const Nz::EventHandler*, const Nz::WindowEvent::SizeEvent& sizeEvent)
 	{
-		canvas.SetSize(Nz::Vector2f(Nz::Vector2ui(sizeEvent.width, sizeEvent.height)));
+		canvas.Resize(Nz::Vector2f(Nz::Vector2ui(sizeEvent.width, sizeEvent.height)));
 	});
 
 	while (app.Run())
@@ -149,4 +165,11 @@ int main()
 
 		window.Display();
 	}
+
+	Nz::MeshLibrary::Clear();
+	Nz::MeshManager::Clear();
+	Nz::ModelLibrary::Clear();
+	Nz::ModelManager::Clear();
+	Nz::TextureLibrary::Clear();
+	Nz::TextureManager::Clear();
 }

@@ -6,6 +6,10 @@
 
 namespace ewn
 {
+	inline EngineModule::EngineModule(SpaceshipCore* core, const Ndk::EntityHandle& spaceship) :
+	SpaceshipModule(ModuleType::Engine, core, spaceship)
+	{
+	}
 }
 
 namespace Nz

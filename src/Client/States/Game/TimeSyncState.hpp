@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -22,7 +22,7 @@ namespace ewn
 	class TimeSyncState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline TimeSyncState(StateData& stateData, Nz::UInt8 arenaIndex);
 			~TimeSyncState() = default;
 
 		private:
@@ -30,22 +30,18 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void CenterStatus();
-			void OnServerDisconnected(ServerConnection* server, Nz::UInt32 data);
+			void LayoutWidgets() override;
+
 			void OnTimeSyncResponse(ServerConnection* server, const Packets::TimeSyncResponse& response);
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
-
-			NazaraSlot(ServerConnection, OnTimeSyncResponse, m_onTimeSyncResponseSlot);
-			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
 			Nz::UInt8 m_expectedRequestId;
 			Nz::UInt64 m_pingAccumulator;
 			Nz::UInt64 m_requestTime;
+			Nz::UInt8 m_arenaIndex;
 			std::vector<Nz::UInt64> m_results;
-			bool m_connected;
 			bool m_finished;
 			bool m_isClientYounger;
 			float m_accumulator;

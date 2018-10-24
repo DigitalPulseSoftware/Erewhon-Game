@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/ClientApplication.hpp>
@@ -84,6 +84,15 @@ namespace ewn
 	{
 		m_servers[peerId]->NotifyDisconnected(data);
 		m_servers[peerId] = nullptr;
+	}
+
+	void ClientApplication::HandlePeerInfo(std::size_t peerId, const NetworkReactor::PeerInfo& peerInfo)
+	{
+		ServerConnection::ConnectionInfo connectionInfo;
+		connectionInfo.lastReceiveTime = GetAppTime() - peerInfo.lastReceiveTime;
+		connectionInfo.ping = peerInfo.ping;
+
+		m_servers[peerId]->UpdateInfo(connectionInfo);
 	}
 
 	void ClientApplication::HandlePeerPacket(std::size_t peerId, Nz::NetPacket&& packet)

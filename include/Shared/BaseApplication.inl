@@ -6,6 +6,11 @@
 
 namespace ewn
 {
+	inline Nz::UInt64 BaseApplication::GetAppTime()
+	{
+		return m_appTime.load(std::memory_order_relaxed);
+	}
+
 	inline ConfigFile& BaseApplication::GetConfig()
 	{
 		return m_config;
@@ -47,10 +52,5 @@ namespace ewn
 	{
 		assert(reactorId < m_reactors.size());
 		return m_reactors[reactorId];
-	}
-
-	inline Nz::UInt64 BaseApplication::GetAppTime()
-	{
-		return s_appClock.GetMilliseconds();
 	}
 }

@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/BackgroundState.hpp>
@@ -14,8 +14,10 @@
 
 namespace ewn
 {
-	void BackgroundState::Enter(Ndk::StateMachine& /*fsm*/)
+	void BackgroundState::Enter(Ndk::StateMachine& fsm)
 	{
+		AbstractState::Enter(fsm);
+
 		StateData& stateData = GetStateData();
 
 		if (Nz::Texture* background = Nz::TextureLibrary::Get("Background"); background && background->IsValid())

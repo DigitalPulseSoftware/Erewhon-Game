@@ -27,6 +27,8 @@ namespace ewn
 	class NetworkReactor
 	{
 		public:
+			struct PeerInfo;
+
 			NetworkReactor(std::size_t firstId, Nz::NetProtocol protocol, Nz::UInt16 port, std::size_t maxClient);
 			NetworkReactor(const NetworkReactor&) = delete;
 			NetworkReactor(NetworkReactor&&) = delete;
@@ -35,15 +37,23 @@ namespace ewn
 			std::size_t ConnectTo(Nz::IpAddress address, Nz::UInt32 data = 0);
 			void DisconnectPeer(std::size_t peerId, Nz::UInt32 data = 0, DisconnectionType type = DisconnectionType::Normal);
 
-			template<typename ConnectCB, typename DisconnectCB, typename DataCB>
-			void Poll(ConnectCB&& onConnection, DisconnectCB&& onDisconnection, DataCB&& onData);
+			template<typename ConnectCB, typename DisconnectCB, typename DataCB, typename InfoCB>
+			void Poll(ConnectCB&& onConnection, DisconnectCB&& onDisconnection, DataCB&& onData, InfoCB&& onInfo);
 
 			inline Nz::NetProtocol GetProtocol() const;
+
+			void QueryInfo(std::size_t peerId);
 
 			void SendData(std::size_t peerId, Nz::UInt8 channelId, Nz::ENetPacketFlags flags, Nz::NetPacket&& packet);
 
 			NetworkReactor& operator=(const NetworkReactor&) = delete;
 			NetworkReactor& operator=(NetworkReactor&&) = delete;
+
+			struct PeerInfo
+			{
+				Nz::UInt32 lastReceiveTime;
+				Nz::UInt32 ping;
+			};
 
 			static constexpr std::size_t InvalidPeerId = std::numeric_limits<std::size_t>::max();
 	
@@ -80,8 +90,8 @@ namespace ewn
 					Nz::NetPacket packet;
 				};
 
-				std::size_t peerId;
-				std::variant<ConnectEvent, DisconnectEvent, PacketEvent> data;
+				std::size_t peerId = InvalidPeerId;
+				std::variant<ConnectEvent, DisconnectEvent, PacketEvent, PeerInfo> data;
 			};
 
 			struct OutgoingEvent
@@ -99,8 +109,10 @@ namespace ewn
 					Nz::NetPacket packet;
 				};
 
-				std::size_t peerId;
-				std::variant<DisconnectEvent, PacketEvent> data;
+				struct QueryPeerInfo {};
+
+				std::size_t peerId = InvalidPeerId;
+				std::variant<DisconnectEvent, PacketEvent, QueryPeerInfo> data;
 			};
 
 			std::atomic_bool m_running;

@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/States/Game/ArenaState.hpp>
@@ -36,11 +36,11 @@
 
 namespace ewn
 {
-	void ArenaState::Enter(Ndk::StateMachine& /*fsm*/)
+	void ArenaState::Enter(Ndk::StateMachine& fsm)
 	{
-		StateData& stateData = GetStateData();
+		AbstractState::Enter(fsm);
 
-		m_isEnteringMenu = false;
+		StateData& stateData = GetStateData();
 
 		if (Nz::Texture* background = Nz::TextureLibrary::Get("Background"); background && background->IsValid())
 			stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::SkyboxBackground::New(background));
@@ -48,18 +48,18 @@ namespace ewn
 			stateData.world3D->GetSystem<Ndk::RenderSystem>().SetDefaultBackground(Nz::ColorBackground::New(Nz::Color::Black));
 
 		m_controlledEntity = std::numeric_limits<decltype(m_controlledEntity)>::max();
-		m_isDisconnected = !stateData.server->IsConnected();
+		ControlEntity(m_controlledEntity);
 
-		m_onControlEntitySlot.Connect(stateData.server->OnControlEntity, this, &ArenaState::OnControlEntity);
-		m_onKeyPressedSlot.Connect(stateData.window->GetEventHandler().OnKeyPressed, this, &ArenaState::OnKeyPressed);
+		ConnectSignal(stateData.server->OnControlEntity, this, &ArenaState::OnControlEntity);
+		ConnectSignal(stateData.window->GetEventHandler().OnKeyPressed, this, &ArenaState::OnKeyPressed);
 
 		m_chatbox.emplace(stateData.server, *stateData.window, stateData.canvas);
 		m_matchEntities.emplace(stateData.app, stateData.server, stateData.world3D);
-		m_onEntityCreatedSlot.Connect(m_matchEntities->OnEntityCreated, this, &ArenaState::OnEntityCreated);
-		m_onEntityDeletionSlot.Connect(m_matchEntities->OnEntityDelete, this, &ArenaState::OnEntityDelete);
+		ConnectSignal(m_matchEntities->OnEntityCreated, this, &ArenaState::OnEntityCreated);
+		ConnectSignal(m_matchEntities->OnEntityDelete, this, &ArenaState::OnEntityDelete);
 
 		Packets::JoinArena arenaPacket;
-		arenaPacket.arenaIndex = 0;
+		arenaPacket.arenaIndex = m_arenaIndex;
 
 		stateData.server->SendPacket(arenaPacket);
 	}
@@ -68,9 +68,11 @@ namespace ewn
 	{
 		AbstractState::Leave(fsm);
 
-		m_onControlEntitySlot.Disconnect();
-		m_onKeyPressedSlot.Disconnect();
+		StateData& stateData = GetStateData();
+		if (stateData.server)
+			stateData.server->SendPacket(Packets::LeaveArena{});
 
+		m_spaceshipOverviewController.reset();
 		m_spaceshipController.reset();
 		m_matchEntities.reset();
 	}
@@ -79,22 +81,10 @@ namespace ewn
 	{
 		StateData& stateData = GetStateData();
 
-		if (!stateData.server->IsConnected())
-		{
-			fsm.ResetState(std::make_shared<BackgroundState>(stateData));
-			fsm.PushState(std::make_shared<ConnectionLostState>(stateData));
-			return false;
-		}
-
-		if (m_isEnteringMenu)
-		{
-			if (fsm.IsTopState(this))
-				fsm.PushState(std::make_shared<EscapeMenuState>(stateData));
-
-			m_isEnteringMenu = false;
-		}
-
 		m_matchEntities->Update(elapsedTime);
+		if (m_spaceshipOverviewController)
+			m_spaceshipOverviewController->Update(elapsedTime);
+
 		if (m_spaceshipController)
 			m_spaceshipController->Update(elapsedTime);
 
@@ -115,7 +105,7 @@ namespace ewn
 			{
 				auto& textGfx = entityData.textEntity->GetComponent<Ndk::GraphicsComponent>();
 				auto& textNode = entityData.textEntity->GetComponent<Ndk::NodeComponent>();
-				textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetBoundingVolume().obb.localBox.width / 2.f);
+				textNode.SetPosition(spaceshipNode.GetPosition() + camRot * Nz::Vector3f::Up() * 6.f + Nz::Vector3f::Right() * textGfx.GetAABB().width / 2.f);
 				textNode.SetRotation(cameraNode.GetRotation());
 			}
 		}
@@ -135,8 +125,6 @@ namespace ewn
 				if (oldData.textEntity)
 					oldData.textEntity->Enable();
 			}
-
-			m_spaceshipController.reset();
 		}
 
 		if (entityId != std::numeric_limits<std::size_t>::max() && m_matchEntities->IsServerEntityValid(entityId))
@@ -147,7 +135,22 @@ namespace ewn
 			if (data.textEntity)
 				data.textEntity->Disable();
 
+			m_spaceshipOverviewController.reset();
 			m_spaceshipController.emplace(stateData.app, stateData.server, *stateData.window, *stateData.world2D, *m_chatbox, *m_matchEntities, stateData.camera3D, data.entity);
+		}
+		else
+		{
+			m_spaceshipController.reset();
+			auto& controller = m_spaceshipOverviewController.emplace(*stateData.window, stateData.camera3D, *m_chatbox, *m_matchEntities, stateData.world3D);
+			controller.OnEntityClick.Connect([this](SpaceshipOverviewController*, std::size_t entityId)
+			{
+				StateData& stateData = GetStateData();
+
+				Packets::ControlEntity controlPacket;
+				controlPacket.id = static_cast<Nz::UInt32>(entityId);
+
+				stateData.server->SendPacket(controlPacket);
+			});
 		}
 
 		m_controlledEntity = entityId;
@@ -181,6 +184,20 @@ namespace ewn
 				m_chatbox->PrintMessage("INFO: Sync disabled");
 		}
 		else if (event.code == Nz::Keyboard::Escape)
-			m_isEnteringMenu = true;
+		{
+			StateData& stateData = GetStateData();
+
+			if (stateData.fsm->IsTopState(this))
+				stateData.fsm->PushState(std::make_shared<EscapeMenuState>(stateData));
+		}
+		else if (event.code == Nz::Keyboard::Backspace)
+		{
+			StateData& stateData = GetStateData();
+
+			Packets::ControlEntity controlPacket;
+			controlPacket.id = 0;
+
+			stateData.server->SendPacket(controlPacket);
+		}
 	}
 }

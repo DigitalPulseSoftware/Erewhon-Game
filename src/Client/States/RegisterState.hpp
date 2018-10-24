@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -22,10 +22,9 @@ namespace ewn
 
 		private:
 			void Enter(Ndk::StateMachine& fsm) override;
-			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void LayoutWidgets();
+			void LayoutWidgets() override;
 
 			void OnCancelPressed();
 			void OnConnected(ServerConnection* server, Nz::UInt32 data);
@@ -36,12 +35,6 @@ namespace ewn
 			void SendRegisterPacket();
 
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White);
-
-			NazaraSlot(ServerConnection, OnConnected,    m_onConnectedSlot);
-			NazaraSlot(ServerConnection, OnDisconnected, m_onDisconnectedSlot);
-			NazaraSlot(ServerConnection, OnRegisterFailure, m_onRegisterFailureSlot);
-			NazaraSlot(ServerConnection, OnRegisterSuccess, m_onRegisterSuccess);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::ButtonWidget* m_registerButton;
 			Ndk::ButtonWidget* m_cancelButton;

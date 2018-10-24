@@ -24,56 +24,61 @@
 
 namespace ewn
 {
-	class Player;
-
 	class ServerApplication final : public BaseApplication
 	{
 		friend GameWorker;
 
 		public:
+			struct DefaultSpaceship;
 			using ServerCallback = std::function<void()>;
 			using WorkerFunction = std::function<void()>;
 
 			ServerApplication();
 			virtual ~ServerApplication();
 
+			Arena& CreateArena(std::string name, std::string script);
+
 			inline void DispatchWork(WorkerFunction workFunc);
 
-			inline Database& GetGlobalDatabase();
+			inline Arena* GetArena(std::size_t arenaIndex) const;
+			inline std::size_t GetArenaCount() const;
+			inline ServerChatCommandStore& GetChatCommandStore();
+			inline const ServerChatCommandStore& GetChatCommandStore() const;
 			inline CollisionMeshStore& GetCollisionMeshStore();
 			inline const CollisionMeshStore& GetCollisionMeshStore() const;
+			inline const DefaultSpaceship& GetDefaultSpaceshipData() const;
+			inline Database& GetGlobalDatabase();
 			inline ModuleStore& GetModuleStore();
 			inline const ModuleStore& GetModuleStore() const;
 			inline std::size_t GetPeerPerReactor() const;
+			inline Player* GetPlayerBySession(std::size_t sessionId);
 			inline const NetworkStringStore& GetNetworkStringStore() const;
 			inline SpaceshipHullStore& GetSpaceshipHullStore();
 			inline const SpaceshipHullStore& GetSpaceshipHullStore() const;
+			inline VisualMeshStore& GetVisualMeshStore();
+			inline const VisualMeshStore& GetVisualMeshStore() const;
 
 			bool LoadDatabase();
 
 			bool Run() override;
 
-			void HandleCreateSpaceship(std::size_t peerId, const Packets::CreateSpaceship& data);
-			void HandleDeleteSpaceship(std::size_t peerId, const Packets::DeleteSpaceship& data);
-			void HandleLogin(std::size_t peerId, const Packets::Login& data);
-			void HandleJoinArena(std::size_t peerId, const Packets::JoinArena& data);
-			void HandlePlayerChat(std::size_t peerId, const Packets::PlayerChat& data);
-			void HandlePlayerMovement(std::size_t peerId, const Packets::PlayerMovement& data);
-			void HandlePlayerShoot(std::size_t peerId, const Packets::PlayerShoot& data);
-			void HandleQuerySpaceshipInfo(std::size_t peerId, const Packets::QuerySpaceshipInfo& data);
-			void HandleQuerySpaceshipList(std::size_t peerId, const Packets::QuerySpaceshipList& data);
-			void HandleRegister(std::size_t peerId, const Packets::Register& data);
-			void HandleSpawnSpaceship(std::size_t peerId, const Packets::SpawnSpaceship& data);
-			void HandleTimeSyncRequest(std::size_t peerId, const Packets::TimeSyncRequest& data);
-			void HandleUpdateSpaceship(std::size_t peerId, const Packets::UpdateSpaceship& data);
-
 			inline void RegisterCallback(ServerCallback callback);
 
 			bool SetupNetwork(std::size_t clientPerReactor, std::size_t reactorCount, Nz::NetProtocol protocol, Nz::UInt16 firstPort);
 
+			struct DefaultSpaceship
+			{
+				std::string name;
+				std::string code;
+				std::size_t hullId;
+				std::vector<std::size_t> moduleIds;
+			};
+
 		private:
 			using CallbackQueue = moodycamel::ConcurrentQueue<ServerCallback>;
 			using WorkerQueue = moodycamel::BlockingConcurrentQueue<WorkerFunction>;
+
+			bool BakeDefaultSpaceshipData();
 
 			inline WorkerQueue& GetWorkerQueue();
 
@@ -91,12 +96,15 @@ namespace ewn
 
 			std::optional<GlobalDatabase> m_globalDatabase;
 			std::size_t m_peerPerReactor;
+			std::size_t m_nextSessionId;
+			std::unordered_map<std::size_t /*sessionId*/, std::size_t /*peerId*/> m_sessionIdToPeer;
 			std::vector<std::unique_ptr<GameWorker>> m_workers;
-			std::vector<Player*> m_players;
+			std::vector<ClientSession*> m_sessions;
 			std::vector<std::unique_ptr<Arena>> m_arenas;
-			Nz::MemoryPool m_playerPool;
+			Nz::MemoryPool m_sessionPool;
 			CallbackQueue m_callbackQueue;
 			CollisionMeshStore m_collisionMeshStore;
+			DefaultSpaceship m_defaultSpaceshipData;
 			ModuleStore m_moduleStore;
 			NetworkStringStore m_stringStore;
 			ServerChatCommandStore m_chatCommandStore;

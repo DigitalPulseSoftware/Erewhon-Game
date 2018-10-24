@@ -7,8 +7,8 @@
 
 namespace ewn
 {
-	template<typename ConnectCB, typename DisconnectCB, typename DataCB>
-	void NetworkReactor::Poll(ConnectCB&& onConnection, DisconnectCB&& onDisconnection, DataCB&& onData)
+	template<typename ConnectCB, typename DisconnectCB, typename DataCB, typename InfoCB>
+	void NetworkReactor::Poll(ConnectCB&& onConnection, DisconnectCB&& onDisconnection, DataCB&& onData, InfoCB&& onInfo)
 	{
 		IncomingEvent inEvent;
 		while (m_incomingQueue.try_dequeue(inEvent))
@@ -26,6 +26,10 @@ namespace ewn
 				else if constexpr (std::is_same_v<T, IncomingEvent::PacketEvent>)
 				{
 					onData(inEvent.peerId, std::move(arg.packet));
+				}
+				else if constexpr (std::is_same_v<T, PeerInfo>)
+				{
+					onInfo(inEvent.peerId, arg);
 				}
 				else
 					static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");

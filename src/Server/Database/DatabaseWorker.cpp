@@ -4,11 +4,14 @@
 
 #include <Server/Database/DatabaseWorker.hpp>
 #include <Server/Database/Database.hpp>
+#include <Nazara/Core/Clock.hpp>
 #include <chrono>
 #include <iostream>
 
 namespace ewn
 {
+	constexpr Nz::UInt64 PingInterval = 10'000; //< 10s
+
 	void DatabaseWorker::ResetIdle()
 	{
 		m_idle.store(false, std::memory_order_relaxed);
@@ -55,11 +58,20 @@ namespace ewn
 
 		Database::Request request;
 		bool wasConnected = connection.IsConnected();
+
+		Nz::UInt64 lastRequestTime = Nz::GetElapsedMilliseconds();
+
 		while (m_running.load(std::memory_order_acquire))
 		{
 			if (!connection.IsConnected())
 			{
-				std::cerr << ((wasConnected) ? "Lost connection to database" : "Failed to connect to database") << ", trying again in 10 seconds..." << std::endl;
+				if (wasConnected)
+					std::cerr << "Lost connection to database";
+				else
+					std::cerr << "Failed to connect to database: " + connection.GetLastErrorMessage();
+
+				std::cerr << "\ntrying again in 10 seconds..." << std::endl;
+
 				wasConnected = false;
 
 				Nz::Thread::Sleep(10'000);
@@ -84,11 +96,14 @@ namespace ewn
 
 					if constexpr (std::is_same_v<T, Database::QueryRequest>)
 					{
-						Database::QueryResult result;
-						result.callback = std::move(request.callback);
-						result.result = connection.ExecPreparedStatement(request.statement, request.parameters);
+						Database::QueryResult resultData;
+						resultData.callback = std::move(request.callback);
+						resultData.result = connection.ExecPreparedStatement(request.statement, request.parameters);
 
-						m_database.SubmitResult(std::move(result));
+						if (!resultData.result)
+							std::cerr << "[Database] statement \"" << request.statement << "\" failed: " << resultData.result.GetLastErrorMessage() << std::endl;
+
+						m_database.SubmitResult(std::move(resultData));
 					}
 					else if constexpr (std::is_same_v<T, Database::TransactionRequest>)
 					{
@@ -106,12 +121,14 @@ namespace ewn
 
 								if (!statementResult)
 								{
+									std::cerr << "[Database] Transaction failed: " << statementResult.GetLastErrorMessage();
+
 									failure = true;
 									if (connection.IsConnected())
 									{
 										DatabaseResult rollbackResult = connection.Exec("ROLLBACK");
 										if (!rollbackResult)
-											std::cerr << "Rollback failed: " << rollbackResult.GetLastErrorMessage();
+											std::cerr << "[Database] Rollback failed: " << rollbackResult.GetLastErrorMessage();
 									}
 									break;
 								}
@@ -131,11 +148,23 @@ namespace ewn
 						static_assert(AlwaysFalse<T>::value, "non-exhaustive visitor");
 
 				}, request);
+
+				lastRequestTime = Nz::GetElapsedMilliseconds();
 			}
 			else
 			{
 				m_idle.store(true, std::memory_order_release);
 				m_idleConditionVariable.notify_all();
+
+				Nz::UInt64 now = Nz::GetElapsedMilliseconds();
+				if (now - lastRequestTime > PingInterval)
+				{
+					lastRequestTime = Nz::GetElapsedMilliseconds();
+
+					auto pingResult = connection.ExecPreparedStatement("Ping", {});
+					if (!pingResult)
+						continue;
+				}
 			}
 		}
 	}

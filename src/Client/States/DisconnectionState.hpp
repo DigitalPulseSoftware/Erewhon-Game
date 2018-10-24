@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #pragma once
@@ -22,7 +22,7 @@ namespace ewn
 	class DisconnectionState final : public AbstractState
 	{
 		public:
-			using AbstractState::AbstractState;
+			inline DisconnectionState(StateData& stateData, bool quitApp);
 			~DisconnectionState() = default;
 
 		private:
@@ -30,16 +30,15 @@ namespace ewn
 			void Leave(Ndk::StateMachine& fsm) override;
 			bool Update(Ndk::StateMachine& fsm, float elapsedTime) override;
 
-			void CenterStatus();
+			void LayoutWidgets() override;
+
 			void OnServerDisconnected(ServerConnection* server, Nz::UInt32 data);
 			void UpdateStatus(const Nz::String& status, const Nz::Color& color = Nz::Color::White, bool center = true);
-
-			NazaraSlot(ServerConnection, OnDisconnected, m_onServerDisconnectedSlot);
-			NazaraSlot(Nz::RenderTarget, OnRenderTargetSizeChange, m_onTargetChangeSizeSlot);
 
 			Ndk::EntityOwner m_statusText;
 			Nz::TextSpriteRef m_statusSprite;
 			bool m_disconnected;
+			bool m_shouldQuitApp;
 			float m_accumulator;
 			float m_timeout;
 			unsigned int m_dotCounter;

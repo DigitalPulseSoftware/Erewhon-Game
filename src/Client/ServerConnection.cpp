@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Client" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Client/ServerConnection.hpp>
@@ -18,7 +18,7 @@ namespace ewn
 
 	Nz::UInt64 ServerConnection::EstimateServerTime() const
 	{
-		return ClientApplication::GetAppTime() + m_deltaTime;
+		return m_application.GetAppTime() + m_deltaTime;
 	}
 
 	void ServerConnection::UpdateNetworkStrings(ServerConnection* server, const Packets::NetworkStrings& data)

@@ -1,5 +1,5 @@
 // Copyright (C) 2018 Jérôme Leclercq
-// This file is part of the "Erewhon Shared" project
+// This file is part of the "Erewhon Server" project
 // For conditions of distribution and use, see copyright notice in LICENSE
 
 #include <Server/Components/ScriptComponent.hpp>
@@ -88,7 +88,7 @@ namespace ewn
 
 	bool ScriptComponent::Initialize(ServerApplication* app, const std::vector<std::size_t>& moduleIds)
 	{
-		m_core.emplace(m_entity);
+		m_core.emplace(app, m_entity);
 
 		const ModuleStore& moduleStore = app->GetModuleStore();
 		for (std::size_t moduleId : moduleIds)
@@ -100,6 +100,21 @@ namespace ewn
 			m_core->AddModule(std::move(modulePtr));
 		}
 
+		// Enums
+		constexpr std::size_t ModuleTypeCount = static_cast<std::size_t>(ModuleType::Max) + 1;
+
+		m_instance.PushTable(0, ModuleTypeCount);
+		for (std::size_t i = 0; i < ModuleTypeCount; ++i)
+		{
+			ModuleType type = static_cast<ModuleType>(i);
+
+			m_instance.PushString(EnumToString(type)); // k
+			m_instance.Push(type);
+			m_instance.SetTable(); // k = v
+		}
+		m_instance.SetGlobal("ModuleType");
+
+		// Spaceship global table
 		m_instance.PushTable();
 		{
 			m_core->Register(m_instance);
@@ -118,7 +133,7 @@ namespace ewn
 		if (!HasValidScript())
 			return true;
 
-		m_core->Run();
+		m_core->Run(elapsedTime);
 
 		std::string callbackName;
 		SpaceshipCore::CallbackArgFunction argFunction;
@@ -151,8 +166,24 @@ namespace ewn
 
 		incrementTickCount.CallAndReset();
 
+		m_instance.PushFunction([](Nz::LuaState& state) -> int
+		{
+			state.Traceback(state.ToString(-1));
+			return 1;
+		});
+
+		unsigned int popCount = 1;
+		Nz::CallOnExit popLuaStack([&]()
+		{
+			m_instance.Pop(popCount);
+		});
+
+		unsigned int errorHandler = m_instance.GetStackTop();
+
 		if (m_instance.GetGlobal("Spaceship") == Nz::LuaType_Table)
 		{
+			popCount++;
+
 			if (m_instance.GetField(callbackName) == Nz::LuaType_Function)
 			{
 				m_instance.PushValue(-2); // Spaceship
@@ -161,7 +192,7 @@ namespace ewn
 				if (argFunction)
 					argCount += argFunction(m_instance);
 
-				if (!m_instance.Call(argCount, 0))
+				if (!m_instance.CallWithHandler(argCount, 0, errorHandler))
 				{
 					if (lastError)
 						*lastError = m_instance.GetLastError();
@@ -171,9 +202,8 @@ namespace ewn
 				}
 			}
 			else
-				m_instance.Pop();
+				popCount++;
 		}
-		m_instance.Pop();
 
 		return true;
 	}
