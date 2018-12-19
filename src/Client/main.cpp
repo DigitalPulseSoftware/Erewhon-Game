@@ -118,8 +118,8 @@ int main()
 	Nz::SoundBufferParams soundParams;
 	soundParams.forceMono = true;
 
-	Nz::SoundBufferRef shootSound = Nz::SoundBuffer::New();
-	if (!shootSound->LoadFromFile(assetsFolder + "/sounds/laserTurretlow.ogg", soundParams))
+	Nz::SoundBufferRef shootSound = Nz::SoundBuffer::LoadFromFile(assetsFolder + "/sounds/laserTurretlow.ogg", soundParams);
+	if (!shootSound)
 		std::cerr << "Failed to load shoot sound" << std::endl;
 
 	Nz::SoundBufferLibrary::Register("ShootSound", std::move(shootSound));

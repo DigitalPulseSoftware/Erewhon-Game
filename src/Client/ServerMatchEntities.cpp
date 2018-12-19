@@ -695,8 +695,8 @@ namespace ewn
 		{
 			std::string filePath = assetsFolder + '/' + sound.filePath;
 
-			Nz::SoundBufferRef soundBuffer = Nz::SoundBuffer::New();
-			if (!soundBuffer->LoadFromFile(filePath, fileParams))
+			Nz::SoundBufferRef soundBuffer = Nz::SoundBuffer::LoadFromFile(filePath, fileParams);
+			if (!soundBuffer)
 				std::cerr << "Failed to load " << filePath << std::endl;
 
 			m_soundLibrary.emplace_back(std::move(soundBuffer));

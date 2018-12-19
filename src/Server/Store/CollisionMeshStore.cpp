@@ -47,11 +47,11 @@ namespace ewn
 
 				params.matrix = Nz::Matrix4f::Transform(Nz::Vector3f::Zero(), Nz::EulerAnglesf(0.f, 90.f, 0.f), Nz::Vector3f(meshData.scale));
 
-				Nz::Mesh mesh;
-				if (!mesh.LoadFromFile(assetsFolder + '/' + collisionInfo.filePath, params))
+				Nz::MeshRef mesh = Nz::Mesh::LoadFromFile(assetsFolder + '/' + collisionInfo.filePath, params);
+				if (!mesh)
 					throw std::runtime_error("Failed to load " + collisionInfo.filePath);
 
-				std::size_t subMeshCount = mesh.GetSubMeshCount();
+				std::size_t subMeshCount = mesh->GetSubMeshCount();
 				if (subMeshCount > 1)
 				{
 					// Multiple submeshes, build a compound collider
@@ -71,7 +71,7 @@ namespace ewn
 					std::vector<Nz::Vector3f> vertices;
 					for (std::size_t i = 0; i < subMeshCount; ++i)
 					{
-						Nz::VertexMapper vertexMapper(mesh.GetSubMesh(i), Nz::BufferAccess_ReadOnly);
+						Nz::VertexMapper vertexMapper(mesh->GetSubMesh(i), Nz::BufferAccess_ReadOnly);
 						Nz::SparsePtr<Nz::Vector3f> subMeshVertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
 
 						Nz::UInt32 vertexCount = vertexMapper.GetVertexCount();
@@ -85,7 +85,7 @@ namespace ewn
 				else
 				{
 					// One submesh, build one convex collider
-					Nz::VertexMapper vertexMapper(mesh.GetSubMesh(0), Nz::BufferAccess_ReadOnly);
+					Nz::VertexMapper vertexMapper(mesh->GetSubMesh(0), Nz::BufferAccess_ReadOnly);
 					Nz::SparsePtr<Nz::Vector3f> vertices = vertexMapper.GetComponentPtr<Nz::Vector3f>(Nz::VertexComponent_Position);
 
 					collisionInfo.collider = Nz::ConvexCollider3D::New(vertices, vertexMapper.GetVertexCount(), 0.01f);
