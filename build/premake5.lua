@@ -82,12 +82,7 @@ location(_ACTION)
 workspace(WorkspaceName)
 	configurations { "Debug", "Release" }
 	platforms("x64")
-
-	filter "configurations:*32"
-		architecture "x86"
-
-	filter "configurations:*64"
-		architecture "x86_64"
+	architecture "x86_64"
 
 	for _,data in pairs(Projects) do
 		project(data.Name)
@@ -125,13 +120,13 @@ workspace(WorkspaceName)
 					filter {}
 						includedirs(dir .. "/include")
 
-					filter {"architecture:x86", "system:not Windows", "configurations:Debug"}
-						libdirs(dir .. "/bin/debug")
-						libdirs(dir .. "/bin/x86/debug")
-
-					filter {"architecture:x86", "system:not Windows"}
-						libdirs(dir .. "/bin")
-						libdirs(dir .. "/bin/x86")
+					filter {"architecture:x86_64", "system:Windows", "configurations:Debug"}
+						libdirs(dir .. "/lib/debug")
+						libdirs(dir .. "/lib/x64/debug")
+					
+					filter {"architecture:x86_64", "system:Windows"}
+						libdirs(dir .. "/lib")
+						libdirs(dir .. "/lib/x64")
 
 					filter {"architecture:x86_64", "system:not Windows", "configurations:Debug"}
 						libdirs(dir .. "/bin/debug")
@@ -140,22 +135,6 @@ workspace(WorkspaceName)
 					filter {"architecture:x86_64", "system:not Windows"}
 						libdirs(dir .. "/bin")
 						libdirs(dir .. "/bin/x64")
-
-					filter {"architecture:x86", "system:Windows", "configurations:Debug"}
-						libdirs(dir .. "/lib/debug")
-						libdirs(dir .. "/lib/x86/debug")
-
-					filter {"architecture:x86", "system:Windows"}
-						libdirs(dir .. "/lib")
-						libdirs(dir .. "/lib/x86")
-
-					filter {"architecture:x86_64", "system:Windows", "configurations:Debug"}
-						libdirs(dir .. "/lib/debug")
-						libdirs(dir .. "/lib/x64/debug")
-					
-					filter {"architecture:x86_64", "system:Windows"}
-						libdirs(dir .. "/lib")
-						libdirs(dir .. "/lib/x64")
 				end
 			end
 			
